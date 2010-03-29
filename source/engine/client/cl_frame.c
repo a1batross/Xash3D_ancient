@@ -200,7 +200,7 @@ CL_ParseFrame
 */
 void CL_ParseFrame( sizebuf_t *msg )
 {
-	int	cmd, len, idx;
+	int	cmd, len, client_idx;
 	edict_t	*clent;
           
 	Mem_Set( &cl.frame, 0, sizeof( cl.frame ));
@@ -210,6 +210,12 @@ void CL_ParseFrame( sizebuf_t *msg )
 	cl.serverframetime = MSG_ReadLong( msg );
 	cl.frame.deltaframe = MSG_ReadLong( msg );
 	cl.surpressCount = MSG_ReadByte( msg );
+	client_idx = MSG_ReadByte( msg );
+
+	// read clientindex
+	clent = EDICT_NUM( client_idx ); // get client
+	if(( client_idx - 1 ) != cl.playernum )
+		Host_Error( "CL_ParseFrame: invalid playernum (%d should be %d)\n", client_idx - 1, cl.playernum );
 	
 	// If the frame is delta compressed from data that we
 	// no longer have available, we must suck up the rest of
@@ -251,14 +257,6 @@ void CL_ParseFrame( sizebuf_t *msg )
 	if( cmd != svc_packetentities ) Host_Error("CL_ParseFrame: not packetentities[%d]\n", cmd );
 	CL_ParsePacketEntities( msg, cl.oldframe, &cl.frame );
 
-	// read clientindex
-	cmd = MSG_ReadByte( msg );
-	if( cmd != svc_playerinfo ) Host_Error( "CL_ParseFrame: not clientindex\n" );
-	idx = MSG_ReadByte( msg );
-	clent = EDICT_NUM( idx ); // get client
-	if(( idx - 1 ) != cl.playernum )
-		Host_Error( "CL_ParseFrame: invalid playernum (%d should be %d)\n", idx-1, cl.playernum );
-
 	// save the frame off in the backup array for later delta comparisons
 	cl.frames[cl.frame.serverframe & UPDATE_MASK] = cl.frame;
 
@@ -271,6 +269,7 @@ void CL_ParseFrame( sizebuf_t *msg )
 		// client entered the game
 		cls.state = ca_active;
 		cl.force_refdef = true;
+		cls.drawplaque = true;
 
 		player = CL_GetLocalPlayer();
 		SCR_MakeLevelShot();	// make levelshot if needs

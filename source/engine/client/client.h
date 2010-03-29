@@ -12,13 +12,13 @@
 
 #define MAX_DEMOS		32
 #define COMMAND_HISTORY	32
-#define MAX_GAME_TITLES	1024
+#define MAX_MESSAGES	1024
 #define ColorIndex(c)	(((c) - '0') & 7)
 
-#define NUM_FOR_EDICT(e) ((int)((edict_t *)(e) - clgame.edicts))
-#define EDICT_NUM( num ) CL_EDICT_NUM( num, __FILE__, __LINE__ )
-#define STRING( offset ) CL_GetString( offset )
-#define MAKE_STRING(str) CL_AllocString( str )
+#define NUM_FOR_EDICT(e)	((int)((edict_t *)(e) - clgame.edicts))
+#define EDICT_NUM( num )	CL_EDICT_NUM( num, __FILE__, __LINE__ )
+#define STRING( offset )	CL_GetString( offset )
+#define MAKE_STRING(str)	CL_AllocString( str )
 
 // console stuff
 typedef struct
@@ -39,13 +39,13 @@ typedef struct player_info_s
 //=============================================================================
 typedef struct frame_s
 {
-	bool		valid;			// cleared if delta parsing was invalid
-	int		serverframe;
-	int		servertime;
-	int		deltaframe;
-	byte		areabits[MAX_MAP_AREA_BYTES];	// portalarea visibility bits
-	int		num_entities;
-	int		parse_entities;		// non-masked index into cl_parse_entities array
+	bool	valid;		// cleared if delta parsing was invalid
+	int	serverframe;
+	int	servertime;
+	int	deltaframe;
+	byte	areabits[MAX_MAP_AREA_BYTES];	// portalarea visibility bits
+	int	num_entities;
+	int	parse_entities;	// non-masked index into cl_parse_entities array
 } frame_t;
 
 #define CMD_BACKUP		64			// allow a lot of command backups for very fast systems
@@ -56,10 +56,8 @@ typedef struct frame_s
 // it can be un-deltad from the original 
 #define MAX_PARSE_ENTITIES		2048
 
-//
 // the client_t structure is wiped completely at every
 // server map change
-//
 typedef struct
 {
 	int		timeoutcount;
@@ -99,16 +97,14 @@ typedef struct
 	vec3_t		predicted_velocity;
 	vec3_t		prediction_error;
 
-	//
 	// server state information
-	//
 	int		playernum;
 	int		servercount;			// server identification for prespawns
 	int		serverframetime;			// server frametime
 	char		configstrings[MAX_CONFIGSTRINGS][CS_SIZE];
 	char		physinfo[MAX_INFO_STRING];		// physics info string
 
-	entity_state_t	entity_curstates[MAX_PARSE_ENTITIES];	// FIXME: this is must match with GI->max_edicts
+	entity_state_t	entity_curstates[MAX_PARSE_ENTITIES];	// FIXME: this is must match with max_edicts ?
 
 	// locally derived information from server state
 	model_t		models[MAX_MODELS];
@@ -253,7 +249,7 @@ typedef struct
 	draw_stuff_t	ds;			// draw2d stuff (hud, weaponmenu etc)
 	SCREENINFO	scrInfo;			// actual screen info
 
-	client_textmessage_t titles[MAX_GAME_TITLES];
+	client_textmessage_t *titles;			// title messages, not network messages
 	int		numTitles;
 
 	edict_t		viewent;			// viewmodel or playermodel in UI_PlayerSetup
@@ -389,7 +385,7 @@ void CL_PrepSound( void );
 //
 // cl_cmds.c
 //
-void CL_Quit_f (void);
+void CL_Quit_f( void );
 void CL_ScreenShot_f( void );
 void CL_EnvShot_f( void );
 void CL_SkyShot_f( void );
@@ -461,6 +457,7 @@ void CL_CenterPrint( const char *text, int y, int charWidth );
 bool CL_IsValidEdict( const edict_t *e );
 const char *CL_ClassName( const edict_t *e );
 void CL_SetEventIndex( const char *szEvName, int ev_index );
+void CL_TextMessageParse( byte *pMemFile, int fileSize );
 
 // TriAPI implementation
 void TriRenderMode( kRenderMode_t mode );

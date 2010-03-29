@@ -166,6 +166,13 @@ void SV_ActivateServer( void )
 {
 	int	i;
 
+	if( !svs.initialized )
+	{
+		// probably server.dll doesn't loading
+		Host_AbortCurrentFrame ();
+		return;
+	}
+
 	// Activate the DLL server code
 	svgame.dllFuncs.pfnServerActivate( svgame.edicts, svgame.globals->numEntities, svgame.globals->maxClients );
 
@@ -217,12 +224,9 @@ deactivate server, free edicts stringtables etc
 void SV_DeactivateServer( void )
 {
 	SV_FreeEdicts ();
-	sv.paused = false;
 	sv.state = ss_dead;
 
-	// leave unchanged, because we wan't load it twice
-//	if( !sv.loadgame ) StringTable_Clear( svgame.hStringTable );
-
+	StringTable_Clear( svgame.hStringTable );
 	svgame.dllFuncs.pfnServerDeactivate();
 
 	svgame.globals->maxEntities = GI->max_edicts;
@@ -263,6 +267,8 @@ void SV_LevelInit( const char *pMapName, char const *pOldLevel, char const *pLan
 	}
 	else
 	{
+		svgame.dllFuncs.pfnResetGlobalState();
+
 		SV_SpawnEntities( pMapName, CM_GetEntityScript( ));
 	}
 
@@ -282,39 +288,31 @@ bool SV_SpawnServer( const char *server, const char *startspot )
 {
 	uint	i, checksum;
 	int	current_skill;
-	bool	loadgame;
+	bool	loadgame, paused;
 
 	Msg( "SpawnServer [^2%s^7]\n", server );
 
 	Cmd_ExecuteString( "latch\n" );
 
-	if( sv.state == ss_dead && !sv.loadgame )
+	if( sv.state == ss_dead )
 		SV_InitGame(); // the game is just starting
 
 	if( !svs.initialized )
 		return false;
-
-	SV_BroadcastCommand( "changing\n" );
-
-	if( sv.state == ss_active )
-	{
-		SV_BroadcastCommand( "reconnect\n" );
-		SV_SendClientMessages();
-		SV_DeactivateServer (); // server is shutting down ...
-	}
 
 	svs.timestart = Sys_Milliseconds();
 	svs.spawncount++; // any partially connected client will be restarted
 
 	// save state
 	loadgame = sv.loadgame;
+	paused = sv.paused;
 
 	sv.state = ss_dead;
 	Host_SetServerState( sv.state );
 	Mem_Set( &sv, 0, sizeof( sv ));	// wipe the entire per-level structure
 
 	// restore state
-	sv.paused = false;
+	sv.paused = paused;
 	sv.loadgame = loadgame;
 
 	// initialize buffers
@@ -341,7 +339,6 @@ bool SV_SpawnServer( const char *server, const char *startspot )
 	sv.time = 1000;
 
 	FS_FileBase( server, sv.name ); // make sure what server name doesn't contain path and extension
-	com.strncpy( svs.mapname, sv.name, sizeof( svs.mapname ));
 	com.strncpy( sv.configstrings[CS_NAME], sv.name, CS_SIZE);
 	if( startspot ) com.strncpy( sv.startspot, startspot, sizeof( sv.startspot ));
 	else sv.startspot[0] = '\0';
@@ -394,7 +391,10 @@ void SV_InitGame( void )
 		if( !svgame.hInstance )
 		{
 			if( !SV_LoadProgs( "server.dll" ))
+			{
+				MsgDev( D_ERROR, "SV_InitGame: can't initialize server.dll\n" );
 				return; // can't loading
+			}
 		}
 
 		// make sure the client is down
@@ -449,8 +449,6 @@ void SV_InitGame( void )
 	svgame.globals->teamplay = Cvar_VariableInteger( "teamplay" );
 	svgame.globals->coop = Cvar_VariableInteger( "coop" );
 
-	svgame.dllFuncs.pfnResetGlobalState();
-
 	// heartbeats will always be sent to the id master
 	svs.last_heartbeat = MAX_HEARTBEAT; // send immediately
 	com.sprintf( idmaster, "192.246.40.37:%i", PORT_MASTER );
@@ -502,6 +500,7 @@ bool SV_NewGame( const char *mapName, bool loadGame )
 	{
 		SV_InactivateClients ();
 		SV_DeactivateServer ();
+		sv.loadgame = true;
 	}
 
 	if( !SV_SpawnServer( mapName, NULL ))

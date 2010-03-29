@@ -408,118 +408,20 @@ and hold them into permament memory pool
 */
 static void CL_InitTitles( const char *filename )
 {
-	token_t		token;
-	client_textmessage_t state;
-	char		*pName = NULL;
-	char		*pMessage = NULL;
-	script_t		*script;
+	size_t	fileSize;
+	byte	*pMemFile;
 
-	Mem_Set( &state, 0, sizeof( state ));	
-	Mem_Set( &clgame.titles, 0, sizeof( clgame.titles ));
+	// clear out any old data that's sitting around.
+	if( clgame.titles ) Mem_Free( clgame.titles );
+
+	clgame.titles = NULL;
 	clgame.numTitles = 0;
 
-	script = Com_OpenScript( filename, NULL, 0 );
-	if( !script ) return;
+	pMemFile = FS_LoadFile( filename, &fileSize );
+	if( !pMemFile ) return;
 
-	while( script )
-	{
-		if( !Com_ReadToken( script, SC_ALLOW_NEWLINES, &token ))
-			break;
-
-		if( !com.stricmp( token.string, "$" ))	// skip dollar
-			Com_ReadToken( script, false, &token );
-
-		if( !com.stricmp( token.string, "position" ))
-		{
-			Com_ReadFloat( script, false, &state.x );
-			Com_ReadFloat( script, false, &state.y );
-		}
-		else if( !com.stricmp( token.string, "effect" ))
-		{
-			Com_ReadUlong( script, false, &state.effect );
-		}
-		else if( !com.stricmp( token.string, "fadein" ))
-		{
-			Com_ReadFloat( script, false, &state.fadein );
-		}
-		else if( !com.stricmp( token.string, "fadeout" ))
-		{
-			Com_ReadFloat( script, false, &state.fadeout );
-		}
-		else if( !com.stricmp( token.string, "fxtime" ))
-		{
-			Com_ReadFloat( script, false, &state.fxtime );
-		}
-		else if( !com.stricmp( token.string, "holdtime" ))
-		{
-			Com_ReadFloat( script, false, &state.holdtime );
-		}
-		else if( !com.strnicmp( token.string, "color2", 6 ))
-		{
-			uint	temp;
-
-			Com_ReadUlong( script, false, &temp );
-			state.r2 = temp;
-			Com_ReadUlong( script, false, &temp );
-			state.g2 = temp;
-			Com_ReadUlong( script, false, &temp );
-			state.b2 = temp;
-
-			if( Com_ReadUlong( script, false, &temp ))
-				state.a2 = temp; // optional, nevers used in Half-Life
-			else state.a2 = 255;
-		}
-		else if( !com.stricmp( token.string, "color" ))
-		{
-			uint	temp;
-
-			Com_ReadUlong( script, false, &temp );
-			state.r1 = temp;
-			Com_ReadUlong( script, false, &temp );
-			state.g1 = temp;
-			Com_ReadUlong( script, false, &temp );
-			state.b1 = temp;
-
-			if( Com_ReadUlong( script, false, &temp ))
-				state.a1 = temp; // optional, nevers used in Half-Life
-			else state.a1 = 255;
-		}
-		else if( !com.stricmp( token.string, "{" ))
-		{
-			client_textmessage_t *newmsg;
-			const char	*buffer, *end;
-			size_t		size;
-                              
-                              Com_SaveToken( script, &token );
-			
-			// parse the message
-			buffer = script->text;
-			Com_SkipBracedSection( script, 0 );
-			end = script->text - 1; // skip '}'
-
-			if( !buffer ) buffer = script->buffer; // missing body ?
-			if( !end ) end = script->buffer + script->size;	// EOF ?
-			size = end - buffer;
-
-			pMessage = Mem_Alloc( cls.mempool, size + 1 );
-			Mem_Copy( pMessage, buffer, size );
-			pMessage[size] = 0; // terminator
-
-			// create new client textmessage
-			newmsg = &clgame.titles[clgame.numTitles];
-			Mem_Copy( newmsg, &state, sizeof( *newmsg ));
-
-			newmsg->pName = pName;
-			newmsg->pMessage = pMessage;
-			clgame.numTitles++;	// registered
-		}
-		else
-		{
-			// begin message declaration
-			pName = com.stralloc( cls.mempool, token.string, __FILE__, __LINE__ );
-		}
-	}
-	Com_CloseScript( script );
+	CL_TextMessageParse( pMemFile, fileSize );
+	Mem_Free( pMemFile );
 }
 
 /*
@@ -1385,7 +1287,7 @@ static int pfnDrawCharacter( int x, int y, int number, int r, int g, int b )
 	number &= 255;
 
 	if( !re ) return 0;
-	if( number == ' ' ) return 0;
+	if( number <= ' ' ) return 0;
 	if( y < -clgame.scrInfo.iCharHeight )
 		return 0;
 
@@ -2662,13 +2564,17 @@ bool CL_LoadProgs( const char *name )
 
 	if( !GetClientAPI )
 	{
-          	MsgDev( D_ERROR, "CL_LoadProgs: failed to get address of CreateAPI proc\n" );
+		FS_FreeLibrary( clgame.hInstance );
+          	MsgDev( D_NOTE, "CL_LoadProgs: failed to get address of CreateAPI proc\n" );
+		clgame.hInstance = NULL;
 		return false;
 	}
 
 	if( !GetClientAPI( &clgame.dllFuncs, &gEngfuncs, clgame.globals ))
 	{
-		MsgDev( D_ERROR, "CL_LoadProgs: can't init client API\n" );
+		FS_FreeLibrary( clgame.hInstance );
+		MsgDev( D_NOTE, "CL_LoadProgs: can't init client API\n" );
+		clgame.hInstance = NULL;
 		return false;
 	}
 

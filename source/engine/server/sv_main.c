@@ -594,7 +594,9 @@ void SV_FinalMessage( char *message, bool reconnect )
 
 	if( reconnect )
 	{
-		MSG_WriteByte( &msg, svc_reconnect );
+		if( sv.loadgame )
+			MSG_WriteByte( &msg, svc_changing );
+		else MSG_WriteByte( &msg, svc_reconnect );
 	}
 	else
 	{

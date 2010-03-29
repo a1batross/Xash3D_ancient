@@ -921,9 +921,16 @@ long _stdcall Sys_Crash( PEXCEPTION_POINTERS pInfo )
 		if( Sys.app_name == HOST_NORMAL || Sys.app_name == HOST_DEDICATED )
 			Cmd_ExecuteString( "@crashed\n" ); // tell server about crash
 		Msg( "Sys_Crash: call %p at address %p\n", pInfo->ExceptionRecord->ExceptionAddress, pInfo->ExceptionRecord->ExceptionCode );
-		Con_DestroyConsole();	
+
+		if( Sys.developer <= 0 )
+		{
+			// no reason to call debugger in release build - just exit
+			Sys_Exit();
+			return EXCEPTION_CONTINUE_EXECUTION;
+		}
 
 		// all other states keep unchanged to let debugger find bug
+		Con_DestroyConsole();
           }
 
 	if( Sys.oldFilter )

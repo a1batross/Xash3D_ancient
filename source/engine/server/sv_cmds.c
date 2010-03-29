@@ -263,7 +263,6 @@ void SV_Load_f( void )
 		Msg( "Usage: load <savename>\n" );
 		return;
 	}
-
 	SV_LoadGame( Cmd_Argv( 1 ));
 }
 
@@ -392,14 +391,10 @@ restarts current level
 */
 void SV_Restart_f( void )
 {
-	string	filename;
-	
 	if( sv.state != ss_active ) return;
-	com.strncpy( filename, svs.mapname, MAX_STRING );
-	FS_StripExtension( filename );
 
 	// just sending console command
-	Cbuf_AddText( va( "map %s\n", filename ));
+	Cbuf_AddText( va( "map %s\n", sv.name ));
 }
 
 void SV_Reload_f( void )

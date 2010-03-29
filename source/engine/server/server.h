@@ -11,13 +11,13 @@
 #include "com_world.h"
 
 //=============================================================================
-#define MAX_MASTERS			8 			// max recipients for heartbeat packets
-#define LATENCY_COUNTS		16
-#define MAX_ENT_CLUSTERS		16
-#define RATE_MESSAGES		10
+#define MAX_MASTERS		8 			// max recipients for heartbeat packets
+#define LATENCY_COUNTS	16
+#define MAX_ENT_CLUSTERS	16
+#define RATE_MESSAGES	10
 
 // hostflags
-#define SVF_SKIPLOCALHOST		BIT( 0 )
+#define SVF_SKIPLOCALHOST	BIT( 0 )
 
 #define NUM_FOR_EDICT(e)	((int)((edict_t *)(e) - svgame.edicts))
 #define EDICT_NUM( num )	SV_EDICT_NUM( num, __FILE__, __LINE__ )
@@ -37,7 +37,6 @@ typedef enum
 	cs_zombie,	// client has been disconnected, but don't reuse connection for a couple seconds
 	cs_connected,	// has been assigned to a sv_client_t, but not in game yet
 	cs_spawned	// client is fully in game
-
 } cl_state_t;
 
 typedef struct server_s
@@ -182,7 +181,7 @@ struct sv_priv_s
 // MAX_CHALLENGES is made large to prevent a denial
 // of service attack that could cycle all of them
 // out before legitimate users connected
-#define	MAX_CHALLENGES	1024
+#define MAX_CHALLENGES	1024
 
 typedef struct
 {
@@ -220,7 +219,6 @@ typedef struct
 	globalvars_t	*globals;			// server globals
 	DLL_FUNCTIONS	dllFuncs;			// dll exported funcs
 	byte		*private;			// server.dll private pool
-	byte		*temppool;		// for parse, save and restore edicts
 	byte		*mempool;			// server premamnent pool: edicts etc
 
 	int		hStringTable;		// stringtable handle
@@ -236,8 +234,6 @@ typedef struct
 	int		groupmask;
 	int		groupop;
 
-	char		mapname[CS_SIZE];		// current mapname 
-	string		comment;			// map name, e.t.c. 
 	int		spawncount;		// incremented each server start
 						// used to check late spawns
 	sv_client_t	*clients;			// [sv_maxclients->integer]
@@ -425,14 +421,8 @@ _inline edict_t *SV_EDICT_NUM( int n, const char * file, const int line )
 void SV_ClearSaveDir( void );
 void SV_SaveGame( const char *pName );
 bool SV_LoadGame( const char *pName );
-void SV_MergeLevelFile( const char *name );
 void SV_ChangeLevel( bool loadfromsavedgame, const char *mapname, const char *start );
-void SV_WriteSaveFile( const char *name, bool autosave, bool bUseLandmark );
-void SV_ReadSaveFile( const char *name );
-void SV_ReadLevelFile( const char *name );
 const char *SV_GetLatestSave( void );
-
-void SV_ClearSaveDir( void );
 int SV_LoadGameState( char const *level, bool createPlayers );
 void SV_LoadAdjacentEnts( const char *pOldLevel, const char *pLandmarkName );
 //============================================================

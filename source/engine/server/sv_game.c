@@ -3080,6 +3080,7 @@ pfnSetSkybox
 */
 void pfnSetSkybox( const char *name )
 {
+	if( sv.loadgame ) return; // sets by saverstore code
 	SV_ConfigString( CS_SKYNAME, name );
 }
 
@@ -3344,6 +3345,10 @@ bool SV_ParseEdict( script_t *script, edict_t *ent )
 		// ignore attempts to set key ""
 		if( !keyname[0] ) continue;
 
+		// "wad" field is comletely ignored
+		if( !com.strcmp( keyname, "wad" ))
+			continue;
+
 		// keynames with a leading underscore are used for utility comments,
 		// and are immediately discarded by engine
 		if( keyname[0] == '_' ) continue;
@@ -3357,8 +3362,8 @@ bool SV_ParseEdict( script_t *script, edict_t *ent )
 
 		// create keyvalue strings
 		pkvd[numpairs].szClassName = (char *)classname;	// unknown at this moment
-		pkvd[numpairs].szKeyName = com.stralloc( svgame.temppool, keyname, __FILE__, __LINE__ );
-		pkvd[numpairs].szValue = com.stralloc( svgame.temppool, token.string, __FILE__, __LINE__ );
+		pkvd[numpairs].szKeyName = copystring( keyname );
+		pkvd[numpairs].szValue = copystring( token.string );
 		pkvd[numpairs].fHandled = false;		
 
 		if( !com.strcmp( keyname, "classname" ) && classname == NULL )
@@ -3373,9 +3378,15 @@ bool SV_ParseEdict( script_t *script, edict_t *ent )
 
 	for( i = 0; i < numpairs; i++ )
 	{
-		if( pkvd[i].fHandled ) continue;
-		pkvd[i].szClassName = (char *)classname;
-		svgame.dllFuncs.pfnKeyValue( ent, &pkvd[i] );
+		if( !pkvd[i].fHandled )
+		{
+			pkvd[i].szClassName = (char *)classname;
+			svgame.dllFuncs.pfnKeyValue( ent, &pkvd[i] );
+		}
+
+		// no reason to keep this data
+		Mem_Free( pkvd[i].szKeyName );
+		Mem_Free( pkvd[i].szValue );
 	}
 	return true;
 }
@@ -3487,7 +3498,7 @@ void SV_SpawnEntities( const char *mapname, script_t *entities )
 	// spawn the rest of the entities on the map
 	SV_LoadFromFile( entities );
 
-	MsgDev( D_LOAD, "Total %i entities spawned\n", svgame.globals->numEntities );
+	MsgDev( D_NOTE, "Total %i entities spawned\n", svgame.globals->numEntities );
 }
 
 void SV_UnloadProgs( void )
@@ -3500,7 +3511,6 @@ void SV_UnloadProgs( void )
 	FS_FreeLibrary( svgame.hInstance );
 	Mem_FreePool( &svgame.mempool );
 	Mem_FreePool( &svgame.private );
-	Mem_FreePool( &svgame.temppool );
 	Mem_Set( &svgame, 0, sizeof( svgame ));
 }
 
@@ -3519,26 +3529,24 @@ bool SV_LoadProgs( const char *name )
 	svgame.globals = &gpGlobals;
 	svgame.mempool = Mem_AllocPool( "Server Edicts Zone" );
 	svgame.private = Mem_AllocPool( "Server Private Zone" );
-	svgame.temppool = Mem_AllocPool( "Server Temp Strings" );
 	svgame.hInstance = FS_LoadLibrary( name, true );
-
-	if( !svgame.hInstance )
-	{
-		MsgDev( D_ERROR, "SV_LoadProgs: can't initialize server.dll\n" );
-		return false;
-	}
+	if( !svgame.hInstance ) return false;
 
 	GetEntityAPI = (SERVERAPI)FS_GetProcAddress( svgame.hInstance, "CreateAPI" );
 
 	if( !GetEntityAPI )
 	{
-		MsgDev( D_ERROR, "SV_LoadProgs: failed to get address of CreateAPI proc\n" );
+		FS_FreeLibrary( svgame.hInstance );
+		MsgDev( D_NOTE, "SV_LoadProgs: failed to get address of CreateAPI proc\n" );
+		svgame.hInstance = NULL;
 		return false;
 	}
 
 	if( !GetEntityAPI( &svgame.dllFuncs, &gEngfuncs, svgame.globals ))
 	{
-		MsgDev( D_ERROR, "SV_LoadProgs: couldn't get entity API\n" );
+		FS_FreeLibrary( svgame.hInstance );
+		MsgDev( D_NOTE, "SV_LoadProgs: couldn't get entity API\n" );
+		svgame.hInstance = NULL;
 		return false;
 	}
 

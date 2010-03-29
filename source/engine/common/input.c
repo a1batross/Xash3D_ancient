@@ -349,8 +349,8 @@ void IN_Frame( void )
 		return;
 	}
 
-	if(( !cl.video_prepped || cl.refdef.paused ) && cls.key_dest == key_game )
-		shutdownMouse = true; // release mouse during vid_restart and during pause
+	if( cl.refdef.paused && cls.key_dest == key_game )
+		shutdownMouse = true; // release mouse during pause
 	
 	if( shutdownMouse && !Cvar_VariableInteger( "fullscreen" ))
 	{

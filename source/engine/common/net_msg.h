@@ -60,7 +60,7 @@ enum svc_ops_e
 	svc_configstring,		// [short] [string]
 	svc_spawnbaseline,		// valid only at spawn		
 	svc_download,		// [short] size [size bytes]
-	svc_playerinfo,		// [long]
+	svc_changing,		// changelevel server request
 	svc_physinfo,		// [physinfo string]
 	svc_packetentities,		// [...]
 	svc_frame,		// server frame

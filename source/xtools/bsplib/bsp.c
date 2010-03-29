@@ -790,8 +790,10 @@ int BSPMain( int argc, char **argv )
 	FS_Delete( path );
 	com.sprintf( path, "maps/%s.log", source );
 	FS_Delete( path );
-	com.snprintf( name, sizeof( name ), "maps/%s.map", gs_filename );	
+	com.snprintf( name, sizeof( name ), "maps/%s", gs_filename );	
 	enable_log = true;
+
+	FS_DefaultExtension( name, ".map" );
 
 	if( onlyents )
 	{

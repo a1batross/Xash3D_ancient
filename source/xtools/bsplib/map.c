@@ -1539,7 +1539,7 @@ void LoadMapFile( const char *filename, bool onlyLights )
 	Msg( "Loading %s\n", filename );
 	
 	mapfile = Com_OpenScript( filename, NULL, 0 );
-	if( !mapfile ) Sys_Break( "can't loading map file %s.map\n", filename );	
+	if( !mapfile ) Sys_Break( "can't loading map file %s\n", filename );	
 	
 	if( onlyLights ) 
 		oldNumEntities = numEntities;

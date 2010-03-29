@@ -4101,7 +4101,7 @@ ref_shader_t *R_SetupSky( const char *name )
 	if( tr.currentSkyShader == NULL )
 	{
 		if( !r_worldmodel ) MsgDev( D_ERROR, "R_SetupSky: map not loaded\n" );
-		else MsgDev( D_ERROR, "R_SetupSky: map %s not contain sky surfaces\n", r_worldmodel->name );  
+		else MsgDev( D_NOTE, "R_SetupSky: map %s not contain sky surfaces\n", r_worldmodel->name );  
 		return (tr.currentSkyShader) ? tr.currentSkyShader : tr.defaultShader;
 	}
 

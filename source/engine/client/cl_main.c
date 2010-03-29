@@ -211,7 +211,7 @@ void CL_CheckForResend( void )
 	netadr_t	adr;
 
 	// if the local server is running and we aren't then connect
-	if( cls.state == ca_disconnected && SV_Active())
+	if( cls.state == ca_disconnected && SV_Active( ))
 	{
 		cls.state = ca_connecting;
 		com.strncpy( cls.servername, "localhost", sizeof( cls.servername ));
@@ -223,17 +223,21 @@ void CL_CheckForResend( void )
 	// resend if we haven't gotten a reply yet
 	if( cls.demoplayback || cls.state != ca_connecting )
 		return;
-	if(( cls.realtime - cls.connect_time ) < 3000 ) return;
+
+	if(( cls.realtime - cls.connect_time ) < 3000 )
+		return;
 
 	if( !NET_StringToAdr( cls.servername, &adr ))
 	{
-		MsgDev(D_INFO, "CL_CheckForResend: bad server address\n");
+		MsgDev( D_ERROR, "CL_CheckForResend: bad server address\n" );
 		cls.state = ca_disconnected;
 		return;
 	}
+
 	if( adr.port == 0 ) adr.port = BigShort( PORT_SERVER );
 	cls.connect_time = cls.realtime; // for retransmit requests
-	Msg( "Connecting to %s...\n", cls.servername );
+
+	MsgDev( D_NOTE, "Connecting to %s...\n", cls.servername );
 	Netchan_OutOfBandPrint( NS_CLIENT, adr, "getchallenge\n" );
 }
 
@@ -497,30 +501,6 @@ void CL_Packet_f( void )
 
 	NET_SendPacket (NS_CLIENT, out-send, send, adr);
 }
-
-/*
-=================
-CL_Changing_f
-
-Just sent as a hint to the client that they should
-drop to full console
-=================
-*/
-void CL_Changing_f( void )
-{
-	// if we are downloading, we don't change!  This so we don't suddenly stop downloading a map
-	if( cls.download ) return;
-
-	// disable plaque draw on change map
-	cls.drawplaque = false;
-	Cmd_ExecuteString( "plaque\n" );
-
-	S_StopAllSounds();
-	cl.audio_prepped = false;	// don't play ambients
-//	cls.state = ca_connected;	// not active anymore, but not disconnected
-	Msg( "\nchanging map...\n" );
-}
-
 
 /*
 =================
@@ -1061,7 +1041,6 @@ void CL_InitLocal( void )
 	Cmd_AddCommand ("@crashed",  CL_Crashed_f, "" );	// internal system command
 	Cmd_AddCommand ("userinfo", CL_Userinfo_f, "print current client userinfo" );
 	Cmd_AddCommand ("physinfo", CL_Physinfo_f, "print current client physinfo" );
-	Cmd_AddCommand ("changing", CL_Changing_f, "sent by server to tell client to wait for level change" );
 	Cmd_AddCommand ("disconnect", CL_Disconnect_f, "disconnect from server" );
 	Cmd_AddCommand ("record", CL_Record_f, "record a demo" );
 	Cmd_AddCommand ("playdemo", CL_PlayDemo_f, "playing a demo" );

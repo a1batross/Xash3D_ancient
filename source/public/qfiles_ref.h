@@ -559,28 +559,11 @@ typedef struct
 ==============================================================================
 SAVE FILE
 
-included global, and both (client & server) pent list
+half-life implementation of saverestore system
 ==============================================================================
 */
 #define SAVEFILE_HEADER	(('V'<<24)+('L'<<16)+('A'<<8)+'V')	// little-endian "VALV"
 #define SAVEGAME_HEADER	(('V'<<24)+('A'<<16)+('S'<<8)+'J')	// little-endian "JSAV"
 #define SAVEGAME_VERSION	0x0071				// Version 0.71
-
-#define LUMP_CFGSTRING	"configstrings"
-#define LUMP_AREASTATE	"areaportals"
-#define LUMP_BASEENTS	"entities"	// entvars + CBase->fields
-#define LUMP_ENTTABLE	"enttable"	// entity transition table
-#define LUMP_ADJACENCY	"adjacency"	// Save Header + ADJACENCY
-#define LUMP_GLOBALS	"global_data"	// Game Header + Global State
-#define LUMP_GAMECVARS	"latched_cvars"	// sv.latched_cvars
-#define LUMP_HASHTABLE	"hashtable"	// contains string_t only for used hash-values
-
-#define DENT_KEY		0
-#define DENT_VAL		1
-
-typedef struct
-{
-	string_t		epair[2];		// 0 - key, 1 - value (indexes from stringtable)
-} dkeyvalue_t;
 
 #endif//REF_DFILES_H

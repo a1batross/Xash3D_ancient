@@ -368,6 +368,7 @@ void SV_WriteFrameToClient( sv_client_t *cl, sizebuf_t *msg )
 	MSG_WriteLong( msg, sv.frametime );
 	MSG_WriteLong( msg, lastframe );		// what we are delta'ing from
 	MSG_WriteByte( msg, cl->surpressCount );	// rate dropped packets
+	MSG_WriteByte( msg, frame->index );		// send a client index
 	cl->surpressCount = 0;
 
 	// send over the areabits
@@ -376,12 +377,6 @@ void SV_WriteFrameToClient( sv_client_t *cl, sizebuf_t *msg )
 
 	// delta encode the entities
 	SV_EmitPacketEntities( oldframe, frame, msg );
-
-	// just send an client index
-	// it's safe, because NUM_FOR_EDICT always equal ed->serialnumber,
-	// thats shared across network
-	MSG_WriteByte( msg, svc_playerinfo );
-	MSG_WriteByte( msg, frame->index );
 }
 
 

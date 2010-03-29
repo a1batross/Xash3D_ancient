@@ -691,10 +691,9 @@ void SV_PutClientInServer( edict_t *ent )
 		MSG_Send( MSG_ONE, NULL, client->edict );
 	}
 
-	Mem_EmptyPool( svgame.temppool ); // all tempstrings can be frees now
-
 	// clear any temp states
 	sv.loadgame = false;
+	sv.paused = false;
 
 	if( sv_maxclients->integer == 1 ) // singleplayer profiler
 		MsgDev( D_INFO, "level loaded at %g sec\n", (Sys_Milliseconds() - svs.timestart) * 0.001f );

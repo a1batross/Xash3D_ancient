@@ -582,6 +582,13 @@ void CMultiManager :: KeyValue( KeyValueData *pkvd )
 
 void CMultiManager :: Spawn( void )
 {
+	// LRC
+	if( m_cTargets > MAX_MULTI_TARGETS )
+	{
+		ALERT(at_warning, "multi_manager \"%s\" has too many targets (limit is %d, it has %d)\n", STRING( pev->targetname ), MAX_MULTI_TARGETS, m_cTargets );
+		m_cTargets = MAX_MULTI_TARGETS;
+	}
+
 	// check for invalid multi_managers
 	for ( int i = 0; i < m_cTargets; i++ )
 	{
@@ -592,18 +599,12 @@ void CMultiManager :: Spawn( void )
 			return;
 		}
 	}
+
 	pev->solid = SOLID_NOT;
 	SetUse(&CMultiManager :: ManagerUse );
 	SetThink(&CMultiManager :: ManagerThink);
 
 	m_iState = STATE_OFF;
-
-	//LRC
-	if (m_cTargets > MAX_MULTI_TARGETS)
-	{
-		ALERT(at_debug, "WARNING: multi_manager \"%s\" has too many targets (limit is %d, it has %d)\n", STRING(pev->targetname), MAX_MULTI_TARGETS, m_cTargets);
-		m_cTargets = MAX_MULTI_TARGETS;
-	}
 
 	if (!FBitSet(pev->spawnflags,SF_MULTIMAN_TRIGCHOSEN))
 		m_triggerType = USE_TOGGLE;

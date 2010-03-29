@@ -258,11 +258,11 @@ SOURCE=.\server\sv_save.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\server\sv_saverestore.c
+SOURCE=.\server\sv_world.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\server\sv_world.c
+SOURCE=.\common\titles.c
 # End Source File
 # Begin Source File
 
