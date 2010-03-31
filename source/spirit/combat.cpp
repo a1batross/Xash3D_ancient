@@ -853,6 +853,7 @@ void CGib :: Spawn( const char *szGibModel )
 //	pev->solid = SOLID_SLIDEBOX;/// hopefully this will fix the VELOCITY TOO LOW crap
 	pev->classname = MAKE_STRING("gib");
 
+	SetObjectClass( ED_NORMAL );	// AutoClassify can't determine gibs properly
 	SET_MODEL(ENT(pev), szGibModel);
 	UTIL_SetSize(pev, Vector( 0, 0, 0), Vector(0, 0, 0));
 

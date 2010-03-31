@@ -24,7 +24,7 @@ cvar_t	*sv_idealpitchscale;
 cvar_t	*sv_maxvelocity;
 cvar_t	*sv_gravity;
 cvar_t	*sv_stepheight;
-cvar_t	*sv_noreload;			// don't reload level state when reentering
+cvar_t	*sv_noreload;		// don't reload level state when reentering
 cvar_t	*sv_playersonly;
 cvar_t	*sv_rollangle;
 cvar_t	*sv_rollspeed;
@@ -40,8 +40,9 @@ cvar_t	*sv_stopspeed;
 cvar_t	*hostname;
 cvar_t	*sv_maxclients;
 cvar_t	*sv_check_errors;
-cvar_t	*public_server; // should heartbeats be sent
-cvar_t	*sv_reconnect_limit;// minimum seconds between connect messages
+cvar_t	*public_server;		// should heartbeats be sent
+cvar_t	*sv_reconnect_limit;	// minimum seconds between connect messages
+cvar_t	*serverinfo;
 cvar_t	*physinfo;
 
 void Master_Shutdown (void);
@@ -194,6 +195,28 @@ void SV_UpdateMovevars( void )
 		Mem_Copy( &svgame.oldmovevars, &svgame.movevars, sizeof( movevars_t )); // oldstate changed
 	}
 	physinfo->modified = false;
+}
+
+void pfnUpdateServerInfo( const char *szKey, const char *szValue, const char *unused, void *unused2 )
+{
+	cvar_t	*cv = Cvar_FindVar( szKey );
+
+	if( !cv || !cv->modified ) return; // this cvar not changed
+
+	MSG_WriteByte( &sv.multicast, svc_serverinfo );
+	MSG_WriteString( &sv.multicast, szKey );
+	MSG_WriteString( &sv.multicast, szValue );
+	MSG_Send( MSG_ALL, vec3_origin, NULL );
+	cv->modified = false; // reset state
+}
+
+void SV_UpdateServerInfo( void )
+{
+	if( !serverinfo->modified ) return;
+
+	Cvar_LookupVars( CVAR_SERVERINFO, NULL, NULL, pfnUpdateServerInfo ); 
+
+	serverinfo->modified = false;
 }
 
 /*
@@ -411,6 +434,9 @@ void SV_Frame( int time )
 	// let everything in the world think and move
 	SV_RunGameFrame ();
 
+	// refresh serverinfo on the client side
+	SV_UpdateServerInfo ();
+
 	// refresh physic movevars on the client side
 	SV_UpdateMovevars ();
 
@@ -561,6 +587,7 @@ void SV_Init( void )
 	sv_check_errors = Cvar_Get( "sv_check_errors", "0", CVAR_ARCHIVE, "ignore physic engine errors" );
 	sv_synchthink = Cvar_Get( "sv_fast_think", "0", CVAR_ARCHIVE, "allows entities to think more often than the server framerate" );
 	physinfo = Cvar_Get( "@physinfo", "0", CVAR_READ_ONLY, "" ); // use ->modified value only
+	serverinfo = Cvar_Get( "@serverinfo", "0", CVAR_READ_ONLY, "" ); // use ->modified value only
 	public_server = Cvar_Get ("public", "0", 0, "change server type from private to public" );
 	sv_reconnect_limit = Cvar_Get ("sv_reconnect_limit", "3", CVAR_ARCHIVE, "max reconnect attempts" );
 

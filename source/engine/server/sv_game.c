@@ -104,7 +104,7 @@ void SV_ConfigString( int index, const char *val )
 	}
 }
 
-static bool SV_EntitiesIn( int mode, vec3_t v1, vec3_t v2 )
+static bool SV_EntitiesIn( int mode, const vec3_t v1, const vec3_t v2 )
 {
 	int	leafnum, cluster;
 	int	area1, area2;
@@ -338,7 +338,12 @@ edict_t* SV_AllocPrivateData( edict_t *ent, string_t className )
 	LINK_ENTITY_FUNC	SpawnEdict;
 
 	pszClassName = STRING( className );
-	if( !ent ) ent = SV_AllocEdict();
+
+	if( !ent )
+	{
+		// allocate new one
+		ent = SV_AllocEdict();
+	}
 	else if( ent->free )
 	{
 		SV_InitEdict( ent ); // re-init edict
@@ -826,7 +831,7 @@ edict_t* pfnFindEntityByString( edict_t *pStartEdict, const char *pszField, cons
 	if( pStartEdict ) e = NUM_FOR_EDICT( pStartEdict );
 	if( !pszValue || !*pszValue ) return NULL;
 
-	while((desc = svgame.dllFuncs.pfnGetEntvarsDescirption( index++ )) != NULL )
+	while(( desc = svgame.dllFuncs.pfnGetEntvarsDescirption( index++ )) != NULL )
 	{
 		if( !com.strcmp( pszField, desc->fieldName ))
 			break;
@@ -841,7 +846,7 @@ edict_t* pfnFindEntityByString( edict_t *pStartEdict, const char *pszField, cons
 	for( e++; e < svgame.globals->numEntities; e++ )
 	{
 		ed = EDICT_NUM( e );
-		if( ed->free ) continue;
+		if( !SV_IsValidEdict( ed )) continue;
 
 		switch( desc->fieldType )
 		{
@@ -894,6 +899,7 @@ edict_t* pfnFindEntityByString( edict_t *pStartEdict, const char *pszField, cons
 ==============
 pfnGetEntityIllum
 
+FIXME: implement
 ==============
 */
 int pfnGetEntityIllum( edict_t* pEnt )
@@ -903,7 +909,7 @@ int pfnGetEntityIllum( edict_t* pEnt )
 		MsgDev( D_WARN, "SV_GetEntityIllum: invalid entity %s\n", SV_ClassName( pEnt ));
 		return 255;
 	}
-	return 255; // FIXME: implement
+	return 255;
 }
 
 /*
@@ -922,13 +928,13 @@ edict_t* pfnFindEntityInSphere( edict_t *pStartEdict, const float *org, float fl
 
 	flRadius *= flRadius;
 
-	if( pStartEdict )
+	if( SV_IsValidEdict( pStartEdict ))
 		e = NUM_FOR_EDICT( pStartEdict );
 
 	for( e++; e < svgame.globals->numEntities; e++ )
 	{
 		ent = EDICT_NUM( e );
-		if( ent->free ) continue;
+		if( !SV_IsValidEdict( ent )) continue;
 
 		distSquared = 0;
 		for( j = 0; j < 3 && distSquared <= flRadius; j++ )
@@ -957,15 +963,27 @@ return NULL instead of world
 */
 edict_t* pfnFindClientInPVS( edict_t *pEdict )
 {
-	edict_t	*pClient;
-	int	i;
+	edict_t		*pClient;
+	sv_client_t	*cl;
+	const float	*org;
+	int		i;
+
+	if( !SV_IsValidEdict( pEdict ))
+		return NULL;
 
 	for( i = 0; i < svgame.globals->maxClients; i++ )
 	{
 		pClient = EDICT_NUM( i + 1 );
-		if( pClient->free ) continue;
-		if( SV_EntitiesIn( DVIS_PVS, pEdict->v.origin, pClient->v.origin ))
-			return pEdict;
+		if(( cl = SV_ClientFromEdict( pClient, true )) == NULL )
+			continue;
+
+		// check for SET_VIEW
+		if( SV_IsValidEdict( cl->pViewEntity ))
+			org = cl->pViewEntity->v.origin;
+		else org = pClient->v.origin;
+
+		if( SV_EntitiesIn( DVIS_PVS, pEdict->v.origin, org ))
+			return pClient;
 	}
 	return NULL;
 }
@@ -979,15 +997,27 @@ return NULL instead of world
 */
 edict_t* pfnFindClientInPHS( edict_t *pEdict )
 {
-	edict_t	*pClient;
-	int	i;
+	edict_t		*pClient;
+	sv_client_t	*cl;
+	const float	*org;
+	int		i;
+
+	if( !SV_IsValidEdict( pEdict ))
+		return NULL;
 
 	for( i = 0; i < svgame.globals->maxClients; i++ )
 	{
 		pClient = EDICT_NUM( i + 1 );
-		if( pClient->free ) continue;
-		if( SV_EntitiesIn( DVIS_PHS, pEdict->v.origin, pClient->v.origin ))
-			return pEdict;
+		if(( cl = SV_ClientFromEdict( pClient, true )) == NULL )
+			continue;
+
+		// check for SET_VIEW
+		if( SV_IsValidEdict( cl->pViewEntity ))
+			org = cl->pViewEntity->v.origin;
+		else org = pClient->v.origin;
+
+		if( SV_EntitiesIn( DVIS_PHS, pEdict->v.origin, org ))
+			return pClient;
 	}
 	return NULL;
 }
@@ -1001,6 +1031,7 @@ pfnEntitiesInPVS
 edict_t* pfnEntitiesInPVS( edict_t *pplayer )
 {
 	edict_t	*pEdict, *chain;
+	vec3_t	checkPos;
 	int	i;
 
 	chain = NULL;
@@ -1011,8 +1042,14 @@ edict_t* pfnEntitiesInPVS( edict_t *pplayer )
 	for( i = svgame.globals->maxClients + 1; i < svgame.globals->numEntities; i++ )
 	{
 		pEdict = EDICT_NUM( i );
-		if( pEdict->free ) continue;
-		if( SV_EntitiesIn( DVIS_PVS, pEdict->v.origin, pplayer->v.origin ))
+
+		if( !SV_IsValidEdict( pEdict )) continue;
+
+		if( CM_GetModelType( pEdict->v.modelindex ) == mod_brush )
+			VectorAverage( pEdict->v.mins, pEdict->v.maxs, checkPos );
+		else VectorCopy( pEdict->v.origin, checkPos );
+
+		if( SV_EntitiesIn( DVIS_PVS, checkPos, pplayer->v.origin ))
 		{
 			pEdict->v.chain = chain;
 			chain = pEdict;
@@ -1030,6 +1067,7 @@ pfnEntitiesInPHS
 edict_t* pfnEntitiesInPHS( edict_t *pplayer )
 {
 	edict_t	*pEdict, *chain;
+	vec3_t	checkPos;
 	int	i;
 
 	chain = NULL;
@@ -1040,8 +1078,14 @@ edict_t* pfnEntitiesInPHS( edict_t *pplayer )
 	for( i = svgame.globals->maxClients + 1; i < svgame.globals->numEntities; i++ )
 	{
 		pEdict = EDICT_NUM( i );
-		if( pEdict->free ) continue;
-		if( SV_EntitiesIn( DVIS_PHS, pEdict->v.origin, pplayer->v.origin ))
+
+		if( !SV_IsValidEdict( pEdict )) continue;
+
+		if( CM_GetModelType( pEdict->v.modelindex ) == mod_brush )
+			VectorAverage( pEdict->v.mins, pEdict->v.maxs, checkPos );
+		else VectorCopy( pEdict->v.origin, checkPos );
+
+		if( SV_EntitiesIn( DVIS_PHS, checkPos, pplayer->v.origin ))
 		{
 			pEdict->v.chain = chain;
 			chain = pEdict;
@@ -1554,7 +1598,7 @@ FIXME: implement
 */
 static void pfnTraceSphere( const float *v1, const float *v2, int fNoMonsters, float radius, edict_t *pentToSkip, TraceResult *ptr )
 {
-	Host_Error( "not implemented\n" );
+	Host_Error( "SV_TraceSphere: not implemented\n" );
 }
 
 /*
@@ -1610,7 +1654,7 @@ void pfnGetAimVector( edict_t* ent, float speed, float *rgflReturn )
 		if( fNoFriendlyFire && ent->v.team > 0 && ent->v.team == check->v.team )
 			continue;	// don't aim at teammate
 		for( j = 0; j < 3; j++ )
-			end[j] = check->v.origin[j] + 0.5 * (check->v.mins[j] + check->v.maxs[j]);
+			end[j] = check->v.origin[j] + 0.5f * (check->v.mins[j] + check->v.maxs[j]);
 		VectorSubtract( end, start, dir );
 		VectorNormalize( dir );
 		dist = DotProduct( dir, svgame.globals->v_forward );
@@ -2021,6 +2065,8 @@ void pfnFreeEntPrivateData( edict_t *pEdict )
 	pEdict->pvPrivateData = NULL; // freed
 }
 
+#define HL_STRINGS
+
 /*
 =============
 SV_AllocString
@@ -2029,6 +2075,12 @@ SV_AllocString
 */
 string_t SV_AllocString( const char *szValue )
 {
+	if( sys_sharedstrings->integer )
+	{
+		const char *newString;
+		newString = com.stralloc( svgame.stringspool, szValue, __FILE__, __LINE__ );
+		return newString - svgame.globals->pStringBase;
+	}
 	return StringTable_SetString( svgame.hStringTable, szValue );
 }		
 
@@ -2040,6 +2092,8 @@ SV_GetString
 */
 const char *SV_GetString( string_t iString )
 {
+	if( sys_sharedstrings->integer )
+		return (svgame.globals->pStringBase + iString);
 	return StringTable_GetString( svgame.hStringTable, iString );
 }
 
@@ -2086,7 +2140,7 @@ pfnIndexOfEdict
 */
 int pfnIndexOfEdict( const edict_t *pEdict )
 {
-	if( !pEdict || pEdict->free )
+	if( !SV_IsValidEdict( pEdict ))
 		return NULLENT_INDEX;
 	return NUM_FOR_EDICT( pEdict );
 }
@@ -2113,14 +2167,20 @@ debug routine
 */
 edict_t* pfnFindEntityByVars( entvars_t *pvars )
 {
-	edict_t	*e = EDICT_NUM( 0 );
+	edict_t	*e;
 	int	i;
 
-	for( i = 0; i < svgame.globals->numEntities; i++, e++ )
+	// don't pass invalid arguments
+	if( !pvars ) return NULL;
+
+	for( i = 0; i < svgame.globals->numEntities; i++ )
 	{
-		if( e->free ) continue;
+		e = EDICT_NUM( i );
 		if( !memcmp( &e->v, pvars, sizeof( entvars_t )))
+		{
+			Msg( "FindEntityByVars: %s\n", SV_ClassName( e ));
 			return e;	// found it
+		}
 	}
 	return NULL;
 }
@@ -3325,7 +3385,7 @@ bool SV_ParseEdict( script_t *script, edict_t *ent )
 		if( token.string[0] == '}' ) break; // end of desc
 
 		// anglehack is to allow QuakeEd to write single scalar angles
-		// and allow them to be turned into vectors. (FIXME...)
+		// and allow them to be turned into vectors.
 		if( !com.strcmp( token.string, "angle" ))
 		{
 			com.strncpy( token.string, "angles", sizeof( token.string ));
@@ -3498,6 +3558,8 @@ void SV_SpawnEntities( const char *mapname, script_t *entities )
 	// spawn the rest of the entities on the map
 	SV_LoadFromFile( entities );
 
+	SV_FreeOldEntities (); // release all ents until map loading
+
 	MsgDev( D_NOTE, "Total %i entities spawned\n", svgame.globals->numEntities );
 }
 
@@ -3506,7 +3568,10 @@ void SV_UnloadProgs( void )
 	SV_DeactivateServer ();
 
 	svgame.dllFuncs.pfnGameShutdown ();
-	StringTable_Delete( svgame.hStringTable );
+
+	if( sys_sharedstrings->integer )
+		Mem_FreePool( &svgame.stringspool );
+	else StringTable_Delete( svgame.hStringTable );
 
 	FS_FreeLibrary( svgame.hInstance );
 	Mem_FreePool( &svgame.mempool );
@@ -3550,8 +3615,19 @@ bool SV_LoadProgs( const char *name )
 		return false;
 	}
 
-	// 65535 unique strings should be enough ...
-	if( !sv.loadgame ) svgame.hStringTable = StringTable_Create( "Server", 0x10000 );
+	svgame.globals->pStringBase = "";	// setup string base
+
+	if( sys_sharedstrings->integer )
+	{
+		// just use Half-Life system - base pointer and malloc
+		svgame.stringspool = Mem_AllocPool( "Server Strings" );
+	}
+	else
+	{
+		// 65535 unique strings should be enough ...
+		svgame.hStringTable = StringTable_Create( "Server", 0x10000 );
+	}
+
 	svgame.globals->maxEntities = GI->max_edicts;
 	svgame.globals->maxClients = sv_maxclients->integer;
 	svgame.edicts = Mem_Alloc( svgame.mempool, sizeof( edict_t ) * svgame.globals->maxEntities );

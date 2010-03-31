@@ -220,6 +220,7 @@ typedef struct
 	DLL_FUNCTIONS	dllFuncs;			// dll exported funcs
 	byte		*private;			// server.dll private pool
 	byte		*mempool;			// server premamnent pool: edicts etc
+	byte		*stringspool;		// for shared strings
 
 	int		hStringTable;		// stringtable handle
 	SAVERESTOREDATA	SaveData;			// shared struct, used for save data
@@ -277,6 +278,7 @@ extern	cvar_t		*sv_rollangle;
 extern	cvar_t		*sv_rollspeed;
 extern	cvar_t		*sv_maxspeed;
 extern	cvar_t		*sv_maxclients;
+extern	cvar_t		*serverinfo;
 extern	cvar_t		*physinfo;
 extern	sv_client_t	*sv_client;
 
@@ -324,6 +326,7 @@ bool SV_CheckWater( edict_t *ent );
 bool SV_RunThink( edict_t *ent );
 bool SV_UnstickEntity( edict_t *ent );
 void SV_FreeOldEntities( void );
+bool SV_TestEntityPosition( edict_t *ent, const vec3_t offset );	// for EntityInSolid checks
 
 //
 // sv_move.c
@@ -363,6 +366,7 @@ void SV_RunCmd( sv_client_t *cl, usercmd_t *ucmd );
 void SV_PostRunCmd( sv_client_t *cl );
 void SV_SetIdealPitch( sv_client_t *cl );
 void SV_InitClientMove( void );
+void SV_UpdateServerInfo( void );
 
 //
 // sv_cmds.c

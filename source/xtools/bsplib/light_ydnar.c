@@ -3542,7 +3542,7 @@ void CreateTraceLightsForBounds( vec3_t mins, vec3_t maxs, vec3_t normal, int nu
 
 void FreeTraceLights( light_trace_t *trace )
 {
-	if( trace->lights != NULL )
+	if( trace->lights != NULL && Mem_IsAllocated( basepool, trace->lights ))
 		Mem_Free( trace->lights );
 	trace->lights = NULL;
 }

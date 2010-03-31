@@ -99,6 +99,10 @@ typedef struct cl_globalvars_s
 	int		windowState;	// 0 - inactive (minimize, notfocus), 1 - active
 	int		maxEntities;
 	int		numEntities;	// actual ents count
+
+	const char	*pStringBase;	// actual only when sys_sharedstrings is 1
+
+	void		*pSaveData;	// (SAVERESTOREDATA *) pointer
 } cl_globalvars_t;
 
 typedef struct cl_enginefuncs_s

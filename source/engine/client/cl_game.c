@@ -46,6 +46,12 @@ CL_AllocString
 */
 string_t CL_AllocString( const char *szValue )
 {
+	if( sys_sharedstrings->integer )
+	{
+		const char *newString;
+		newString = com.stralloc( clgame.stringspool, szValue, __FILE__, __LINE__ );
+		return newString - clgame.globals->pStringBase;
+	}
 	return StringTable_SetString( clgame.hStringTable, szValue );
 }		
 
@@ -57,6 +63,8 @@ CL_GetString
 */
 const char *CL_GetString( string_t iString )
 {
+	if( sys_sharedstrings->integer )
+		return (clgame.globals->pStringBase + iString);
 	return StringTable_GetString( clgame.hStringTable, iString );
 }
 
@@ -486,7 +494,6 @@ void CL_DrawCrosshair( void )
 		vec3_t	forward;
 		vec3_t	point, screen;
 
-		// FIXME: this code is wrong
 		VectorAdd( cl.refdef.viewangles, cl.refdef.crosshairangle, angles );
 		AngleVectors( angles, forward, NULL, NULL );
 		VectorAdd( cl.refdef.vieworg, forward, point );
@@ -822,7 +829,11 @@ void CL_FreeEdicts( void )
 	if( clgame.baselines ) Mem_Free( clgame.baselines );
 
 	// clear globals
-	StringTable_Clear( clgame.hStringTable );
+
+	if( sys_sharedstrings->integer )
+		Mem_EmptyPool( clgame.stringspool );
+	else StringTable_Clear( clgame.hStringTable );
+
 	clgame.globals->numEntities = 0;
 	clgame.baselines = NULL;
 	clgame.edicts = NULL;
@@ -1031,12 +1042,64 @@ static void pfnSPR_DisableScissor( void )
 =========
 pfnSPR_GetList
 
-FIXME: implement original hl1 SPR_GetList
+for parsing half-life scripts - hud.txt etc
 =========
 */
 static client_sprite_t *pfnSPR_GetList( char *psz, int *piCount )
 {
-	return NULL;
+	client_sprite_t	*pList;
+	int		index, iTemp;
+	int		numSprites;
+	script_t		*script;
+	token_t		token;
+
+	if( piCount ) *piCount = 0;
+
+	script = Com_OpenScript( psz, NULL, 0 );
+	if( !script ) return NULL;
+          
+	Com_ReadUlong( script, false, &numSprites );
+
+	// name, res, pic, x, y, w, h
+	pList = Mem_Alloc( clgame.mempool, sizeof( *pList ) * numSprites );
+
+	for( index = 0; index < numSprites; index++ )
+	{
+		if( !Com_ReadToken( script, SC_ALLOW_NEWLINES, &token ))
+			break;
+
+		com.strncpy( pList[index].szName, token.string, sizeof( pList[index].szName ));
+
+		// read resolution
+		Com_ReadUlong( script, false, &iTemp );
+		pList[index].iRes = iTemp;
+
+		// read spritename
+		Com_ReadToken( script, false, &token );
+		com.strncpy( pList[index].szSprite, token.string, sizeof( pList[index].szSprite ));
+
+		// parse rectangle
+		Com_ReadUlong( script, false, &iTemp );
+		pList[index].rc.left = iTemp;
+
+		Com_ReadUlong( script, false, &iTemp );
+		pList[index].rc.top = iTemp;
+
+		Com_ReadUlong( script, false, &iTemp );
+		pList[index].rc.right = pList[index].rc.left + iTemp;
+
+		Com_ReadUlong( script, false, &iTemp );
+		pList[index].rc.bottom = pList[index].rc.top + iTemp;
+
+		if( piCount ) (*piCount)++;
+	}
+
+	if( index < numSprites )
+		MsgDev( D_WARN, "SPR_GetList: unexpected end of %s\n", psz );
+
+	Com_CloseScript( script );
+
+	return pList;
 }
 
 /*
@@ -1463,12 +1526,11 @@ static const char* pfnPhysInfo_ValueForKey( const char *key )
 =============
 pfnServerInfo_ValueForKey
 
-FIXME: this is valid only for local client
 =============
 */
 static const char* pfnServerInfo_ValueForKey( const char *key )
 {
-	return Info_ValueForKey( Cvar_Serverinfo(), key );
+	return Info_ValueForKey( cl.serverinfo, key );
 }
 
 /*
@@ -1917,7 +1979,7 @@ pfnStopAllSounds
 */
 void pfnStopAllSounds( edict_t *ent, int entchannel )
 {
-	// FIXME: this not valid code
+	// FIXME: this code is wrong
 	S_StopAllSounds ();
 }
 
@@ -1974,7 +2036,7 @@ VGui_GetPanel
 */
 void *VGui_GetPanel( void )
 {
-	// FIXME: implement
+	// UNDONE: wait for version 0.75
 	return NULL;
 }
 
@@ -1986,7 +2048,7 @@ VGui_ViewportPaintBackground
 */
 void VGui_ViewportPaintBackground( int extents[4] )
 {
-	// FIXME: implement
+	// UNDONE: wait for version 0.75
 }
 
 /*
@@ -2527,7 +2589,10 @@ void CL_UnloadProgs( void )
 	// deinitialize game
 	clgame.dllFuncs.pfnShutdown();
 
-	StringTable_Delete( clgame.hStringTable );
+	if( sys_sharedstrings->integer )
+		Mem_FreePool( &clgame.stringspool );
+	else StringTable_Delete( clgame.hStringTable );
+
 	FS_FreeLibrary( clgame.hInstance );
 	Mem_FreePool( &cls.mempool );
 	Mem_FreePool( &clgame.mempool );
@@ -2578,8 +2643,19 @@ bool CL_LoadProgs( const char *name )
 		return false;
 	}
 
-	// 65535 unique strings should be enough ...
-	clgame.hStringTable = StringTable_Create( "Client", 0x10000 );
+	clgame.globals->pStringBase = "";	// setup string base
+
+	if( sys_sharedstrings->integer )
+	{
+		// just use Half-Life system - base pointer and malloc
+		clgame.stringspool = Mem_AllocPool( "Client Strings" );
+	}
+	else
+	{
+		// 65535 unique strings should be enough ...
+		clgame.hStringTable = StringTable_Create( "Client", 0x10000 );
+	}
+
 	clgame.globals->maxEntities = GI->max_edicts; // merge during loading
 
 	// register svc_bad message

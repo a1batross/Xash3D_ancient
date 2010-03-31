@@ -27,6 +27,7 @@
 extern cvar_t	*scr_width;
 extern cvar_t	*scr_height;
 extern cvar_t	*allow_download;
+extern cvar_t	*sys_sharedstrings;
 
 extern string	video_dlls[MAX_RENDERS];
 extern string	audio_dlls[MAX_RENDERS];

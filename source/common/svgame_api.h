@@ -47,7 +47,7 @@ typedef struct globalvars_s
 	int		maxClients;
 	int		maxEntities;
 
-	const char	*pStringBase;
+	const char	*pStringBase;	// actual only when sys_sharedstrings is 1
 
 	void		*pSaveData;	// (SAVERESTOREDATA *) pointer
 	vec3_t		vecLandmarkOffset;

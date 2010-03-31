@@ -226,7 +226,10 @@ void SV_DeactivateServer( void )
 	SV_FreeEdicts ();
 	sv.state = ss_dead;
 
-	StringTable_Clear( svgame.hStringTable );
+	if( sys_sharedstrings->integer )
+		Mem_EmptyPool( svgame.stringspool );
+	else StringTable_Clear( svgame.hStringTable );
+
 	svgame.dllFuncs.pfnServerDeactivate();
 
 	svgame.globals->maxEntities = GI->max_edicts;

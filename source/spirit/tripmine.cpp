@@ -438,7 +438,7 @@ void CTripmine::PrimaryAttack( void )
 			SendWeaponAnim( TRIPMINE_ARM2 );
 
 			Vector angles = UTIL_VecToAngles( tr.vecPlaneNormal );
-			CBaseEntity *pEnt = CBaseEntity::Create( "monster_tripmine", tr.vecEndPos + tr.vecPlaneNormal * 4 + gpGlobals->v_up * -6, angles, m_pPlayer->edict() );
+			CBaseEntity *pEnt = CBaseEntity::Create( "monster_tripmine", tr.vecEndPos + tr.vecPlaneNormal * 5 + gpGlobals->v_up * -6, angles, m_pPlayer->edict() );
 			CTripmineGrenade *pMine = (CTripmineGrenade *)pEnt;
 		}
 	}

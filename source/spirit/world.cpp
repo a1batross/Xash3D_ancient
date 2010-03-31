@@ -154,7 +154,7 @@ void CDecal :: TriggerDecal ( CBaseEntity *pActivator, CBaseEntity *pCaller, USE
 		WRITE_SHORT( (int)pev->skin );
 		entityIndex = (short)ENTINDEX(trace.pHit);
 		WRITE_SHORT( entityIndex );
-		if ( entityIndex )
+		if( entityIndex != NULLENT_INDEX )
 			WRITE_SHORT( (int)VARS(trace.pHit)->modelindex );
 	MESSAGE_END();
 

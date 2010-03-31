@@ -22,7 +22,7 @@ char *svc_strings[256] =
 	"svc_configstring",
 	"svc_spawnbaseline",
 	"svc_download",
-	"svc_playerinfo",
+	"svc_changing",
 	"svc_physinfo",
 	"svc_packetentities",
 	"svc_frame",
@@ -38,7 +38,8 @@ char *svc_strings[256] =
 	"svc_soundfade",
 	"svc_bspdecal",
 	"svc_event",
-	"svc_event_reliable"
+	"svc_event_reliable",
+	"svc_serverinfo"
 };
 
 typedef struct
@@ -671,6 +672,23 @@ void CL_UpdateUserinfo( sizebuf_t *msg )
 }
 
 /*
+==============
+CL_ServerInfo
+
+change serverinfo
+==============
+*/
+void CL_ServerInfo( sizebuf_t *msg )
+{
+	char	key[MAX_MSGLEN];
+	char	value[MAX_MSGLEN];
+
+	com.strncpy( key, MSG_ReadString( msg ), sizeof( key ));
+	com.strncpy( value, MSG_ReadString( msg ), sizeof( value ));
+	Info_SetValueForKey( cl.serverinfo, key, value );
+}
+
+/*
 =====================================================================
 
 ACTION MESSAGES
@@ -797,6 +815,9 @@ void CL_ParseServerMessage( sizebuf_t *msg )
 			break;
 		case svc_updateuserinfo:
 			CL_UpdateUserinfo( msg );
+			break;
+		case svc_serverinfo:
+			CL_ServerInfo( msg );
 			break;
 		case svc_frame:
 			CL_ParseFrame( msg );

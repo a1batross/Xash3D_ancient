@@ -319,6 +319,7 @@ CBaseMonster* CCineMonster :: FindEntity( const char* sName, CBaseEntity *pActiv
 	pEntity = UTIL_FindEntityByTargetname(NULL, sName, pActivator);
 	//m_hTargetEnt = NULL;
 	CBaseMonster	*pMonster = NULL;
+	int	numIterations = 0;
 
 	while (pEntity)
 	{

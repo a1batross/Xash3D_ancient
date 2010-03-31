@@ -82,6 +82,7 @@ typedef struct
 
 	cinematics_t	*cin;
 
+	char		serverinfo[MAX_INFO_STRING];
 	player_info_t	players[MAX_CLIENTS];
 	event_state_t	events;
 
@@ -254,6 +255,7 @@ typedef struct
 
 	edict_t		viewent;			// viewmodel or playermodel in UI_PlayerSetup
 	edict_t		playermodel;		// uiPlayerSetup latched vars
+	byte		*stringspool;		// for shared strings
 	
 	int		numMessages;		// actual count of user messages
 	int		hStringTable;		// stringtable handle

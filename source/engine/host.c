@@ -27,6 +27,7 @@ dll_info_t vsound_dll = { "", NULL, "CreateAPI", NULL, NULL, 0, sizeof(vsound_ex
 dll_info_t physic_dll = { "", NULL, "CreateAPI", NULL, NULL, 0, sizeof(physic_exp_t), sizeof(stdlib_api_t) };
 
 cvar_t	*timescale;
+cvar_t	*sys_sharedstrings;
 cvar_t	*host_serverstate;
 cvar_t	*host_cheats;
 cvar_t	*host_maxfps;
@@ -745,6 +746,8 @@ void Host_InitCommon( const int argc, const char **argv )
 		host.developer = com.atoi( dev_level );
 
 	Host_InitEvents();
+
+	sys_sharedstrings = Cvar_Get( "sys_sharedstrings", "0", CVAR_SYSTEMINFO, "hl1 strings or stringtable" );
 
 	FS_LoadGameInfo( NULL );
 	Image_Init( GI->texmode, -1 );

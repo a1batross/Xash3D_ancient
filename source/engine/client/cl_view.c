@@ -149,6 +149,8 @@ V_PreRender
 */
 bool V_PreRender( void )
 {
+	bool	clearScene = true;
+
 	// too early
 	if( !re ) return false;
 
@@ -157,8 +159,11 @@ bool V_PreRender( void )
 	if( host.state == HOST_SLEEP )
 		return false;
 
-	re->BeginFrame( !cl.refdef.paused );
-	return true;
+	if( cl.refdef.paused || !cls.drawplaque )
+		clearScene = false;
+
+	re->BeginFrame( clearScene );
+	return cls.drawplaque;
 }
 
 /*

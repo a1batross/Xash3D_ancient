@@ -225,11 +225,6 @@ public:
 			m_MoveWith = ALLOC_STRING(pkvd->szValue);
 			pkvd->fHandled = TRUE;
 		}
-		else if (FStrEq(pkvd->szKeyName, "skill"))
-		{
-			m_iLFlags = atoi(pkvd->szValue);
-			pkvd->fHandled = TRUE;
-		}
 		else if (FStrEq(pkvd->szKeyName, "style"))
 		{
 			m_iStyle = atoi(pkvd->szValue);

@@ -42,7 +42,7 @@ SV_TestEntityPosition
 returns true if the entity is in solid currently
 ============
 */
-static bool SV_TestEntityPosition( edict_t *ent, const vec3_t offset )
+bool SV_TestEntityPosition( edict_t *ent, const vec3_t offset )
 {
 	vec3_t	org;
 	trace_t	trace;

@@ -399,14 +399,11 @@ void TE_ParseBSPDecal( void )
 
 	decalIndex = READ_SHORT();
 	entityIndex = READ_SHORT();
-
-	if( entityIndex != 0 )
-	{
+	if( entityIndex != NULLENT_INDEX )
 		modelIndex = READ_SHORT();
-	}
 
 	pEntity = GetEntityByIndex( entityIndex );
-	g_pTempEnts->PlaceDecal( pos, 2.0f, decalIndex );
+	g_pTempEnts->PlaceDecal( pos, 5.0f, decalIndex );
 }
 
 /*

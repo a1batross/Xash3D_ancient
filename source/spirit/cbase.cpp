@@ -186,7 +186,7 @@ int DispatchCreate( edict_t *pent, const char *szName )
 
 	// Xash3D extension
 	// handle virtual entities here
-	// simple example for potentially weapon_generic
+	// just example for future weapon_generic
 	if( !strncmp( szName, "weapon_", 7 ))
 	{
 		CBasePlayerWeapon *pWeapon = GetClassPtr((CBasePlayerWeapon *)VARS( pent ));
@@ -351,6 +351,7 @@ int DispatchRestore( edict_t *pent, SAVERESTOREDATA *pSaveData, int globalEntity
 			tmpRestore.ReadEntVars( "ENTVARS", &tmpVars );
 
 			// HACKHACK - reset the save pointers, we're going to restore for real this time
+			// NOTE: in Xash3D this pointers already sets by engine
 			pSaveData->size = pSaveData->pTable[pSaveData->currentIndex].location;
 			pSaveData->pCurrentData = pSaveData->pBaseData + pSaveData->size;
 			// -------------------
@@ -471,7 +472,7 @@ void SaveReadFields( SAVERESTOREDATA *pSaveData, const char *pname, void *pBaseD
 	restoreHelper.ReadFields( pname, pBaseData, pFields, fieldCount );
 }
 
-void OnFreeEntPrivateData( edict_s *pEdict )
+void OnFreeEntPrivateData( edict_t *pEdict )
 {
 	if( pEdict && pEdict->pvPrivateData )
 	{

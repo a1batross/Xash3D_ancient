@@ -78,6 +78,7 @@ enum svc_ops_e
 	svc_event,		// playback event queue
 	svc_event_reliable,		// playback event directly from message, not queue
 	svc_updateuserinfo,		// [byte] playernum, [string] userinfo
+	svc_serverinfo,		// [string] key [string] value
 };
 
 // client to server

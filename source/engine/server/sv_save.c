@@ -344,19 +344,16 @@ void LandmarkOrigin( SAVERESTOREDATA *pSaveData, vec3_t output, const char *pLan
 // if it contains any solid space?  or would that eliminate some entities we want to keep?
 int EntityInSolid( edict_t *ent )
 {
-	vec3_t	point;
 	edict_t	*pParent = ent->v.aiment;
 
 	// HACKHACK -- If you're attached to a client, always go through
-	if( pParent )
+	if( SV_IsValidEdict( pParent ))
 	{
 		if( pParent->v.flags & FL_CLIENT )
 			return 0;
 	}
-	VectorAverage( ent->v.absmin, ent->v.absmax, point );
 
-	// FIXME: probably this is doesn't working correctly
-	return (SV_PointContents( point ) == CONTENTS_SOLID);
+	return SV_TestEntityPosition( ent, vec3_origin );
 }
 
 void SV_ClearSaveDir( void )
@@ -1061,6 +1058,7 @@ int SV_CreateEntityTransitionList( SAVERESTOREDATA *pSaveData, int levelMask )
 				}
 				else if( active )
 				{
+					// create named entity
 					pent = SV_AllocPrivateData( NULL, pEntInfo->classname );
 				}
 			}
@@ -1083,7 +1081,7 @@ int SV_CreateEntityTransitionList( SAVERESTOREDATA *pSaveData, int levelMask )
 		pSaveData->currentIndex = i;
 		SaveRestore_Seek( pSaveData, pEntInfo->location );
 		
-		if( pent && ( pEntInfo->flags & levelMask )) // screen out the player if he's not to be spawned
+		if( SV_IsValidEdict( pent ) && ( pEntInfo->flags & levelMask )) // screen out the player if he's not to be spawned
 		{
 			if( pEntInfo->flags & FENTTABLE_GLOBAL )
 			{
@@ -1099,7 +1097,7 @@ int SV_CreateEntityTransitionList( SAVERESTOREDATA *pSaveData, int levelMask )
 			}
 			else 
 			{
-				MsgDev( D_INFO, "Transferring %s (%d)\n", STRING( pEntInfo->classname ), pent ? pent->serialnumber : -1 );
+				MsgDev( D_NOTE, "Transferring %s (%d)\n", STRING( pEntInfo->classname ), pent->serialnumber );
 
 				if( svgame.dllFuncs.pfnRestore( pent, pSaveData, false ) < 0 )
 				{
@@ -1107,7 +1105,7 @@ int SV_CreateEntityTransitionList( SAVERESTOREDATA *pSaveData, int levelMask )
 				}
 				else
 				{
-					if( !( pEntInfo->flags & FENTTABLE_PLAYER ) && EntityInSolid( pent ))
+					if(!( pEntInfo->flags & FENTTABLE_PLAYER ) && EntityInSolid( pent ))
 					{
 						// this can happen during normal processing - PVS is just a guess,
 						// some map areas won't exist in the new map

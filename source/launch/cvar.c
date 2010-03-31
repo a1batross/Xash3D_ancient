@@ -13,7 +13,7 @@ int		cvar_modifiedFlags;
 cvar_t		cvar_indexes[MAX_CVARS];
 static cvar_t	*hashTable[FILE_HASH_SIZE];
 cvar_t		*cvar_vars;
-cvar_t		*userinfo, *physinfo;
+cvar_t		*userinfo, *physinfo, *serverinfo;
 
 /*
 ================
@@ -361,7 +361,8 @@ cvar_t *Cvar_Set2 (const char *var_name, const char *value, bool force)
 	}
 
  	// nothing to change
-	if( !com.strcmp( value, var->string )) return var;
+	if( !com.strcmp( value, var->string ))
+		return var;
 
 	var->modified = true;
 	var->modificationCount++;
@@ -371,6 +372,9 @@ cvar_t *Cvar_Set2 (const char *var_name, const char *value, bool force)
 
 	if( var->flags & CVAR_PHYSICINFO )
 		physinfo->modified = true;	// transmit at next oportunity
+
+	if( var->flags & CVAR_SERVERINFO )
+		serverinfo->modified = true;	// transmit at next oportunity
 	
 	// free the old value string
 	Mem_Free( var->string );
@@ -912,6 +916,7 @@ void Cvar_Init( void )
 	ZeroMemory( hashTable, sizeof( *hashTable ) * FILE_HASH_SIZE );
 	userinfo = Cvar_Get( "@userinfo", "0", CVAR_READ_ONLY, "" ); // use ->modified value only
 	physinfo = Cvar_Get( "@physinfo", "0", CVAR_READ_ONLY, "" ); // use ->modified value only
+	serverinfo = Cvar_Get( "@serverinfo", "0", CVAR_READ_ONLY, "" ); // use ->modified value only
 
 	Cmd_AddCommand ("toggle", Cvar_Toggle_f, "toggles a console variable's values (use for more info)" );
 	Cmd_AddCommand ("set", Cvar_Set_f, "create or change the value of a console variable" );

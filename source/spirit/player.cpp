@@ -3624,16 +3624,8 @@ void CBasePlayer::CheatImpulseCommands( int iImpulse )
 	{
 	case 76:
 		{
-			if (!giPrecacheGrunt)
-			{
-				giPrecacheGrunt = 1;
-				ALERT(at_debug, "You must now restart to use Grunt-o-matic.\n");
-			}
-			else
-			{
-				UTIL_MakeVectors( Vector( 0, pev->viewangles.y, 0 ) );
-				Create("monster_human_grunt", pev->origin + gpGlobals->v_forward * 128, pev->angles);
-			}
+			UTIL_MakeVectors( Vector( 0, pev->viewangles.y, 0 ) );
+			Create("monster_human_grunt", pev->origin + gpGlobals->v_forward * 128, pev->angles);
 			break;
 		}
 
