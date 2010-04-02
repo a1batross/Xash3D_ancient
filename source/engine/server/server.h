@@ -331,9 +331,9 @@ bool SV_TestEntityPosition( edict_t *ent, const vec3_t offset );	// for EntityIn
 //
 // sv_move.c
 //
-bool SV_WalkMove( edict_t *ent, vec3_t move, int iMode );
+bool SV_WalkMove( edict_t *ent, const vec3_t move, int iMode );
 void SV_MoveToOrigin( edict_t *ed, const vec3_t goal, float dist, int iMode );
-bool SV_CheckBottom( edict_t *ent, int iMode );
+bool SV_CheckBottom( edict_t *ent, float flStepSize, int iMode );
 float SV_VecToYaw( const vec3_t src );
 
 //

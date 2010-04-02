@@ -19,10 +19,9 @@ is not a staircase.
 
 =============
 */
-bool SV_CheckBottom( edict_t *ent, int iMode )
+bool SV_CheckBottom( edict_t *ent, float flStepSize, int iMode )
 {
 	vec3_t	mins, maxs, start, stop;
-	bool	realcheck = false;
 	float	mid, bottom;
 	trace_t	trace;
 	int	x, y;
@@ -40,26 +39,20 @@ bool SV_CheckBottom( edict_t *ent, int iMode )
 		{
 			start[0] = x ? maxs[0] : mins[0];
 			start[1] = y ? maxs[1] : mins[1];
-			if( SV_BaseContents( start, ent ) & MASK_SOLID )
-			{
-				realcheck = true;
-				break;
-			}
+
+			if( SV_PointContents( start ) != CONTENTS_SOLID )
+				goto realcheck;
 		}
-		if( realcheck )
-			break;
 	}
-
-	if( !realcheck )
-		return true; // we got out easy
-
+	return true; // we got out easy
+realcheck:
 	// check it for real...
-	start[2] = mins[2] + svgame.movevars.stepsize;
+	start[2] = mins[2] + flStepSize;
 
 	// the midpoint must be within 16 of the bottom
 	start[0] = stop[0] = (mins[0] + maxs[0]) * 0.5f;
 	start[1] = stop[1] = (mins[1] + maxs[1]) * 0.5f;
-	stop[2] = start[2] - 2 * svgame.movevars.stepsize;
+	stop[2] = start[2] - 2 * flStepSize;
 
 	if( iMode == WALKMOVE_WORLDONLY )
 		trace = SV_Move( start, vec3_origin, vec3_origin, stop, MOVE_WORLDONLY, ent );
@@ -83,7 +76,7 @@ bool SV_CheckBottom( edict_t *ent, int iMode )
 
 			if( trace.flFraction != 1.0f && trace.vecEndPos[2] > bottom )
 				bottom = trace.vecEndPos[2];
-			if( trace.flFraction == 1.0f || mid - trace.vecEndPos[2] > svgame.movevars.stepsize )
+			if( trace.flFraction == 1.0f || mid - trace.vecEndPos[2] > flStepSize )
 				return false;
 		}
 	}
@@ -120,11 +113,11 @@ SV_WalkMove
 
 ======================
 */
-bool SV_WalkMove( edict_t *ent, vec3_t move, int iMode )
+bool SV_WalkMove( edict_t *ent, const vec3_t move, int iMode )
 {
 	trace_t	trace;
 	vec3_t	oldorg, neworg, end;
-	edict_t	*groundent = NULL;
+	float	flStepSize;
 	bool	relink;
 
 	if( iMode == WALKMOVE_NORMAL )
@@ -133,50 +126,43 @@ bool SV_WalkMove( edict_t *ent, vec3_t move, int iMode )
 
 	// try the move
 	VectorCopy( ent->v.origin, oldorg );
-   
+	VectorAdd( oldorg, move, neworg );
+		   
 	// flying pawns don't step up
 	if( ent->v.flags & ( FL_SWIM|FL_FLY ))
 	{
-		VectorAdd( oldorg, move, neworg );
-
 		if( iMode == WALKMOVE_WORLDONLY )
 			trace = SV_Move( oldorg, ent->v.mins, ent->v.maxs, neworg, MOVE_WORLDONLY, ent );
 		else trace = SV_Move( oldorg, ent->v.mins, ent->v.maxs, neworg, MOVE_NORMAL|FTRACE_SIMPLEBOX, ent );
 
 		if( trace.flFraction == 1.0f )
 		{
-			if(( ent->v.flags & FL_SWIM ) && !( SV_BaseContents(trace.vecEndPos, ent) & MASK_WATER ))
-				return false; // swimming pawn left water
+			if( ent->v.flags & FL_SWIM && SV_PointContents( trace.vecEndPos ) == CONTENTS_EMPTY )
+				return false; // swim monster left water
 
 			VectorCopy( trace.vecEndPos, ent->v.origin );
-
-			if( !VectorCompare( ent->v.origin, oldorg ))
-				SV_LinkEdict( ent, relink );
-
+			SV_LinkEdict( ent, relink );
 			return true;
 		}
 		return false;
 	}
 
-	VectorAdd( oldorg, move, neworg );
-
 	// push down from a step height above the wished position
-	neworg[2] += svgame.movevars.stepsize;
+	flStepSize = svgame.movevars.stepsize;
+	neworg[2] += flStepSize;
 	VectorCopy( neworg, end );
-	end[2] -= svgame.movevars.stepsize * 2;
+	end[2] -= flStepSize * 2;
 
 	if( iMode == WALKMOVE_WORLDONLY )
 		trace = SV_Move( neworg, ent->v.mins, ent->v.maxs, end, MOVE_WORLDONLY, ent );
 	else trace = SV_Move( neworg, ent->v.mins, ent->v.maxs, end, MOVE_NORMAL|FTRACE_SIMPLEBOX, ent );
     
 	if( trace.fAllSolid )
-	{
-		Msg( "WalkMove: all solid\n" );
 		return false;
-	}
+
 	if( trace.fStartSolid )
 	{
-		neworg[2] -= svgame.movevars.stepsize;
+		neworg[2] -= flStepSize;
 
 		if( iMode == WALKMOVE_WORLDONLY )
 			trace = SV_Move( neworg, ent->v.mins, ent->v.maxs, end, MOVE_WORLDONLY, ent );
@@ -195,10 +181,7 @@ bool SV_WalkMove( edict_t *ent, vec3_t move, int iMode )
 		if( ent->v.flags & FL_PARTIALGROUND )
 		{
 			VectorAdd( ent->v.origin, move, ent->v.origin );
-
-			if( !VectorCompare( ent->v.origin, oldorg ))
-				SV_LinkEdict( ent, relink );
-
+			SV_LinkEdict( ent, relink );
 			ent->v.flags &= ~FL_ONGROUND;
 			return true;
 		}
@@ -208,28 +191,14 @@ bool SV_WalkMove( edict_t *ent, vec3_t move, int iMode )
 
 	// check point traces down for dangling corners
 	VectorCopy( trace.vecEndPos, ent->v.origin );
-	groundent = trace.pHit;
 
-	// check our pos
-	if( iMode == WALKMOVE_WORLDONLY )
-		trace = SV_Move( ent->v.origin, ent->v.mins, ent->v.maxs, ent->v.origin, MOVE_WORLDONLY, ent );
-	else trace = SV_Move( ent->v.origin, ent->v.mins, ent->v.maxs, ent->v.origin, MOVE_NORMAL|FTRACE_SIMPLEBOX, ent );
-
-	if( trace.fStartSolid )
-	{
-		VectorCopy( oldorg, ent->v.origin );
-		Msg( "WalkMove: start solid\n" );
-		return false;
-	}
-
-	if( !SV_CheckBottom( ent, iMode ))
+	if( !SV_CheckBottom( ent, flStepSize, iMode ))
 	{
 		if( ent->v.flags & FL_PARTIALGROUND )
 		{    
 			// actor had floor mostly pulled out from underneath it
 			// and is trying to correct
-			if( !VectorCompare( ent->v.origin, oldorg ))
-				SV_LinkEdict( ent, relink );
+			SV_LinkEdict( ent, relink );
 			Msg( "WalkMove: partialground - ok\n" );
 			return true;
 		}
@@ -243,11 +212,11 @@ bool SV_WalkMove( edict_t *ent, vec3_t move, int iMode )
 	if( ent->v.flags & FL_PARTIALGROUND )
 		ent->v.flags &= ~FL_PARTIALGROUND;
 
-	ent->v.groundentity = groundent;
+	ent->v.groundentity = trace.pHit;
 
 	// the move is ok
-	if( !VectorCompare( ent->v.origin, oldorg ))
-		SV_LinkEdict( ent, relink );
+	SV_LinkEdict( ent, relink );
+
 	return true;
 }
 
@@ -264,7 +233,7 @@ bool SV_StepDirection( edict_t *ent, float yaw, float dist, int iMode )
 	vec3_t	move, oldorigin;
 	float	delta;
 
-	yaw = yaw * M_PI*2 / 360;
+	yaw = yaw * M_PI * 2 / 360;
 	VectorSet( move, com.cos( yaw ) * dist, com.sin( yaw ) * dist, 0.0f );
 	VectorCopy( ent->v.origin, oldorigin );
 
@@ -328,7 +297,7 @@ CLIENT MOVEMENT CODE
 
 ============================================================
 */
-// builtins
+// pm builtins
 /*
 =================
 PM_ClientPrintf
@@ -480,10 +449,9 @@ static void PM_CheckMovingGround( edict_t *ent, float frametime )
 
 static void PM_SetupMove( playermove_t *pmove, edict_t *clent, usercmd_t *ucmd, const char *physinfo )
 {
-	edict_t	*ent;
-	float	eorg, distSquared;
-	float	flRadius = 12.0f;
-	int	j, e;
+	edict_t	*hit, *touch[MAX_EDICTS];
+	vec3_t	absmin, absmax;
+	int	i, count;
 
 	pmove->multiplayer = (sv_maxclients->integer > 1) ? true : false;
 	pmove->serverflags = svgame.globals->serverflags;	// shared serverflags
@@ -505,11 +473,14 @@ static void PM_SetupMove( playermove_t *pmove, edict_t *clent, usercmd_t *ucmd, 
 	VectorCopy( clent->v.velocity, pmove->velocity );
 	VectorCopy( clent->v.basevelocity, pmove->basevelocity );
 
-	flRadius *= flRadius;
 	pmove->numladders = 0;
+	VectorCopy( clent->v.absmin, absmin );
+	VectorCopy( clent->v.absmax, absmax );
+
+	count = SV_AreaEdicts( absmin, absmax, touch, MAX_EDICTS, AREA_WATER );
 
 	// build list of ladders around player
-	for( e = 1; e < svgame.globals->numEntities; e++ )
+	for( i = 0; i < count; i++ )
 	{
 		if( pmove->numladders >= MAX_LADDERS )
 		{
@@ -517,25 +488,14 @@ static void PM_SetupMove( playermove_t *pmove, edict_t *clent, usercmd_t *ucmd, 
 			break;
 		}
 
-		ent = EDICT_NUM( e );
-		if( ent->free ) continue;
+		hit = touch[i];
 
-		distSquared = 0;
-		for( j = 0; j < 3 && distSquared <= flRadius; j++ )
-		{
-			if( pmove->origin[j] < ent->v.absmin[j] )
-				eorg = pmove->origin[j] - ent->v.absmin[j];
-			else if( pmove->origin[j] > ent->v.absmax[j] )
-				eorg = pmove->origin[j] - ent->v.absmax[j];
-			else eorg = 0;
+		if( hit == clent ) continue;
+		if( hit->v.solid != SOLID_NOT || hit->v.skin != CONTENTS_LADDER )
+			continue; // not ladder
 
-			distSquared += eorg * eorg;
-		}
-		if( distSquared > flRadius )
-			continue;
-		if( ent->v.skin != CONTENTS_LADDER )
-			continue;
-		pmove->ladders[pmove->numladders++] = ent;
+		// store ladder
+		pmove->ladders[pmove->numladders++] = hit;
 	}
 }
 

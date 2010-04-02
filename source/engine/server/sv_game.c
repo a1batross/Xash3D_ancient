@@ -60,25 +60,29 @@ float SV_AngleMod( float ideal, float current, float speed )
 {
 	float	move;
 
-	if( current == ideal ) // already there?
-		return anglemod( current ); 
+	if( anglemod( current ) == ideal ) // already there?
+		return current; 
 
 	move = ideal - current;
 	if( ideal > current )
 	{
-		if( move >= 180 ) move = move - 360;
+		if( move >= 180 )
+			move = move - 360;
 	}
 	else
 	{
-		if( move <= -180 ) move = move + 360;
+		if( move <= -180 )
+			move = move + 360;
 	}
 	if( move > 0 )
 	{
-		if( move > speed ) move = speed;
+		if( move > speed )
+			move = speed;
 	}
 	else
 	{
-		if( move < -speed ) move = -speed;
+		if( move < -speed )
+			move = -speed;
 	}
 	return anglemod( current + move );
 }
@@ -768,6 +772,12 @@ void pfnMoveToOrigin( edict_t *ent, const float *pflGoal, float dist, int iMoveT
 		return;
 	}
 
+	if( !pflGoal )
+	{
+		MsgDev( D_WARN, "SV_MoveToOrigin: invalid goal pos\n" );
+		return;
+	}
+
 	SV_MoveToOrigin( ent, pflGoal, dist, iMoveType );
 }
 
@@ -779,16 +789,13 @@ pfnChangeYaw
 */
 void pfnChangeYaw( edict_t* ent )
 {
-	float	current;
-
 	if( !SV_IsValidEdict( ent ))
 	{
 		MsgDev( D_WARN, "SV_ChangeYaw: invalid entity %s\n", SV_ClassName( ent ));
 		return;
 	}
 
-	current = anglemod( ent->v.angles[YAW] );
-	ent->v.angles[YAW] = SV_AngleMod( ent->v.ideal_yaw, current, ent->v.yaw_speed );
+	ent->v.angles[YAW] = SV_AngleMod( ent->v.ideal_yaw, ent->v.angles[YAW], ent->v.yaw_speed );
 }
 
 /*
@@ -799,16 +806,13 @@ pfnChangePitch
 */
 void pfnChangePitch( edict_t* ent )
 {
-	float	current;
-
 	if( !SV_IsValidEdict( ent ))
 	{
 		MsgDev( D_WARN, "SV_ChangePitch: invalid entity %s\n", SV_ClassName( ent ));
 		return;
 	}
 
-	current = anglemod( ent->v.angles[PITCH] );
-	ent->v.angles[PITCH] = SV_AngleMod( ent->v.ideal_pitch, current, ent->v.pitch_speed );	
+	ent->v.angles[PITCH] = SV_AngleMod( ent->v.ideal_pitch, ent->v.angles[PITCH], ent->v.pitch_speed );	
 }
 
 /*
@@ -1275,11 +1279,12 @@ int pfnWalkMove( edict_t *ent, float yaw, float dist, int iMode )
 		return false;
 	}
 
-	if(!( ent->v.flags & (FL_FLY|FL_SWIM|FL_ONGROUND)))
+	if(!( ent->v.flags & ( FL_FLY|FL_SWIM|FL_ONGROUND )))
 		return false;
 
 	yaw = yaw * M_PI * 2 / 360;
 	VectorSet( move, com.cos( yaw ) * dist, com.sin( yaw ) * dist, 0.0f );
+
 	return SV_WalkMove( ent, move, iMode );
 }
 
@@ -1591,14 +1596,22 @@ static const char *pfnTraceTexture( edict_t *pTextureEntity, const float *v1, co
 
 /*
 =============
-pfnTraceSphere
+pfnTestEntityPosition
 
-FIXME: implement
+returns true if the entity is in solid currently
 =============
 */
-static void pfnTraceSphere( const float *v1, const float *v2, int fNoMonsters, float radius, edict_t *pentToSkip, TraceResult *ptr )
+static int pfnTestEntityPosition( edict_t *pTestEdict, const float *offset )
 {
-	Host_Error( "SV_TraceSphere: not implemented\n" );
+	if( !SV_IsValidEdict( pTestEdict ))
+	{
+		MsgDev( D_ERROR, "SV_TestEntity: invalid entity %s\n", SV_ClassName( pTestEdict ));
+		return false;
+	}	
+
+	if( !offset ) offset = vec3_origin;
+
+	return SV_TestEntityPosition( pTestEdict, offset );
 }
 
 /*
@@ -3249,7 +3262,7 @@ static enginefuncs_t gEngfuncs =
 	pfnTraceHull,
 	pfnTraceModel,
 	pfnTraceTexture,
-	pfnTraceSphere,
+	pfnTestEntityPosition,
 	pfnGetAimVector,
 	pfnServerCommand,
 	pfnServerExecute,

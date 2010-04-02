@@ -2023,18 +2023,42 @@ void PM_LadderMove( edict_t *pLadder )
 	}
 }
 
+// moved here from engine
+void PM_HullForBsp( edict_t *pe, Vector &test )
+{
+	if( Mod_GetType( pe->v.modelindex ) == mod_brush )
+	{
+		Vector	hull_mins;
+
+		if( pe->v.size.x < 3 )
+			hull_mins = pmove->player_mins[2];
+		else if( pe->v.size.x <= 32 )
+			hull_mins = pmove->player_mins[1];
+		else hull_mins = pmove->player_mins[3];
+
+		test = hull_mins + pe->v.origin;
+	}
+	else
+	{
+		// studiomodel ladder
+		test = pe->v.origin;
+	}
+}
+			
 edict_t *PM_Ladder( void )
 {
-	edict_t	*e;
+	edict_t	*pe;
 	Vector	test;
 	int	i;
 
 	for( i = 0; i < pmove->numladders; i++ )
 	{
-		e = pmove->ladders[i];
+		pe = pmove->ladders[i];
 		
-		if( Mod_GetType( e->v.modelindex ) == mod_brush && e->v.skin == CONTENTS_LADDER )
+		if( Mod_GetType( pe->v.modelindex ) == mod_brush && pe->v.skin == CONTENTS_LADDER )
 		{
+			PM_HullForBsp( pe, test );
+
 			// Offset the test point appropriately for this hull.
 			test = pmove->origin - test;
 
@@ -2042,7 +2066,7 @@ edict_t *PM_Ladder( void )
 			if( POINT_CONTENTS( test ) == CONTENTS_EMPTY )
 				continue;
 			
-			return e;
+			return pe;
 		}
 	}
 	return (edict_t *)NULL;

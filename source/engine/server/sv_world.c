@@ -29,6 +29,7 @@ areanode_t *SV_CreateAreaNode( int depth, vec3_t mins, vec3_t maxs )
 
 	ClearLink( &anode->trigger_edicts );
 	ClearLink( &anode->solid_edicts );
+	ClearLink( &anode->water_edicts );
 	
 	if( depth == AREA_DEPTH )
 	{
@@ -219,7 +220,7 @@ void SV_LinkEdict( edict_t *ent, bool touch_triggers )
 	sv_ent->linked = true;
 		
 	// ignore not solid bodies
-	if( ent->v.solid == SOLID_NOT )
+	if( ent->v.solid == SOLID_NOT && ent->v.skin == CONTENTS_NONE )
 		return;
 
 	// find the first node that the ent's box crosses
@@ -238,6 +239,8 @@ void SV_LinkEdict( edict_t *ent, bool touch_triggers )
 	// link it in	
 	if( ent->v.solid == SOLID_TRIGGER )
 		InsertLinkBefore( &sv_ent->area, &node->trigger_edicts, NUM_FOR_EDICT( ent ));
+	else if( ent->v.solid == SOLID_NOT && ent->v.skin != CONTENTS_NONE )
+		InsertLinkBefore (&sv_ent->area, &node->water_edicts, NUM_FOR_EDICT( ent ));
 	else InsertLinkBefore (&sv_ent->area, &node->solid_edicts, NUM_FOR_EDICT( ent ));
 
 	if( touch_triggers ) SV_TouchLinks( ent, sv_areanodes );
@@ -266,14 +269,18 @@ void SV_AreaEdicts_r( areanode_t *node, area_t *ap )
 	// touch linked edicts
 	if( ap->type == AREA_SOLID )
 		start = &node->solid_edicts;
-	else start = &node->trigger_edicts;
+	else if( ap->type == AREA_TRIGGERS )
+		start = &node->trigger_edicts;
+	else start = &node->water_edicts;
 
 	for( l = start->next; l != start; l = next )
 	{
 		next = l->next;
 		check = EDICT_FROM_AREA( l );
 
-		if( check->v.solid == SOLID_NOT ) continue; // deactivated
+		if( check->v.solid == SOLID_NOT && check->v.skin == CONTENTS_NONE )
+			continue; // deactivated
+
 		if( !BoundsIntersect( check->v.absmin, check->v.absmax, ap->mins, ap->maxs ))
 			continue;	// not touching
 
@@ -635,6 +642,25 @@ int SV_BaseContents( const vec3_t p, edict_t *e )
 		c2 |= World_ContentsForEdict( hit ); // user-defined contents
 		contents |= c2;
 	}
+
+	// or in contents from all the water entities
+	num = SV_AreaEdicts( p, p, touch, MAX_EDICTS, AREA_WATER );
+
+	for( i = 0; i < num; i++ )
+	{
+		hit = touch[i];
+
+		if( hit == e ) continue;
+		if( hit->v.solid != SOLID_NOT || hit->v.skin == CONTENTS_NONE )
+			continue; // invalid water ?
+
+		// might intersect, so do an exact clip
+		handle = World_HullForEntity( hit );
+		c2 = CM_TransformedPointContents( p, handle, hit->v.origin, vec3_origin );
+		c2 |= World_ContentsForEdict( hit ); // user-defined contents
+		contents |= c2;
+	}
+
 	return contents;
 }
 

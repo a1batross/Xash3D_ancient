@@ -387,16 +387,17 @@ bool SV_CheckWater( edict_t *ent )
 	{
 		ent->v.watertype = cont;
 		ent->v.waterlevel = 1;
-		point[2] = ent->v.origin[2] + (ent->v.mins[2] + ent->v.maxs[2]) * 0.5f;
+		point[2] = ent->v.origin[2] + ( ent->v.mins[2] + ent->v.maxs[2] ) * 0.5f;
 
 		if( SV_PointContents( point ) <= CONTENTS_WATER )
 		{
 			ent->v.waterlevel = 2;
 			point[2] = ent->v.origin[2] + ent->v.view_ofs[2];
 
-			if(SV_PointContents( point ) <= CONTENTS_WATER )
+			if( SV_PointContents( point ) <= CONTENTS_WATER )
 				ent->v.waterlevel = 3;
 		}
+
 		if( cont <= CONTENTS_CURRENT_0 && cont >= CONTENTS_CURRENT_DOWN )
 		{
 			static vec3_t current_table[] =
@@ -408,11 +409,14 @@ bool SV_CheckWater( edict_t *ent )
 				{ 0,  0, 1 },
 				{ 0,  0, -1}
 			};
-			float	speed = 150.0f * ent->v.waterlevel / 3.0f;
-			float	*dir = current_table[CONTENTS_CURRENT_0 - cont];
+
+			float speed = ent->v.waterlevel * 50.0f;
+			float *dir = current_table[CONTENTS_CURRENT_0 - cont];
+
 			VectorMA( ent->v.basevelocity, speed, dir, ent->v.basevelocity );
 		}
 	}
+
 	return ent->v.waterlevel > 1;
 }
 
@@ -581,17 +585,17 @@ bool SV_UnstickEntity( edict_t *ent )
 */
 /*
 ============
-SV_FlyMove
+SV_TryMove
 
 The basic solid body movement clip that slides along multiple planes
+*steptrace - if not NULL, the trace results of any vertical wall hit will be stored
 Returns the clipflags if the velocity was modified (hit something solid)
 1 = floor
 2 = wall / step
 4 = dead stop
-if stepnormal is not NULL, the plane normal of any vertical wall hit will be stored
 ============
 */
-int SV_FlyMove( edict_t *ent, float time, trace_t *steptrace )
+int SV_TryMove( edict_t *ent, float time, trace_t *steptrace )
 {
 	int		i, j, numplanes, bumpcount, blocked;
 	vec3_t		dir, end, planes[MAX_CLIP_PLANES];
@@ -637,8 +641,8 @@ int SV_FlyMove( edict_t *ent, float time, trace_t *steptrace )
 
 		if( !trace.pHit )
 		{
-			MsgDev( D_ERROR, "SV_FlyMove: trace.pHit == NULL\n" );
-			trace.pHit = EDICT_NUM( 0 ); // world
+			MsgDev( D_WARN, "SV_TryMove: trace.pHit == NULL\n" );
+			return 4;
 		}
 
 		if( trace.vecPlaneNormal[2] > 0.7f )
@@ -723,10 +727,6 @@ int SV_FlyMove( edict_t *ent, float time, trace_t *steptrace )
 	if ( allFraction == 0 )
 		VectorClear( ent->v.velocity );
 
-	// this came from QW and allows you to get out of water more easily
-	if( ent->v.flags & FL_WATERJUMP )
-		VectorCopy( primal_velocity, ent->v.velocity );
-
 	return blocked;
 }
 
@@ -740,12 +740,37 @@ void SV_AddGravity( edict_t *ent )
 {
 	if( ent->pvServerData->stuck )
 	{
+		// stuck
 		VectorClear( ent->v.velocity );
 		return;
 	}
 	if( ent->v.gravity ) // gravity modifier
 		ent->v.velocity[2] -= sv_gravity->value * ent->v.gravity * svgame.globals->frametime;
 	else ent->v.velocity[2] -= sv_gravity->value * svgame.globals->frametime;
+}
+
+void SV_AddHalfGravity( edict_t *ent, float timestep )
+{
+	float	ent_gravity;
+
+	if( ent->pvServerData->stuck )
+	{
+		// stuck
+		VectorClear( ent->v.velocity );
+		return;
+	}
+
+	if( ent->v.gravity )
+		ent_gravity = ent->v.gravity;
+	else ent_gravity = 1.0f;
+
+	// Add 1/2 of the total gravitational effects over this timestep
+	ent->v.velocity[2] -= ( 0.5f * ent_gravity * sv_gravity->value * timestep );
+	ent->v.velocity[2] += ent->v.basevelocity[2] * svgame.globals->frametime;
+	ent->v.basevelocity[2] = 0.0f;
+	
+	// bound velocity
+	SV_CheckVelocity( ent );
 }
 
 /*
@@ -1737,18 +1762,17 @@ This is also used for objects that have become still on the ground, but
 will fall if the floor is pulled out from under them.
 =============
 */
-void SV_Physics_Step( edict_t *ent )
+void SV_Physics_Step_RunTimestep( edict_t *ent, float timestep )
 {
-	bool		wasonground;
-	bool		inwater;
-	float		*vel;
-	float		speed, newspeed, control;
-	float		friction;
+	bool	wasonground;
+	bool	inwater;
+	bool	hitsound = false;
+	bool	isfalling = false;
+	trace_t	trace;
 
-	wasonground = ent->v.flags & FL_ONGROUND;
+	SV_CheckVelocity( ent );
 
-	if( !VectorIsNull( ent->v.avelocity ))
-		SV_AddRotationalFriction( ent );
+	wasonground = (ent->v.flags & FL_ONGROUND) ? true : false;
 
 	// add gravity except:
 	// flying monsters
@@ -1760,14 +1784,34 @@ void SV_Physics_Step( edict_t *ent )
 		if( !( ent->v.flags & FL_FLY ))
 		{
 			if(!( ent->v.flags & (FL_SWIM|FL_FLOAT) && ent->v.waterlevel > 0 ))
-				if( !inwater ) SV_AddGravity( ent );
+			{
+				if( ent->v.velocity[2] < ( sv_gravity->value * -svgame.globals->frametime ))
+				{
+					hitsound = true;
+				}
+
+				if( !inwater )
+				{
+					SV_AddHalfGravity( ent, timestep );
+					isfalling = true;
+				}
+			}
+			else
+			{
+				ent->v.velocity[2] += (ent->v.skin * ent->v.waterlevel) * timestep;
+				Msg( "velocity %g %g\n", ent->v.velocity[2] );
+			}
 		}
 	}
 
 	if( !VectorIsNull( ent->v.velocity ) || !VectorIsNull( ent->v.basevelocity ))
 	{
 		vec3_t	mins, maxs, point;
+		float	friction = sv_friction->value;
 		int	x, y;
+
+		if( ent->v.friction != 0.0f )
+			friction *= ent->v.friction;
 
 		ent->v.flags &= ~FL_ONGROUND;
 
@@ -1775,30 +1819,35 @@ void SV_Physics_Step( edict_t *ent )
 		// let dead monsters who aren't completely onground slide
 		if( wasonground )
 		{
-			if( !( ent->v.health <= 0.0f && !SV_CheckBottom( ent, WALKMOVE_NORMAL )))
+			float	speed, newspeed;
+			float	control;
+	
+			speed = VectorLength( ent->v.velocity );	
+
+			if( speed )
 			{
-				vel = ent->v.velocity;
-				speed = com.sqrt( vel[0] * vel[0] + vel[1] * vel[1] );
+				control = speed < sv_stopspeed->value ? sv_stopspeed->value : speed;
+				newspeed = speed - timestep * control * friction;
 
-				if( speed )
-				{
-					friction = sv_friction->value;
+				if( newspeed < 0.0f )
+					newspeed = 0.0f;
+				newspeed /= speed;
 
-					control = speed < sv_stopspeed->value ? sv_stopspeed->value : speed;
-					newspeed = speed - svgame.globals->frametime * control * friction;
-
-					if( newspeed < 0 ) newspeed = 0;
-					newspeed /= speed;
-
-					vel[0] = vel[0] * newspeed;
-					vel[1] = vel[1] * newspeed;
-				}
+				ent->v.velocity[0] *= newspeed;
+				ent->v.velocity[1] *= newspeed;
 			}
-                    }
+		}
 
 		VectorAdd( ent->v.velocity, ent->v.basevelocity, ent->v.velocity );
-		SV_FlyMove( ent, svgame.globals->frametime, NULL );
-		VectorSubtract (ent->v.velocity, ent->v.basevelocity, ent->v.velocity);
+
+		SV_AngularMove( ent, timestep, friction );
+
+		SV_CheckVelocity( ent );
+		SV_TryMove( ent, timestep, NULL );
+		SV_CheckVelocity( ent );
+
+		VectorSubtract( ent->v.velocity, ent->v.basevelocity, ent->v.velocity );
+		SV_CheckVelocity( ent );
 
 		// determine if it's on solid ground at all
 		VectorAdd( ent->v.origin, ent->v.mins, mins );
@@ -1807,14 +1856,20 @@ void SV_Physics_Step( edict_t *ent )
 		point[2] = mins[2] - 1;
 		for( x = 0; x <= 1; x++ )
 		{
+			if( ent->v.flags & FL_ONGROUND )
+				break;
+
 			for( y = 0; y <= 1; y++ )
 			{
 				point[0] = x ? maxs[0] : mins[0];
 				point[1] = y ? maxs[1] : mins[1];
-			
-				if( SV_PointContents( point ) == CONTENTS_SOLID )
+
+				trace = SV_Move( point, vec3_origin, vec3_origin, point, MOVE_NORMAL, ent );			
+
+				if( trace.fStartSolid )
 				{
 					ent->v.flags |= FL_ONGROUND;
+					ent->v.groundentity = trace.pHit;
 					break;
 				}
 			}
@@ -1823,8 +1878,46 @@ void SV_Physics_Step( edict_t *ent )
 		SV_LinkEdict( ent, true );
 	}
 
+	if(!( ent->v.flags & FL_ONGROUND) && isfalling )
+	{
+		SV_AddHalfGravity( ent, timestep );
+	}
+}
+
+void SV_Physics_Step( edict_t *ent )
+{
+	float	dt, thinktime, deltaThink;
+
 	// regular thinking
-	SV_RunThink ( ent );
+	if( !SV_RunThink( ent )) return;
+
+	thinktime = ent->v.nextthink;
+	deltaThink = thinktime - svgame.globals->time;
+
+	if( thinktime <= 0.0f || deltaThink > 0.5f )
+	{
+		SV_Physics_Step_RunTimestep( ent, svgame.globals->frametime );
+		SV_CheckWaterTransition( ent );
+		ent->v.nextthink = svgame.globals->time;
+		return;
+	}
+
+	// not going to think, don't run physics either
+	if( thinktime > svgame.globals->frametime )
+		return;
+
+	// Don't let things stay in the past.
+	// it is possible to start that way
+	// by a trigger with a local time.
+	if( thinktime < svgame.globals->time )
+		thinktime = svgame.globals->time;
+
+	// simulate over the timestep
+	dt = thinktime - ent->v.nextthink;
+	SV_Physics_Step_RunTimestep( ent, dt );
+
+	if( !SV_RunThink( ent )) return;
+		
 	SV_CheckWaterTransition( ent );
 }
 

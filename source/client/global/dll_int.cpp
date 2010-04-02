@@ -167,7 +167,7 @@ int HUD_Redraw( float flTime, int state )
 
 	if( oldstate == CL_ACTIVE && state == CL_LOADING )
 	{
-		// fire only once to prevent multiply GL_BLEND each frame
+		// HACKHACK: fire only once to prevent multiply GL_BLEND each frame
 		DrawImageBar( 100, "m_loading" ); // HACKHACK
 	}
 	oldstate = state;

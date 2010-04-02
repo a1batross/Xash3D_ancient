@@ -27,6 +27,7 @@ ENTITY AREA CHECKING
 
 #define AREA_SOLID			1
 #define AREA_TRIGGERS		2
+#define AREA_WATER			3
 
 // link_t is only used for entity area links now
 typedef struct link_s
@@ -38,11 +39,12 @@ typedef struct link_s
 
 typedef struct areanode_s
 {
-	int		axis;	// -1 = leaf node
+	int		axis;		// -1 = leaf node
 	float		dist;
 	struct areanode_s	*children[2];
 	link_t		trigger_edicts;
 	link_t		solid_edicts;
+	link_t		water_edicts;	// func water
 } areanode_t;
 
 typedef struct area_s

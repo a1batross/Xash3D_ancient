@@ -313,7 +313,7 @@ void MapCntString( int cnt, char *contents )
 	if( cnt & BASECONT_CORPSE ) Sys_Error("\nBASECONT_CORPSE detected\n" );
 	if( cnt & BASECONT_DETAIL ) com.strcat( contents, " detail " );
 	if( cnt & BASECONT_TRANSLUCENT ) com.strcat( contents, "translucent " );
-	if( cnt & BASECONT_TRIGGER ) com.strcat( contents, "trigger " );
+	if( cnt & BASECONT_LADDER ) com.strcat( contents, "ladder " );
 }
 
 /*

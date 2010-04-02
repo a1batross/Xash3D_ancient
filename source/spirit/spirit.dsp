@@ -43,7 +43,7 @@ RSC=rc.exe
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /MT /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /YX /c
-# ADD CPP /nologo /G5 /MT /W3 /O2 /I "..\spirit" /I "..\common" /I "..\pm_shared" /D "NDEBUG" /D "WIN32" /D "_WINDOWS" /FD /c
+# ADD CPP /nologo /G5 /MT /W3 /O2 /I "..\spirit" /I "..\common" /I "..\game_shared" /D "NDEBUG" /D "WIN32" /D "_WINDOWS" /FD /c
 # SUBTRACT CPP /Fr /YX
 # ADD BASE MTL /nologo /D "NDEBUG" /win32
 # ADD MTL /nologo /D "NDEBUG" /mktyplib203 /win32
@@ -80,9 +80,9 @@ SOURCE="$(InputPath)"
 # PROP Intermediate_Dir "..\temp\spirit\!debug"
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
-# ADD BASE CPP /nologo /G5 /MT /W3 /O1 /I "..\dlls" /I "..\engine" /I "..\common" /I "..\pm_shared" /I "..\game_shared" /D "NDEBUG" /D "WIN32" /D "_WINDOWS" /D "QUIVER" /D "VOXEL" /D "QUAKE2" /D "VALVE_DLL" /YX /FD /c
+# ADD BASE CPP /nologo /G5 /MT /W3 /O1 /I "..\dlls" /I "..\engine" /I "..\common" /I "..\game_shared" /D "NDEBUG" /D "WIN32" /D "_WINDOWS" /D "QUIVER" /D "VOXEL" /D "QUAKE2" /D "VALVE_DLL" /YX /FD /c
 # SUBTRACT BASE CPP /Fr
-# ADD CPP /nologo /G5 /MT /W3 /Gm /ZI /Od /I "..\spirit" /I "..\common" /I "..\pm_shared" /D "DEBUG" /D "WIN32" /D "_WINDOWS" /Fr /FD /c
+# ADD CPP /nologo /G5 /MT /W3 /Gm /ZI /Od /I "..\spirit" /I "..\common" /I "..\game_shared" /D "DEBUG" /D "WIN32" /D "_WINDOWS" /Fr /FD /c
 # SUBTRACT CPP /WX /YX
 # ADD BASE MTL /nologo /D "NDEBUG" /mktyplib203 /win32
 # ADD MTL /nologo /D "NDEBUG" /mktyplib203 /win32
@@ -401,7 +401,7 @@ SOURCE=.\player.cpp
 # End Source File
 # Begin Source File
 
-SOURCE=..\pm_shared\pm_shared.cpp
+SOURCE=..\game_shared\pm_shared.cpp
 # End Source File
 # Begin Source File
 
@@ -633,27 +633,27 @@ SOURCE=.\player.h
 # End Source File
 # Begin Source File
 
-SOURCE=..\pm_shared\pm_debug.h
+SOURCE=..\game_shared\pm_debug.h
 # End Source File
 # Begin Source File
 
-SOURCE=..\pm_shared\pm_defs.h
+SOURCE=..\game_shared\pm_defs.h
 # End Source File
 # Begin Source File
 
-SOURCE=..\pm_shared\pm_info.h
+SOURCE=..\game_shared\pm_info.h
 # End Source File
 # Begin Source File
 
-SOURCE=..\pm_shared\pm_materials.h
+SOURCE=..\game_shared\pm_materials.h
 # End Source File
 # Begin Source File
 
-SOURCE=..\pm_shared\pm_movevars.h
+SOURCE=..\game_shared\pm_movevars.h
 # End Source File
 # Begin Source File
 
-SOURCE=..\pm_shared\pm_shared.h
+SOURCE=..\game_shared\pm_shared.h
 # End Source File
 # Begin Source File
 
@@ -705,7 +705,7 @@ SOURCE=.\util.h
 # End Source File
 # Begin Source File
 
-SOURCE=..\common\vector.h
+SOURCE=..\game_shared\vector.h
 # End Source File
 # Begin Source File
 

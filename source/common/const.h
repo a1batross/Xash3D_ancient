@@ -58,6 +58,7 @@
 #define MSG_ONE_UNRELIABLE		8	// Send to one client, but don't put in reliable stream, put in unreliable datagram ( could be dropped )
 #define MSG_SPEC			9	// Sends to all spectator proxies
 
+#define CONTENTS_NONE		0
 #define CONTENTS_EMPTY		-1
 #define CONTENTS_SOLID		-2
 #define CONTENTS_WATER		-3
