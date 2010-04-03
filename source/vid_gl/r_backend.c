@@ -1017,14 +1017,17 @@ static bool R_VertexTCBase( const ref_stage_t *pass, int unit, matrix4x4 matrix 
 
 			GL_SetTexCoordArrayMode( 0 );
 
-			Matrix4x4_Copy( matrix, RI.worldviewProjectionMatrix );
+			// nonmoving objects using worldviewmatrix
+			if( VectorIsNull( RI.currententity->origin ) && Matrix3x3_Compare( RI.currententity->axis, matrix3x3_identity ))
+				Matrix4x4_Copy( matrix, RI.worldviewProjectionMatrix );
+			else Matrix4x4_Concat( matrix, RI.projectionMatrix, RI.modelviewMatrix );
 
 			Matrix4x4_LoadIdentity( m1 );
-			Matrix4x4_ConcatScale( m1, 0.5 );
+			Matrix4x4_ConcatScale( m1, 0.5f );
 			Matrix4x4_Concat( m2, m1, matrix );
 
 			Matrix4x4_LoadIdentity( m1 );
-			Matrix4x4_ConcatTranslate( m1, 0.5, 0.5, 0.5 );
+			Matrix4x4_ConcatTranslate( m1, 0.5f, 0.5f, 0.5f );
 			Matrix4x4_Concat( matrix, m1, m2 );
 
 			for( i = 0; i < 4; i++ )

@@ -804,6 +804,9 @@ void CL_InitEdicts( void )
 	Com_Assert( clgame.edicts != NULL );
 	Com_Assert( clgame.baselines != NULL );
 
+	CL_UPDATE_BACKUP = ( clgame.globals->maxClients == 1 ) ? SINGLEPLAYER_BACKUP : MULTIPLAYER_BACKUP;
+	cl.frames = Mem_Alloc( clgame.mempool, sizeof( frame_t ) * CL_UPDATE_BACKUP );
+
 	clgame.edicts = Mem_Alloc( clgame.mempool, sizeof( edict_t ) * clgame.globals->maxEntities );
 	clgame.baselines = Mem_Alloc( clgame.mempool, sizeof( entity_state_t ) * clgame.globals->maxEntities );
 	for( i = 0, e = clgame.edicts; i < clgame.globals->maxEntities; i++, e++ )
@@ -826,6 +829,7 @@ void CL_FreeEdicts( void )
 		Mem_Free( clgame.edicts );
 	}
 
+	if( cl.frames ) Mem_Free( cl.frames );
 	if( clgame.baselines ) Mem_Free( clgame.baselines );
 
 	// clear globals
@@ -837,6 +841,7 @@ void CL_FreeEdicts( void )
 	clgame.globals->numEntities = 0;
 	clgame.baselines = NULL;
 	clgame.edicts = NULL;
+	cl.frames = NULL;
 }
 
 bool CL_IsValidEdict( const edict_t *e )

@@ -455,7 +455,7 @@ bool R_CreateWindow( int width, int height, bool fullscreen )
 	int		exstyle = 0;
 	static string	wndname;
 	
-	com.snprintf( wndname, sizeof( wndname ), "%s %g", GI->title, GI->version );
+	com.snprintf( wndname, sizeof( wndname ), "%s", GI->title );
 
 	// register the frame class
 	wc.style         = 0;

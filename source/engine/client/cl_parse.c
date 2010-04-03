@@ -10,6 +10,8 @@
 #define MSG_COUNT		32		// last 32 messages parsed
 #define MSG_MASK		(MSG_COUNT - 1)
 
+int CL_UPDATE_BACKUP = SINGLEPLAYER_BACKUP;
+
 char *svc_strings[256] =
 {
 	"svc_bad",

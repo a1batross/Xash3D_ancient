@@ -16,8 +16,16 @@
 #define MAX_ENT_CLUSTERS	16
 #define RATE_MESSAGES	10
 
+#define SV_UPDATE_MASK	(SV_UPDATE_BACKUP - 1)
+extern int SV_UPDATE_BACKUP;
+
 // hostflags
 #define SVF_SKIPLOCALHOST	BIT( 0 )
+
+// mapvalid flags
+#define MAP_IS_EXIST	BIT( 0 )
+#define MAP_HAS_SPAWNPOINT	BIT( 1 )
+#define MAP_HAS_LANDMARK	BIT( 2 )
 
 #define NUM_FOR_EDICT(e)	((int)((edict_t *)(e) - svgame.edicts))
 #define EDICT_NUM( num )	SV_EDICT_NUM( num, __FILE__, __LINE__ )
@@ -125,7 +133,7 @@ typedef struct sv_client_s
 	sizebuf_t		datagram;
 	byte		datagram_buf[MAX_MSGLEN];
 
-	client_frame_t	frames[UPDATE_BACKUP];	// updates can be delta'd from here
+	client_frame_t	*frames;			// updates can be delta'd from here
 	event_state_t	events;
 
 	byte		*download;		// file being downloaded
@@ -235,6 +243,7 @@ typedef struct
 	int		groupmask;
 	int		groupop;
 
+	float		changelevel_next_time;	// don't execute multiple changelevels at once time
 	int		spawncount;		// incremented each server start
 						// used to check late spawns
 	sv_client_t	*clients;			// [sv_maxclients->integer]
@@ -405,7 +414,7 @@ string_t SV_AllocString( const char *szValue );
 sv_client_t *SV_ClientFromEdict( const edict_t *pEdict, bool spawned_only );
 const char *SV_GetString( string_t iString );
 void SV_SetClientMaxspeed( sv_client_t *cl, float fNewMaxspeed );
-bool SV_MapIsValid( const char *filename, const char *spawn_entity );
+int SV_MapIsValid( const char *filename, const char *spawn_entity, const char *landmark_name );
 void SV_StartSound( edict_t *ent, int chan, const char *sample, float vol, float attn, int flags, int pitch );
 void SV_UpdateBaseVelocity( edict_t *ent );
 bool SV_IsValidEdict( const edict_t *e );

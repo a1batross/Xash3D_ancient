@@ -323,7 +323,7 @@ void SV_WriteFrameToClient( sv_client_t *cl, sizebuf_t *msg )
 	int		lastframe;
 
 	// this is the frame we are creating
-	frame = &cl->frames[sv.framenum & UPDATE_MASK];
+	frame = &cl->frames[sv.framenum & SV_UPDATE_MASK];
 
 	if( cl->lastframe <= 0 )
 	{	
@@ -331,7 +331,7 @@ void SV_WriteFrameToClient( sv_client_t *cl, sizebuf_t *msg )
 		oldframe = NULL;
 		lastframe = -1;
 	}
-	else if( sv.framenum - cl->lastframe >= (UPDATE_BACKUP - 3))
+	else if( sv.framenum - cl->lastframe >= (SV_UPDATE_BACKUP - 3))
 	{
 		// client hasn't gotten a good message through in a long time
 		oldframe = NULL;
@@ -339,7 +339,7 @@ void SV_WriteFrameToClient( sv_client_t *cl, sizebuf_t *msg )
 	}
 	else
 	{	// we have a valid message to delta from
-		oldframe = &cl->frames[cl->lastframe & UPDATE_MASK];
+		oldframe = &cl->frames[cl->lastframe & SV_UPDATE_MASK];
 		lastframe = cl->lastframe;
 
 		// the snapshot's entities may still have rolled off the buffer, though
@@ -410,7 +410,7 @@ void SV_BuildClientFrame( sv_client_t *cl )
 	sv.net_framenum++;
 
 	// this is the frame we are creating
-	frame = &cl->frames[sv.framenum & UPDATE_MASK];
+	frame = &cl->frames[sv.framenum & SV_UPDATE_MASK];
 	frame->senttime = svs.realtime; // save it for ping calc later
 
 	// clear everything in this snapshot

@@ -1144,10 +1144,9 @@ void CPushable :: Move( CBaseEntity *pOther, int push )
 
 	if ( pOther->IsPlayer() )
 	{
-		if ( push && !(pevToucher->button & (IN_FORWARD|IN_USE)) )	// Don't push unless the player is pushing forward and NOT use (pull)
+		if ( push && !(pevToucher->button & (IN_FORWARD|IN_MOVERIGHT|IN_MOVELEFT|IN_BACK)) )
 			return;
-
-		if ( !push && (pevToucher->button & (IN_FORWARD)) ) // this is fix for old Half-Life bug with pushable acceleration
+		if ( !push && !(pevToucher->button & IN_BACK) )
 			return;
 		playerTouch = 1;
 	}

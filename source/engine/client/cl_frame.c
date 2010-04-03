@@ -229,7 +229,7 @@ void CL_ParseFrame( sizebuf_t *msg )
 	}
 	else
 	{
-		cl.oldframe = &cl.frames[cl.frame.deltaframe & UPDATE_MASK];
+		cl.oldframe = &cl.frames[cl.frame.deltaframe & CL_UPDATE_MASK];
 		if( !cl.oldframe->valid )
 		{	
 			// should never happen
@@ -258,7 +258,7 @@ void CL_ParseFrame( sizebuf_t *msg )
 	CL_ParsePacketEntities( msg, cl.oldframe, &cl.frame );
 
 	// save the frame off in the backup array for later delta comparisons
-	cl.frames[cl.frame.serverframe & UPDATE_MASK] = cl.frame;
+	cl.frames[cl.frame.serverframe & CL_UPDATE_MASK] = cl.frame;
 
 	if( !cl.frame.valid ) return;
 

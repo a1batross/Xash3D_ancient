@@ -357,7 +357,7 @@ uint Cmd_Argc (void)
 Cmd_Argv
 ============
 */
-char *Cmd_Argv ( uint arg )
+char *Cmd_Argv( uint arg )
 {
 	if( arg >= cmd_argc )
 		return "";

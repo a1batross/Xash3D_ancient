@@ -28,4 +28,5 @@ Xash 0.71 Beta 05.05.10
 4. revision server physic
 5. revision monster moving
 6. fix save\restore global state		OK
-7. rewrite WalkMove
+7. rewrite WalkMove				OK
+8. tune UPDATE_BACKUP value for singleplayer

@@ -1372,12 +1372,12 @@ static void R_CullEntities( void )
 			if( !e->model ) break;
 			switch( e->model->type )
 			{
+			case mod_world:
+			case mod_brush:
+				culled = R_CullBrushModel( e );
+				break;
 			case mod_studio:
 				culled = R_CullStudioModel( e );
-				break;
-			case mod_brush:
-			case mod_world:
-				culled = R_CullBrushModel( e );
 				break;
 			case mod_sprite:
 				culled = R_CullSpriteModel( e );
@@ -2327,8 +2327,6 @@ bool R_AddLightStyle( int stylenum, vec3_t color )
 
 bool R_AddGenericEntity( edict_t *pRefEntity, ref_entity_t *refent )
 {
-	vec3_t	center;
-
 	// check model
 	if( !refent->model ) return false;
 
@@ -2361,9 +2359,8 @@ bool R_AddGenericEntity( edict_t *pRefEntity, ref_entity_t *refent )
 	refent->rtype = RT_MODEL;
 
 	// setup light origin
-	if( refent->model ) VectorAverage( refent->model->mins, refent->model->maxs, center );
-	else VectorClear( center );
-	VectorAdd( pRefEntity->v.origin, center, refent->lightingOrigin );
+	VectorCopy( pRefEntity->v.origin, refent->lightingOrigin );
+	refent->lightingOrigin[2] += 1;
 
 	// do animate
 	if( refent->flags & EF_ANIMATE )
@@ -2432,6 +2429,7 @@ bool R_AddGenericEntity( edict_t *pRefEntity, ref_entity_t *refent )
 	{
 		refent->gaitsequence = pRefEntity->v.gaitsequence;
 		refent->flags |= EF_OCCLUSIONTEST;
+		refent->lightingOrigin[2] += refent->model->maxs[2] - 2; // drop shadow to floor
 	}
 	else refent->gaitsequence = 0;
 

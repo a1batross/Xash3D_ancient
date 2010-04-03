@@ -252,16 +252,16 @@ bool R_AddShadowCaster( ref_entity_t *ent )
 		return false;
 
 	VectorCopy( ent->lightingOrigin, origin );
-	if( VectorCompare( origin, vec3_origin ) )
+	if( VectorIsNull( origin ))
 		return false;
 
 	// find lighting group containing entities with same lightingOrigin as ours
-	hash_key = (unsigned int)( origin[0] * 7 + origin[1] * 5 + origin[2] * 3 );
-	hash_key &= ( SHADOWGROUPS_HASH_SIZE-1 );
+	hash_key = (uint)( origin[0] * 7 + origin[1] * 5 + origin[2] * 3 );
+	hash_key &= (SHADOWGROUPS_HASH_SIZE - 1);
 
 	for( group = r_shadowGroups_hash[hash_key]; group; group = group->hashNext )
 	{
-		if( VectorCompare( group->origin, origin ) )
+		if( VectorCompare( group->origin, origin ))
 			goto add; // found an existing one, add
 	}
 
@@ -356,16 +356,17 @@ R_CullShadowmapGroups
 */
 void R_CullShadowmapGroups( void )
 {
-	int i, j;
-	vec3_t mins, maxs;
-	shadowGroup_t *group;
+	int		i, j;
+	vec3_t		mins, maxs;
+	shadowGroup_t	*group;
 
 	if( RI.refdef.flags & RDF_NOWORLDMODEL )
 		return;
 
-	memset( r_shadowCullBits, 0, sizeof( r_shadowCullBits ) );
+	Mem_Set( r_shadowCullBits, 0, sizeof( r_shadowCullBits ));
 
-	for( i = 0, group = r_shadowGroups; i < r_numShadowGroups; i++, group++ ) {
+	for( i = 0, group = r_shadowGroups; i < r_numShadowGroups; i++, group++ )
+	{
 		for( j = 0; j < 3; j++ )
 		{
 			mins[j] = group->origin[j] - group->projDist * 1.75 * 0.5 * 0.5;
@@ -374,15 +375,16 @@ void R_CullShadowmapGroups( void )
 
 		// check if view point is inside the bounding box...
 		for( j = 0; j < 3; j++ )
+		{
 			if( RI.viewOrigin[j] < mins[j] || RI.viewOrigin[j] > maxs[j] )
 				break;
-
-		if( j == 3 )
-			continue;									// ...it is, so trivially accept
+                    }
+		
+		if( j == 3 ) continue;			// ...it is, so trivially accept
 
 		if( R_CullBox( mins, maxs, RI.clipFlags ) )
-			r_shadowCullBits[i>>3] |= (1<<(i&7));		// trivially reject
-		else if( OCCLUSION_QUERIES_ENABLED( RI ) )
+			r_shadowCullBits[i>>3] |= (1<<(i&7));	// trivially reject
+		else if( OCCLUSION_QUERIES_ENABLED( RI ))
 			R_IssueOcclusionQuery( R_GetOcclusionQueryNum( OQ_SHADOWGROUP, i ), r_worldent, mins, maxs );
 	}
 }

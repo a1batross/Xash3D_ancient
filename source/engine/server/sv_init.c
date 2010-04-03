@@ -6,6 +6,8 @@
 #include "common.h"
 #include "server.h"
 
+int SV_UPDATE_BACKUP = SINGLEPLAYER_BACKUP;
+
 server_static_t	svs;	// persistant server info
 svgame_static_t	svgame;	// persistant game info
 server_t		sv;	// local server
@@ -164,8 +166,6 @@ activate server on changed map, run physics
 */
 void SV_ActivateServer( void )
 {
-	int	i;
-
 	if( !svs.initialized )
 	{
 		// probably server.dll doesn't loading
@@ -183,12 +183,11 @@ void SV_ActivateServer( void )
 	// create a baseline for more efficient communications
 	SV_CreateBaseline();
 
+	sv.frametime = 0;
+
 	// run two frames to allow everything to settle
-	for( i = 0; i < 2; i++ )
-	{
-		sv.frametime = 100;
-		SV_Physics();
-	}
+	SV_Physics();
+	SV_Physics();
 
 	// invoke to refresh all movevars
 	Mem_Set( &svgame.oldmovevars, 0, sizeof( movevars_t ));
@@ -223,6 +222,8 @@ deactivate server, free edicts stringtables etc
 */
 void SV_DeactivateServer( void )
 {
+	int	i;
+
 	SV_FreeEdicts ();
 	sv.state = ss_dead;
 
@@ -231,6 +232,15 @@ void SV_DeactivateServer( void )
 	else StringTable_Clear( svgame.hStringTable );
 
 	svgame.dllFuncs.pfnServerDeactivate();
+
+	// set client fields on player ents
+	for( i = 0; i < svgame.globals->maxClients; i++ )
+	{
+		// free client frames
+		if( svs.clients[i].frames )
+			Mem_Free( svs.clients[i].frames );
+		svs.clients[i].frames = NULL;
+	}
 
 	svgame.globals->maxEntities = GI->max_edicts;
 	svgame.globals->maxClients = sv_maxclients->integer;
@@ -287,13 +297,11 @@ clients along with it.
 
 ================
 */
-bool SV_SpawnServer( const char *server, const char *startspot )
+bool SV_SpawnServer( const char *mapname, const char *startspot )
 {
 	uint	i, checksum;
 	int	current_skill;
 	bool	loadgame, paused;
-
-	Msg( "SpawnServer [^2%s^7]\n", server );
 
 	Cmd_ExecuteString( "latch\n" );
 
@@ -305,6 +313,16 @@ bool SV_SpawnServer( const char *server, const char *startspot )
 
 	svs.timestart = Sys_Milliseconds();
 	svs.spawncount++; // any partially connected client will be restarted
+	svs.realtime = 0;
+
+	if( startspot )
+	{
+		Msg( "Spawn Server: %s [%s]\n", mapname, startspot );
+	}
+	else
+	{
+		Msg( "Spawn Server: %s\n", mapname );
+	}
 
 	// save state
 	loadgame = sv.loadgame;
@@ -333,17 +351,19 @@ bool SV_SpawnServer( const char *server, const char *startspot )
 
 	// make cvars consistant
 	if( Cvar_VariableInteger( "coop" )) Cvar_SetValue( "deathmatch", 0 );
-	current_skill = Q_rint( Cvar_VariableValue( "skill" ));
-	if( current_skill < 0 ) current_skill = 0;
-	if( current_skill > 3 ) current_skill = 3;
+	current_skill = (int)(Cvar_VariableValue( "skill" ) + 0.5f);
+	current_skill = bound( 0, current_skill, 3 );
 
 	Cvar_SetValue( "skill", (float)current_skill );
 
-	sv.time = 1000;
+	sv.time = 1000; // server spawn time it's always 1.0 second
 
-	FS_FileBase( server, sv.name ); // make sure what server name doesn't contain path and extension
-	com.strncpy( sv.configstrings[CS_NAME], sv.name, CS_SIZE);
-	if( startspot ) com.strncpy( sv.startspot, startspot, sizeof( sv.startspot ));
+	// make sure what server name doesn't contain path and extension
+	FS_FileBase( mapname, sv.name );
+	com.strncpy( sv.configstrings[CS_NAME], sv.name, CS_SIZE );
+
+	if( startspot )
+		com.strncpy( sv.startspot, startspot, sizeof( sv.startspot ));
 	else sv.startspot[0] = '\0';
 
 	com.sprintf( sv.configstrings[CS_MODELS+1], "maps/%s.bsp", sv.name );
@@ -351,10 +371,7 @@ bool SV_SpawnServer( const char *server, const char *startspot )
 	com.sprintf( sv.configstrings[CS_MAPCHECKSUM], "%i", checksum );
 	com.strncpy( sv.configstrings[CS_SKYNAME], "<skybox>", 64 );
 
-	if( CM_VisData() == NULL ) MsgDev( D_WARN, "map ^2%s^7 has no visibility\n", server );
-
-	// clear physics interaction links
-	SV_ClearWorld();
+	if( CM_VisData() == NULL ) MsgDev( D_WARN, "map ^2%s^7 has no visibility\n", mapname );
 
 	for( i = 1; i < CM_NumBmodels(); i++ )
 	{
@@ -364,7 +381,12 @@ bool SV_SpawnServer( const char *server, const char *startspot )
 
 	// precache and static commands can be issued during map initialization
 	sv.state = ss_loading;
+	sv.paused	= false;
+
 	Host_SetServerState( sv.state );
+
+	// clear physics interaction links
+	SV_ClearWorld();
 
 	return true;
 }
@@ -406,7 +428,7 @@ void SV_InitGame( void )
 
 	if( Cvar_VariableValue( "coop" ) && Cvar_VariableValue ( "deathmatch" ) && Cvar_VariableValue( "teamplay" ))
 	{
-		Msg("Deathmatch, Teamplay and Coop set, defaulting to Deathmatch\n");
+		MsgDev( D_WARN, "Deathmatch, Teamplay and Coop set, defaulting to Deathmatch\n");
 		Cvar_FullSet( "coop", "0",  CVAR_SERVERINFO|CVAR_LATCH );
 		Cvar_FullSet( "teamplay", "0",  CVAR_SERVERINFO|CVAR_LATCH );
 	}
@@ -438,11 +460,17 @@ void SV_InitGame( void )
 		Cvar_FullSet( "sv_maxclients", "1", CVAR_SERVERINFO|CVAR_LATCH );
 	}
 
+	svgame.globals->maxClients = sv_maxclients->integer;
+
+	SV_UPDATE_BACKUP = ( svgame.globals->maxClients == 1 ) ? SINGLEPLAYER_BACKUP : MULTIPLAYER_BACKUP;
+
 	svs.spawncount = Com_RandomLong( 0, 65535 );
 	svs.clients = Z_Malloc( sizeof( sv_client_t ) * sv_maxclients->integer );
-	svs.num_client_entities = sv_maxclients->integer * UPDATE_BACKUP * 64; // g-cont: what a mem waster ???
+	svs.num_client_entities = sv_maxclients->integer * SV_UPDATE_BACKUP * 64; // g-cont: what a mem waster ???
 	svs.client_entities = Z_Malloc( sizeof( entity_state_t ) * svs.num_client_entities );
 	svs.baselines = Z_Malloc( sizeof( entity_state_t ) * GI->max_edicts );
+
+	// client frames will be allocated in SV_DirectConnect
 
 	// init network stuff
 	NET_Config(( sv_maxclients->integer > 1 ));
@@ -468,10 +496,10 @@ void SV_InitGame( void )
 		svs.clients[i].edict = ent;
 		ent->pvServerData->client = svs.clients + i;
 		ent->pvServerData->client->edict = ent;
-
 		Mem_Set( &svs.clients[i].lastcmd, 0, sizeof( svs.clients[i].lastcmd ));
 	}
 
+	svgame.globals->numEntities = svgame.globals->maxClients + 1; // clients + world
 	svs.initialized = true;
 }
 

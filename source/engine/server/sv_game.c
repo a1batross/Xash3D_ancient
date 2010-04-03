@@ -194,10 +194,10 @@ script_t *SV_GetEntityScript( const char *filename )
 	return ents;
 }
 
-bool SV_MapIsValid( const char *filename, const char *spawn_entity )
+int SV_MapIsValid( const char *filename, const char *spawn_entity, const char *landmark_name )
 {
 	script_t	*ents = NULL;
-	bool	result = false;
+	int	flags = 0;
 
 	ents = SV_GetEntityScript( filename );
 
@@ -206,31 +206,53 @@ bool SV_MapIsValid( const char *filename, const char *spawn_entity )
 		// if there are entities to parse, a missing message key just
 		// means there is no title, so clear the message string now
 		token_t	token;
-		string	check_entity;
+		string	check_name;
+		bool	need_landmark = com.strlen( landmark_name ) > 0 ? true : false;
 
-		if( host.developer >= 2 )
+		if( !need_landmark && host.developer >= 2 )
 		{
+			// not transition, 
 			Com_CloseScript( ents );
-			return true; // skip playerstart serach in devmode
+
+			// skip spawnpoint checks in devmode
+			return (MAP_IS_EXIST|MAP_HAS_SPAWNPOINT);
 		}
 
-		check_entity[0] = 0;
+		flags |= MAP_IS_EXIST; // map is exist
+
 		while( Com_ReadToken( ents, SC_ALLOW_NEWLINES|SC_PARSE_GENERIC, &token ))
 		{
 			if( !com.strcmp( token.string, "classname" ))
 			{
 				// check classname for spawn entity
-				Com_ReadString( ents, false, check_entity );
-				if( !com.stricmp( spawn_entity, check_entity ))
+				Com_ReadString( ents, false, check_name );
+				if( !com.strcmp( spawn_entity, check_name ))
 				{
-					result = true;
-					break;						
+					flags |= MAP_HAS_SPAWNPOINT;
+
+					// we already find landmark, stop the parsing
+					if( need_landmark && flags & MAP_HAS_LANDMARK )
+						break;
+				}
+			}
+			else if( need_landmark && !com.strcmp( token.string, "targetname" ))
+			{
+				// check targetname for landmark entity
+				Com_ReadString( ents, false, check_name );
+
+				if( !com.strcmp( landmark_name, check_name ))
+				{
+					flags |= MAP_HAS_LANDMARK;
+
+					// we already find spawnpoint, stop the parsing
+					if( flags & MAP_HAS_SPAWNPOINT )
+						break;
 				}
 			}
 		}
 		Com_CloseScript( ents );
 	}
-	return result;
+	return flags;
 }
 
 void SV_InitEdict( edict_t *pEdict )
@@ -689,14 +711,13 @@ pfnChangeLevel
 */
 void pfnChangeLevel( const char* s1, const char* s2 )
 {
-	static int	last_spawncount;
-
 	if( !s1 || s1[0] <= ' ' ) return;
 
 	// make sure we don't issue two changelevels
-	if( svs.spawncount == last_spawncount ) return;
+	if( svs.changelevel_next_time > svgame.globals->time )
+		return;
 
-	last_spawncount = svs.spawncount;
+	svs.changelevel_next_time = svgame.globals->time + 1.0f;	// rest 1 secs if failed
 
 	if( !s2 ) Cbuf_AddText( va( "changelevel %s\n", s1 ));	// Quake changlevel
 	else Cbuf_AddText( va( "changelevel %s %s\n", s1, s2 ));	// Half-Life changelevel
@@ -2564,6 +2585,7 @@ vaild map must contain one info_player_deatchmatch
 int pfnIsMapValid( char *filename )
 {
 	char	*spawn_entity;
+	int	flags;
 
 	// determine spawn entity classname
 	if( Cvar_VariableInteger( "deathmatch" ))
@@ -2574,7 +2596,11 @@ int pfnIsMapValid( char *filename )
 		spawn_entity = GI->team_entity;
 	else spawn_entity = GI->sp_entity;
 
-	return SV_MapIsValid( filename, spawn_entity );
+	flags = SV_MapIsValid( filename, spawn_entity, NULL );
+
+	if(( flags & MAP_IS_EXIST ) && ( flags & MAP_HAS_SPAWNPOINT ))
+		return true;
+	return false;
 }
 
 /*

@@ -201,15 +201,19 @@ For development work
 */
 void SV_Map_f( void )
 {
-	string	filename;
 	char	*spawn_entity;
+	string	mapname;
+	int	flags;
 
 	if( Cmd_Argc() != 2 )
 	{
-		Msg( "Usage: map <filename>\n" );
+		Msg( "Usage: map <mapname>\n" );
 		return;
 	}
 
+	// hold mapname to other place
+	com.strncpy( mapname, Cmd_Argv( 1 ), sizeof( mapname ));
+	
 	// determine spawn entity classname
 	if( Cvar_VariableInteger( "deathmatch" ))
 		spawn_entity = GI->dm_entity;
@@ -219,18 +223,26 @@ void SV_Map_f( void )
 		spawn_entity = GI->team_entity;
 	else spawn_entity = GI->sp_entity;
 
-	com.strncpy( filename, Cmd_Argv( 1 ), sizeof( filename ));
-	if( !SV_MapIsValid( filename, spawn_entity ))
+	flags = SV_MapIsValid( mapname, spawn_entity, NULL );
+
+	if(!( flags & MAP_IS_EXIST ))
 	{
-		Msg( "SV_NewMap: invalid map %s\n", filename );
+		Msg( "SV_NewMap: map %s doesn't exist\n", mapname );
 		return;
 	}
 
-	sv.loadgame = false;	// set right state
+	if(!( flags & MAP_HAS_SPAWNPOINT ))
+	{
+		Msg( "SV_NewMap: map %s doesn't have a valid spawnpoint\n", mapname );
+		return;
+	}
 
-	if( svs.initialized ) SV_InitGame ();
-	SV_SpawnServer( filename, NULL );
-	SV_LevelInit( filename, NULL, NULL, false );
+	sv.loadgame = false; // set right state
+	SV_ClearSaveDir ();	// delete all temporary *.hl files
+
+	if( svs.initialized ) SV_InitGame ();	// clear old state
+	SV_SpawnServer( mapname, NULL );
+	SV_LevelInit( mapname, NULL, NULL, false );
 	SV_ActivateServer ();
 }
 
@@ -349,8 +361,10 @@ Saves the state of the map just being exited and goes to a new map.
 */
 void SV_ChangeLevel_f( void )
 {
-	char	*spawn_entity;
-	int	c = Cmd_Argc();
+	char	*spawn_entity, *mapname;
+	int	flags, c = Cmd_Argc();
+
+	mapname = Cmd_Argv( 1 );
 
 	// determine spawn entity classname
 	if( Cvar_VariableInteger( "deathmatch" ))
@@ -361,16 +375,39 @@ void SV_ChangeLevel_f( void )
 		spawn_entity = GI->team_entity;
 	else spawn_entity = GI->sp_entity;
 
-	if( !SV_MapIsValid( Cmd_Argv( 1 ), spawn_entity ))
+	flags = SV_MapIsValid( mapname, spawn_entity, Cmd_Argv( 2 ));
+
+	if(!( flags & MAP_IS_EXIST ))
 	{
-		Msg( "SV_ChangeLevel: invalid map %s\n", Cmd_Argv( 1 ));
+		Msg( "SV_ChangeLevel: map %s doesn't exist\n", mapname );
 		return;
+	}
+
+	if( c == 3 && !( flags & MAP_HAS_LANDMARK ))
+	{
+		// NOTE: we find valid map but specified landmark it's doesn't exist
+		// run simple changelevel like in q1, throw warning
+		MsgDev( D_INFO, "SV_ChangeLevel: map %s is exist but doesn't contain\n", mapname );
+		MsgDev( D_INFO, "landmark with name %s. Run classic quake changelevel\n", Cmd_Argv( 2 ));
+		c = 2; // reduce args
+	}
+
+	if( c == 3 && !com.stricmp( sv.name, Cmd_Argv( 1 )))
+	{
+		MsgDev( D_INFO, "SV_ChangeLevel: can't changelevel with same map. Ignored.\n" );
+		return;	
+	}
+
+	if( c == 2 && !( flags & MAP_HAS_SPAWNPOINT ))
+	{
+		MsgDev( D_INFO, "SV_ChangeLevel: map %s doesn't have a valid spawnpoint. Ignored.\n", mapname );
+		return;	
 	}
 
 	if( sv.state != ss_active )
 	{
 		// just load map
-		Cbuf_AddText( va( "map %s\n", Cmd_Argv( 1 )));
+		Cbuf_AddText( va( "map %s\n", mapname ));
 		return;
 	}
 

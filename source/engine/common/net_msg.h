@@ -289,8 +289,8 @@ extern byte		net_message_buffer[MAX_MSGLEN];
 #define PORT_MASTER		27900
 #define PORT_CLIENT		27901
 #define PORT_SERVER		27910
-#define UPDATE_BACKUP	64	// copies of entity_state_t to keep buffered, must be power of two
-#define UPDATE_MASK		(UPDATE_BACKUP - 1)
+#define MULTIPLAYER_BACKUP	64	// how many data slots to use when in multiplayer (must be power of 2)
+#define SINGLEPLAYER_BACKUP	8	// same for single player   
 #define MAX_FLAGS		32	// 32 bits == 32 flags
 #define MASK_FLAGS		(MAX_FLAGS - 1)
 

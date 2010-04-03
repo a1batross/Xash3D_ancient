@@ -51,7 +51,10 @@ typedef struct frame_s
 #define CMD_BACKUP		64			// allow a lot of command backups for very fast systems
 #define CMD_MASK		(CMD_BACKUP - 1)
 
-// the cl_parse_entities must be large enough to hold UPDATE_BACKUP frames of
+#define CL_UPDATE_MASK	(CL_UPDATE_BACKUP - 1)
+extern int CL_UPDATE_BACKUP;
+
+// the cl_parse_entities must be large enough to hold CL_UPDATE_BACKUP frames of
 // entities, so that when a delta compressed message arives from the server
 // it can be un-deltad from the original 
 #define MAX_PARSE_ENTITIES		2048
@@ -72,7 +75,7 @@ typedef struct
 	frame_t		frame;			// received from server
 	frame_t		*oldframe;		// previous frame to lerping from
 	int		surpressCount;		// number of messages rate supressed
-	frame_t		frames[UPDATE_BACKUP];
+	frame_t		*frames;			// alloced on svc_serverdata
 
 	int		time;		// this is the time value that the client
 					// is rendering at.  always <= cls.realtime

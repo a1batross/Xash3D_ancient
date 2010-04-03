@@ -70,11 +70,11 @@ void SV_CalcPings( void )
 
 		total = count = 0;
 
-		for( j = 0; j < (UPDATE_BACKUP / 2); j++ )
+		for( j = 0; j < (SV_UPDATE_BACKUP / 2); j++ )
 		{
 			client_frame_t	*frame;
 
-			frame = &cl->frames[(cl->netchan.incoming_acknowledged - 1 - j) & UPDATE_MASK];
+			frame = &cl->frames[(cl->netchan.incoming_acknowledged - 1 - j) & SV_UPDATE_MASK];
 			if( frame->latency > 0 )
 			{
 				count++;
@@ -107,11 +107,11 @@ int SV_CalcPacketLoss( sv_client_t *cl )
 	if( cl->edict->v.flags & FL_FAKECLIENT )
 		return 0;
 
-	numsamples = UPDATE_BACKUP / 2;
+	numsamples = SV_UPDATE_BACKUP / 2;
 
 	for( i = 0; i < numsamples; i++ )
 	{
-		frame = &cl->frames[(cl->netchan.incoming_acknowledged - 1 - i) & UPDATE_MASK];
+		frame = &cl->frames[(cl->netchan.incoming_acknowledged - 1 - i) & SV_UPDATE_MASK];
 		count++;
 		if( frame->latency == -1 )
 			lost++;
@@ -288,7 +288,6 @@ if necessary
 */
 void SV_CheckTimeouts( void )
 {
-
 	sv_client_t	*cl;
 	float		droppoint;
 	float		zombiepoint;
@@ -364,6 +363,28 @@ void SV_PrepWorldFrame( void )
 }
 
 /*
+================
+SV_HasActivePlayers
+
+returns true if server have spawned players
+================
+*/
+bool SV_HasActivePlayers( void )
+{
+	int	i;
+
+	// server inactive
+	if( !svs.clients ) return false;
+
+	for( i = 0; i < sv_maxclients->integer; i++ )
+	{
+		if( svs.clients[i].state == cs_spawned )
+			return true;
+	}
+	return false;
+}
+
+/*
 =================
 SV_RunGameFrame
 =================
@@ -375,6 +396,8 @@ void SV_RunGameFrame( void )
 	// compression can get confused when a client
 	// has the "current" frame
 	sv.framenum++;
+
+	if( !SV_HasActivePlayers()) return;
 
 	// don't run if paused or not in game
 	if( !sv.paused && CL_IsInGame( ))
@@ -593,7 +616,6 @@ void SV_Init( void )
 
 	SV_ClearSaveDir ();	// delete all temporary *.hl files
 	MSG_Init( &net_message, net_message_buffer, sizeof( net_message_buffer ));
-
 	Host_CheckRestart ();
 }
 

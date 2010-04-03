@@ -375,9 +375,9 @@ bool SV_CheckWater( edict_t *ent )
 	int	cont;
 	vec3_t	point;
 
-	point[0] = ent->v.origin[0];
-	point[1] = ent->v.origin[1];
-	point[2] = ent->v.origin[2] + ent->v.mins[2] + 1;
+	point[0] = (ent->v.absmin[0] + ent->v.absmax[0]) * 0.5f;
+	point[1] = (ent->v.absmin[1] + ent->v.absmax[1]) * 0.5f;
+	point[2] = ent->v.absmin[2] + 1;
 
 	ent->v.waterlevel = 0;
 	ent->v.watertype = CONTENTS_EMPTY;
@@ -387,33 +387,44 @@ bool SV_CheckWater( edict_t *ent )
 	{
 		ent->v.watertype = cont;
 		ent->v.waterlevel = 1;
-		point[2] = ent->v.origin[2] + ( ent->v.mins[2] + ent->v.maxs[2] ) * 0.5f;
-
-		if( SV_PointContents( point ) <= CONTENTS_WATER )
+			
+		// point sized entities are always fully submerged
+		if( ent->v.absmin[2] == ent->v.absmax[2] )
 		{
-			ent->v.waterlevel = 2;
-			point[2] = ent->v.origin[2] + ent->v.view_ofs[2];
+			ent->v.waterlevel = 3;
+		}
+		else
+		{
+			// check the exact center of the box
+			point[2] = (ent->v.absmin[2] + ent->v.absmax[2]) * 0.5f;
 
 			if( SV_PointContents( point ) <= CONTENTS_WATER )
-				ent->v.waterlevel = 3;
-		}
-
-		if( cont <= CONTENTS_CURRENT_0 && cont >= CONTENTS_CURRENT_DOWN )
-		{
-			static vec3_t current_table[] =
 			{
-				{ 1,  0, 0 },
-				{ 0,  1, 0 },
-				{-1,  0, 0 },
-				{ 0, -1, 0 },
-				{ 0,  0, 1 },
-				{ 0,  0, -1}
-			};
+				ent->v.waterlevel = 2;
+				point[2] = ent->v.origin[2] + ent->v.view_ofs[2];
 
-			float speed = ent->v.waterlevel * 50.0f;
-			float *dir = current_table[CONTENTS_CURRENT_0 - cont];
+				// now check where the eyes are...
+				if( SV_PointContents( point ) <= CONTENTS_WATER )
+					ent->v.waterlevel = 3;
+			}
 
-			VectorMA( ent->v.basevelocity, speed, dir, ent->v.basevelocity );
+			if( cont <= CONTENTS_CURRENT_0 && cont >= CONTENTS_CURRENT_DOWN )
+			{
+				static vec3_t current_table[] =
+				{
+					{ 1,  0, 0 },
+					{ 0,  1, 0 },
+					{-1,  0, 0 },
+					{ 0, -1, 0 },
+					{ 0,  0, 1 },
+					{ 0,  0, -1}
+				};
+
+				float speed = ent->v.waterlevel * 50.0f;
+				float *dir = current_table[CONTENTS_CURRENT_0 - cont];
+
+				VectorMA( ent->v.basevelocity, speed, dir, ent->v.basevelocity );
+			}
 		}
 	}
 
@@ -744,6 +755,7 @@ void SV_AddGravity( edict_t *ent )
 		VectorClear( ent->v.velocity );
 		return;
 	}
+
 	if( ent->v.gravity ) // gravity modifier
 		ent->v.velocity[2] -= sv_gravity->value * ent->v.gravity * svgame.globals->frametime;
 	else ent->v.velocity[2] -= sv_gravity->value * svgame.globals->frametime;
@@ -1796,10 +1808,19 @@ void SV_Physics_Step_RunTimestep( edict_t *ent, float timestep )
 					isfalling = true;
 				}
 			}
-			else
+			else if( ent->v.waterlevel > 0 )
 			{
-				ent->v.velocity[2] += (ent->v.skin * ent->v.waterlevel) * timestep;
-				Msg( "velocity %g %g\n", ent->v.velocity[2] );
+				if( ent->v.waterlevel > 1 )
+				{
+					VectorScale( ent->v.velocity, 0.9f, ent->v.velocity );
+					ent->v.velocity[2] += (ent->v.skin * timestep);
+				}
+				else if( ent->v.waterlevel == 1 )
+				{
+					if( ent->v.velocity[2] > 0.0f )
+						ent->v.velocity[2] = timestep;
+					ent->v.velocity[2] -= (ent->v.skin * timestep);
+				}
 			}
 		}
 	}
@@ -1886,38 +1907,11 @@ void SV_Physics_Step_RunTimestep( edict_t *ent, float timestep )
 
 void SV_Physics_Step( edict_t *ent )
 {
-	float	dt, thinktime, deltaThink;
+	svgame.globals->time = sv.time * 0.001f;
 
-	// regular thinking
-	if( !SV_RunThink( ent )) return;
-
-	thinktime = ent->v.nextthink;
-	deltaThink = thinktime - svgame.globals->time;
-
-	if( thinktime <= 0.0f || deltaThink > 0.5f )
-	{
-		SV_Physics_Step_RunTimestep( ent, svgame.globals->frametime );
-		SV_CheckWaterTransition( ent );
-		ent->v.nextthink = svgame.globals->time;
-		return;
-	}
-
-	// not going to think, don't run physics either
-	if( thinktime > svgame.globals->frametime )
-		return;
-
-	// Don't let things stay in the past.
-	// it is possible to start that way
-	// by a trigger with a local time.
-	if( thinktime < svgame.globals->time )
-		thinktime = svgame.globals->time;
-
-	// simulate over the timestep
-	dt = thinktime - ent->v.nextthink;
-	SV_Physics_Step_RunTimestep( ent, dt );
+	SV_Physics_Step_RunTimestep( ent, svgame.globals->frametime );
 
 	if( !SV_RunThink( ent )) return;
-		
 	SV_CheckWaterTransition( ent );
 }
 
@@ -2120,18 +2114,18 @@ void SV_Physics( void )
 	}
 
 	// treat each object in turn
-	for( i = svgame.globals->maxClients + 1; !sv_playersonly->integer && i < svgame.globals->numEntities; i++ )
+	if( !sv_playersonly->integer )
 	{
-		ent = EDICT_NUM( i );
-		if( ent->free ) continue;
-
-		SV_Physics_Entity( ent );
+		for( i = svgame.globals->maxClients + 1; i < svgame.globals->numEntities; i++ )
+		{
+			ent = EDICT_NUM( i );
+			if( ent->free ) continue;
+			SV_Physics_Entity( ent );
+		}
 	}
 
 	// let everything in the world think and move
 	CM_Frame( svgame.globals->frametime );
-
-	svgame.globals->time = sv.time * 0.001f;
 
 	// at end of frame kill all entities which supposed to it 
 	SV_FreeOldEntities();

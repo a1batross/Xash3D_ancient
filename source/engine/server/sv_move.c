@@ -117,6 +117,7 @@ bool SV_WalkMove( edict_t *ent, const vec3_t move, int iMode )
 {
 	trace_t	trace;
 	vec3_t	oldorg, neworg, end;
+	edict_t	*groundent = NULL;
 	float	flStepSize;
 	bool	relink;
 
@@ -141,7 +142,9 @@ bool SV_WalkMove( edict_t *ent, const vec3_t move, int iMode )
 				return false; // swim monster left water
 
 			VectorCopy( trace.vecEndPos, ent->v.origin );
-			SV_LinkEdict( ent, relink );
+
+			if( !VectorCompare( ent->v.origin, oldorg ))
+				SV_LinkEdict( ent, relink );
 			return true;
 		}
 		return false;
@@ -181,7 +184,10 @@ bool SV_WalkMove( edict_t *ent, const vec3_t move, int iMode )
 		if( ent->v.flags & FL_PARTIALGROUND )
 		{
 			VectorAdd( ent->v.origin, move, ent->v.origin );
-			SV_LinkEdict( ent, relink );
+
+			if( !VectorCompare( ent->v.origin, oldorg ))
+				SV_LinkEdict( ent, relink );
+
 			ent->v.flags &= ~FL_ONGROUND;
 			return true;
 		}
@@ -191,6 +197,19 @@ bool SV_WalkMove( edict_t *ent, const vec3_t move, int iMode )
 
 	// check point traces down for dangling corners
 	VectorCopy( trace.vecEndPos, ent->v.origin );
+	groundent = trace.pHit;
+
+	// check our pos
+	if( iMode == WALKMOVE_WORLDONLY )
+		trace = SV_Move( ent->v.origin, ent->v.mins, ent->v.maxs, ent->v.origin, MOVE_WORLDONLY, ent );
+	else trace = SV_Move( ent->v.origin, ent->v.mins, ent->v.maxs, ent->v.origin, MOVE_NORMAL|FTRACE_SIMPLEBOX, ent );
+
+	if( trace.fStartSolid )
+	{
+		VectorCopy( oldorg, ent->v.origin );
+		Msg( "WalkMove: start solid\n" );
+		return false;
+	}
 
 	if( !SV_CheckBottom( ent, flStepSize, iMode ))
 	{
@@ -198,7 +217,8 @@ bool SV_WalkMove( edict_t *ent, const vec3_t move, int iMode )
 		{    
 			// actor had floor mostly pulled out from underneath it
 			// and is trying to correct
-			SV_LinkEdict( ent, relink );
+			if( !VectorCompare( ent->v.origin, oldorg ))
+				SV_LinkEdict( ent, relink );
 			Msg( "WalkMove: partialground - ok\n" );
 			return true;
 		}
@@ -212,10 +232,11 @@ bool SV_WalkMove( edict_t *ent, const vec3_t move, int iMode )
 	if( ent->v.flags & FL_PARTIALGROUND )
 		ent->v.flags &= ~FL_PARTIALGROUND;
 
-	ent->v.groundentity = trace.pHit;
+	ent->v.groundentity = groundent;
 
 	// the move is ok
-	SV_LinkEdict( ent, relink );
+	if( !VectorCompare( ent->v.origin, oldorg ))
+		SV_LinkEdict( ent, relink );
 
 	return true;
 }

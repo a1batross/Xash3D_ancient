@@ -1161,7 +1161,7 @@ void SV_LoadAdjacentEnts( const char *pOldLevel, const char *pLandmarkName )
 		// map was already in the list
 		if( test < i ) continue;
 
-		MsgDev( D_INFO, "Merging entities from %s ( at %s )\n", currentLevelData.levelList[i].mapName, currentLevelData.levelList[i].landmarkName );
+		MsgDev( D_NOTE, "Merging entities from %s ( at %s )\n", currentLevelData.levelList[i].mapName, currentLevelData.levelList[i].landmarkName );
 		pSaveData = SV_LoadSaveData( currentLevelData.levelList[i].mapName );
 
 		if( pSaveData )

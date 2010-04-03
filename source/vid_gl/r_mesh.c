@@ -889,7 +889,7 @@ static bool R_AddPortalSurface( const meshbuffer_t *mb )
 		plane = oplane;
 	}
 
-	if( ( dist = PlaneDiff( RI.viewOrigin, &plane ) ) <= BACKFACE_EPSILON )
+	if(( dist = PlaneDiff( RI.viewOrigin, &plane ) ) <= BACKFACE_EPSILON )
 	{
 		if( !( shader->flags & SHADER_PORTAL_CAPTURE2 ))
 			return true;

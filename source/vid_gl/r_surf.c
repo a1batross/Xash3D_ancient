@@ -235,6 +235,7 @@ void R_AddBrushModelToList( ref_entity_t *e )
 
 	rotated = !Matrix3x3_Compare( e->axis, matrix3x3_identity );
 	VectorSubtract( RI.refdef.vieworg, e->origin, modelorg );
+
 	if( rotated )
 	{
 		vec3_t temp;
@@ -255,18 +256,18 @@ void R_AddBrushModelToList( ref_entity_t *e )
 
 	for( i = 0, psurf = bmodel->firstmodelsurface; i < (unsigned)bmodel->nummodelsurfaces; i++, psurf++ )
 	{
-		if( !R_SurfPotentiallyVisible( psurf ) )
+		if( !R_SurfPotentiallyVisible( psurf ))
 			continue;
 
 		if( RI.params & RP_SHADOWMAPVIEW )
 		{
 			if( psurf->visframe != r_framecount )
 				continue;
-			if( ( psurf->shader->sort >= SORT_OPAQUE ) && ( psurf->shader->sort <= SORT_BANNER ) )
+			if(( psurf->shader->sort >= SORT_OPAQUE ) && ( psurf->shader->sort <= SORT_BANNER ))
 			{
 				if( prevRI.surfmbuffers[psurf - r_worldbrushmodel->surfaces] )
 				{
-					if( !R_CullSurface( psurf, 0 ) )
+					if( !R_CullSurface( psurf, 0 ))
 					{
 						RI.params |= RP_WORLDSURFVISIBLE;
 						prevRI.surfmbuffers[psurf - r_worldbrushmodel->surfaces]->shadowbits |= RI.shadowGroup->bit;

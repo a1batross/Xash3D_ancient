@@ -70,6 +70,7 @@ void SV_DirectConnect( netadr_t from )
 	char		userinfo[MAX_INFO_STRING];
 	sv_client_t	temp, *cl, *newcl;
 	edict_t		*ent;
+	client_frame_t	*frames;
 	int		i, edictnum;
 	int		version;
 	int		qport, count = 0;
@@ -127,7 +128,10 @@ void SV_DirectConnect( netadr_t from )
 	else Info_SetValueForKey( userinfo, "ip", "127.0.0.1" ); // force the "ip" info key to "localhost"
 
 	newcl = &temp;
+
+	frames = newcl->frames;	// keep frames pointer
 	Mem_Set( newcl, 0, sizeof( sv_client_t ));
+	newcl->frames = frames;	// restore it
 
 	// if there is already a slot for this ip, reuse it
 	for( i = 0, cl = svs.clients; i < sv_maxclients->integer; i++, cl++ )
@@ -170,7 +174,8 @@ gotnewcl:
 	ent->pvServerData->client = newcl;
 	newcl->edict = ent;
 	newcl->challenge = challenge; // save challenge for checksumming
-
+	newcl->frames = (client_frame_t *)Z_Malloc( sizeof( client_frame_t ) * SV_UPDATE_BACKUP );
+		
 	// get the game a chance to reject this connection or modify the userinfo
 	if(!(SV_ClientConnect( ent, userinfo )))
 	{
@@ -1380,6 +1385,7 @@ static void SV_ReadClientMove( sv_client_t *cl, sizebuf_t *msg )
 	int	checksum1, checksum2;
 	int	key, lastframe, net_drop;
 	usercmd_t	oldest, oldcmd, newcmd, nulcmd;
+	bool	paused;
 
 	key = msg->readcount;
 	checksum1 = MSG_ReadByte( msg );
@@ -1390,7 +1396,7 @@ static void SV_ReadClientMove( sv_client_t *cl, sizebuf_t *msg )
 		cl->lastframe = lastframe;
 		if( cl->lastframe > 0 )
 		{
-			client_frame_t *frame = &cl->frames[cl->lastframe & UPDATE_MASK];
+			client_frame_t *frame = &cl->frames[cl->lastframe & SV_UPDATE_MASK];
 			frame->latency = svs.realtime - frame->senttime;
 		}
 	}
@@ -1416,7 +1422,10 @@ static void SV_ReadClientMove( sv_client_t *cl, sizebuf_t *msg )
 		return;
 	}
 
-	if( !sv.paused )
+	// get client pause
+	paused = ( sv.paused || (( sv_maxclients->integer <= 1 ) && !CL_IsInGame( )));
+
+	if( !paused )
 	{
 		SV_PreRunCmd( cl, &newcmd );	// get random_seed from newcmd
 
