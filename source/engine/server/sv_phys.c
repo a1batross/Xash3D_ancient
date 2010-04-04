@@ -174,21 +174,21 @@ bool SV_RunThink( edict_t *ent )
 	int	i;
 	float	newtime;
 
-	newtime = (sv.time + sv.frametime) * 0.001f;
+	newtime = (sv.time * 0.001f) + (sv.frametime * 0.001f);
 		
 	// don't let things stay in the past.
 	// it is possible to start that way by a trigger with a local time.
 	if( ent->v.nextthink <= 0.0f || ent->v.nextthink > newtime )
 		return true;
 
-	for( i = 0; i < 128  && !ent->free; i++ )
+	for( i = 0; i < SV_UPDATE_BACKUP && !ent->free; i++ )
 	{
-		svgame.globals->time = max( (sv.time * 0.001f), ent->v.nextthink );
+		svgame.globals->time = max(( sv.time * 0.001f ), ent->v.nextthink );
 		ent->v.nextthink = 0.0f;
 
 		svgame.dllFuncs.pfnThink( ent );
 
-		newtime = (sv.time + sv.frametime) * 0.001f;
+		newtime = (sv.time * 0.001f) + (sv.frametime * 0.001f);
 
 		// mods often set nextthink to time to cause a think every frame,
 		// we don't want to loop in that case, so exit if the new nextthink is
@@ -1063,6 +1063,7 @@ void SV_PushMove( edict_t *pusher, float movetime )
                                                   
 					// if the pusher has a "blocked" function, call it
 					// otherwise, just stay in place until the obstacle is gone
+					svgame.globals->time = (sv.time * 0.001f);
 					svgame.dllFuncs.pfnBlocked( pusher, check );
 					break;
 				}
@@ -1209,6 +1210,7 @@ bool SV_PushAngles( edict_t *pusher, vec3_t move, vec3_t amove )
 		}
 
 		MsgDev( D_INFO, "Pusher hit %s\n", SV_ClassName( check ));
+		svgame.globals->time = (sv.time * 0.001f);
 		svgame.dllFuncs.pfnBlocked( pusher, check );
 
 		// move back any entities we already moved
@@ -1907,10 +1909,7 @@ void SV_Physics_Step_RunTimestep( edict_t *ent, float timestep )
 
 void SV_Physics_Step( edict_t *ent )
 {
-	svgame.globals->time = sv.time * 0.001f;
-
 	SV_Physics_Step_RunTimestep( ent, svgame.globals->frametime );
-
 	if( !SV_RunThink( ent )) return;
 	SV_CheckWaterTransition( ent );
 }
@@ -2008,7 +2007,7 @@ void SV_Physics_None( edict_t *ent )
 {
 	float	newtime;
 
-	newtime = (sv.time + sv.frametime) * 0.001f;
+	newtime = (sv.time * 0.001f) + svgame.globals->frametime;
 	if( ent->v.nextthink > 0.0f && ent->v.nextthink <= newtime )
 		SV_RunThink( ent );
 }
@@ -2093,8 +2092,8 @@ SV_Physics
 */
 void SV_Physics( void )
 {
-	edict_t	*ent;
 	int    	i;
+	edict_t	*ent;
 
 	// let the progs know that a new frame has started
 	svgame.globals->time = sv.time * 0.001f;
@@ -2135,6 +2134,5 @@ void SV_Physics( void )
 
 	svgame.dllFuncs.pfnEndFrame();
 
-	if( !sv_playersonly->integer )
-		sv.time += sv.frametime;
+	if( !sv_playersonly->integer ) sv.time += sv.frametime;
 }

@@ -258,8 +258,11 @@ void SV_ReadPackets( void )
 				MsgDev( D_INFO, "SV_ReadPackets: fixing up a translated port\n");
 				cl->netchan.remote_address.port = net_from.port;
 			}
+
 			if( Netchan_Process( &cl->netchan, &net_message ))
 			{	
+				cl->send_message = true; // reply at end of frame
+
 				// this is a valid, sequenced packet, so process it
 				if( cl->state != cs_zombie )
 				{
@@ -357,8 +360,13 @@ void SV_PrepWorldFrame( void )
 	{
 		ent = EDICT_NUM( i );
 		if( ent->free ) continue;
+
 		ent->pvServerData->s.ed_flags = 0;
 		ent->v.effects &= ~EF_MUZZLEFLASH;
+
+		// clear NOINTERP flag automatically only for alive creatures			
+		if( ent->v.flags & ( FL_MONSTER|FL_CLIENT|FL_FAKECLIENT ) && ent->v.health > 0.0f )
+			ent->v.effects &= ~EF_NOINTERP;
 	}
 }
 
@@ -391,13 +399,13 @@ SV_RunGameFrame
 */
 void SV_RunGameFrame( void )
 {
+	if( !SV_HasActivePlayers()) return;
+
 	// we always need to bump framenum, even if we
 	// don't run the world, otherwise the delta
 	// compression can get confused when a client
 	// has the "current" frame
 	sv.framenum++;
-
-	if( !SV_HasActivePlayers()) return;
 
 	// don't run if paused or not in game
 	if( !sv.paused && CL_IsInGame( ))

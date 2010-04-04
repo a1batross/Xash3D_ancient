@@ -650,11 +650,10 @@ void SV_RunCmd( sv_client_t *cl, usercmd_t *ucmd )
 	if(!( clent->v.flags & FL_SPECTATOR ))
 	{
 		svgame.globals->time = sv.time * 0.001f;
-		svgame.globals->frametime = 0.0f;
-		svgame.dllFuncs.pfnPlayerPreThink( clent );
 		svgame.globals->frametime = ucmd->msec * 0.001f;
+		svgame.dllFuncs.pfnPlayerPreThink( clent );
 
-		SV_RunThink( clent );
+		SV_RunThink( clent ); // clients cannot be deleted from map
 
 		// If conveyor, or think, set basevelocity, then send to client asap too.
 		if( VectorLength( clent->v.basevelocity ) > 0.0f )
@@ -711,21 +710,15 @@ void SV_PostRunCmd( sv_client_t *cl )
 
 	clent = cl->edict;
 	if( !clent || clent->free ) return;
-	svgame.pmove->runfuncs = false; // all next calls ignore footstep sounds
 
+	svgame.pmove->runfuncs = false;	// all next calls ignore footstep sounds
+	svgame.globals->frametime = 0.0f;	// PlayerPostThink uses it
+	svgame.globals->time = sv.time * 0.001f;
+		
 	// run post-think
-	if(!( clent->v.flags & FL_SPECTATOR ))
-	{
-		svgame.globals->time = sv.time * 0.001f;
-		svgame.globals->frametime = 0;
-		svgame.dllFuncs.pfnPlayerPostThink( clent );
-	}
-	else
-	{
-		svgame.globals->time = sv.time * 0.001f;
-		svgame.globals->frametime = 0;
+	if( clent->v.flags & FL_SPECTATOR )
 		svgame.dllFuncs.pfnSpectatorThink( clent );
-	}
+	else svgame.dllFuncs.pfnPlayerPostThink( clent );
 
 	// restore frametime
 	svgame.globals->frametime = sv.frametime * 0.001f;

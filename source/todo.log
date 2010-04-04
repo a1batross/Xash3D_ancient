@@ -26,7 +26,8 @@ Xash 0.71 Beta 05.05.10
 2. fix sky changelevel bug
 3. complete lights.shader
 4. revision server physic
-5. revision monster moving
+5. revision monster moving			OK
 6. fix save\restore global state		OK
 7. rewrite WalkMove				OK
-8. tune UPDATE_BACKUP value for singleplayer
+8. tune UPDATE_BACKUP value for singleplayer	OK
+9. fix monsters interpolation

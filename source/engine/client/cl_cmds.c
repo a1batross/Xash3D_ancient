@@ -246,7 +246,7 @@ void CL_DeleteDemo_f( void )
 {
 	if( Cmd_Argc() != 2 )
 	{
-		Msg( "Usage: deldemo <name>\n" );
+		Msg( "Usage: killdemo <name>\n" );
 		return;
 	}
 

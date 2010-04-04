@@ -1467,7 +1467,8 @@ void SV_ExecuteClientMessage( sv_client_t *cl, sizebuf_t *msg )
 	// make sure the reply sequence number matches the incoming sequence number 
 	if( cl->netchan.incoming_sequence >= cl->netchan.outgoing_sequence )
 		cl->netchan.outgoing_sequence = cl->netchan.incoming_sequence;
-
+	else cl->send_message = false; // don't reply, sequences have slipped	
+		
 	// read optional clientCommand strings
 	while( cl->state != cs_zombie )
 	{

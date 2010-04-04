@@ -260,6 +260,63 @@ void HUD_UpdateEntityVars( edict_t *ent, const entity_state_t *state, const enti
 		ent->v.rendercolor[i] = LerpPoint( prev->rendercolor[i], state->rendercolor[i], m_fLerp );
 	}
 
+	if( ent->v.movetype == MOVETYPE_STEP )
+	{
+		float	f = 0;
+		float	d;
+
+		// don't do it if the goalstarttime hasn't updated in a while.
+
+		// NOTE:  Because we need to interpolate multiplayer characters, the interpolation time limit
+		// was increased to 1.0 s., which is 2x the max lag we are accounting for.
+
+		if(( gpGlobals->time < state->animtime + 1.0f ) && ( state->animtime != prev->animtime ))
+		{
+			f = (gpGlobals->time - state->animtime) / (state->animtime - prev->animtime);
+			//ALERT( at_console, "%4.2f %.2f %.2f\n", f, state->animtime, gpGlobals->time );
+		}
+
+		if(!( ent->v.flags & EF_NOINTERP ))
+		{
+			// ugly hack to interpolate angle, position.
+			// current is reached 0.1 seconds after being set
+			f = f - 1.0;
+		}
+		else
+		{
+			f = 0;
+		}
+
+		for( i = 0; i < 3; i++ )
+		{
+			ent->v.origin[i] += (ent->v.origin[i] - prev->origin[i]) * f;
+		}
+
+		// NOTE:  Because multiplayer lag can be relatively large, we don't want to cap
+		//  f at 1.5 anymore.
+		//if( f > -1.0 && f < 1.5 ) {}
+
+		for( i = 0; i < 3; i++ )
+		{
+			float	ang1, ang2;
+
+			ang1 = ent->v.angles[i];
+			ang2 = prev->angles[i];
+
+			d = ang1 - ang2;
+			if( d > 180 )
+			{
+				d -= 360;
+			}
+			else if( d < -180 )
+			{	
+				d += 360;
+			}
+			ent->v.angles[i] += d * f;
+		}
+		//ALERT( at_console, "%.3f \n", f );
+	}
+
 	// interpolate scale, renderamount etc
 	ent->v.renderamt = LerpPoint( prev->renderamt, state->renderamt, m_fLerp );
 	ent->v.scale = LerpPoint( prev->scale, state->scale, m_fLerp );
@@ -272,7 +329,7 @@ void HUD_UpdateEntityVars( edict_t *ent, const entity_state_t *state, const enti
 
 		if( ent->v.animtime )
 		{
-			if( ent->v.effects & EF_NOINTERP )
+			if(!( ent->v.effects & EF_NOINTERP ))
 			{
 				// adjust lerping values if animation restarted
 				if( lerpTime < 0 ) prevframe = 1.001;

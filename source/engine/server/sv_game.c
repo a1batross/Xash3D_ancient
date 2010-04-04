@@ -1151,14 +1151,14 @@ free edict private mem, unlink physics etc
 */
 void pfnRemoveEntity( edict_t* e )
 {
-	if( !e || e->free )
+	if( !SV_IsValidEdict( e ))
 	{
 		MsgDev( D_ERROR, "SV_RemoveEntity: entity already freed\n" );
 		return;
 	}
 
 	// never free client or world entity
-	if(( NUM_FOR_EDICT( e ) - 1 ) < svgame.globals->maxClients )
+	if( e->serialnumber < ( svgame.globals->maxClients + 1 ))
 	{
 		MsgDev( D_ERROR, "SV_RemoveEntity: can't delete %s\n", (e == EDICT_NUM( 0 )) ? "world" : "client" );
 		return;

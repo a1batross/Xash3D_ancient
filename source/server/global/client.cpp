@@ -756,6 +756,8 @@ void PlayerPostThink( edict_t *pEntity )
 
 	// use the old frametime, even if the engine has reset it
 	gpGlobals->frametime = cached_frametime;
+
+	PhysicsPostFrame();
 }
 
 void BuildLevelList( void )
@@ -958,13 +960,11 @@ void StartFrame( void )
 	}
 
 	ServerPostActivate(); // called once
-	PhysicsPostFrame();
-	
+	PhysicsFrame();
 }
 
 void EndFrame( void )
 {
-	PhysicsFrame();
 }
 
 /*
@@ -1206,9 +1206,6 @@ void UpdateEntityState( entity_state_t *to, edict_t *from, int baseline )
 		if( pNet->pev->fov < 0.0 ) pNet->pev->fov = 0.0;
 		if( pNet->pev->fov > 160 ) pNet->pev->fov = 160;
 		to->fov = pNet->pev->fov;
-
-		// clear EF_NOINTERP flag each frame for client
-		pNet->pev->effects &= ~EF_NOINTERP;
 	}
 	else if( to->ed_type == ED_AMBIENT )
 	{

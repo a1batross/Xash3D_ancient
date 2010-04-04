@@ -290,7 +290,7 @@ extern byte		net_message_buffer[MAX_MSGLEN];
 #define PORT_CLIENT		27901
 #define PORT_SERVER		27910
 #define MULTIPLAYER_BACKUP	64	// how many data slots to use when in multiplayer (must be power of 2)
-#define SINGLEPLAYER_BACKUP	8	// same for single player   
+#define SINGLEPLAYER_BACKUP	16	// same for single player   
 #define MAX_FLAGS		32	// 32 bits == 32 flags
 #define MASK_FLAGS		(MAX_FLAGS - 1)
 

@@ -585,7 +585,11 @@ void SV_SendClientMessages( void )
 			MSG_Clear( &cl->datagram );
 			SV_BroadcastPrintf( PRINT_HIGH, "%s overflowed\n", cl->name );
 			SV_DropClient( cl );
+			cl->send_message = true;
 		}
+
+		// only send messages if the client has sent one
+		if( !cl->send_message ) continue;
 
 		if( cl->state == cs_spawned )
 		{
@@ -595,11 +599,34 @@ void SV_SendClientMessages( void )
 		}
 		else
 		{
-			// just update reliable if needed
+			// just update reliable
 			if( cl->netchan.message.cursize || svs.realtime - cl->netchan.last_sent > 1000 )
 				Netchan_Transmit( &cl->netchan, 0, NULL );
 		}
+
+		// yes, message really sended 
+		cl->send_message = false;
 	}
+}
+
+/*
+=======================
+SV_SendMessagesToAll
+
+e.g. before changing level
+=======================
+*/
+void SV_SendMessagesToAll( void )
+{
+	int		i;
+	sv_client_t	*cl;
+
+	for( i = 0, cl = svs.clients; i < sv_maxclients->integer; i++, cl++ )
+	{
+		if( cl->state >= cs_connected )
+			cl->send_message = true;
+	}	
+	SV_SendClientMessages();
 }
 
 /*

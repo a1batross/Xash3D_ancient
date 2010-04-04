@@ -98,6 +98,7 @@ typedef struct sv_client_s
 	char		userinfo[MAX_INFO_STRING];	// name, etc (received from client)
 	char		physinfo[MAX_INFO_STRING];	// set on server (transmit to client)
 	bool		physinfo_modified;		// transmit at next opportunity
+	bool		send_message;
 	bool		sendmovevars;
 	bool		sendinfo;
 
@@ -390,6 +391,7 @@ void SV_WriteFrameToClient( sv_client_t *client, sizebuf_t *msg );
 void SV_BuildClientFrame( sv_client_t *client );
 void SV_UpdateEntityState( const edict_t *ent, bool baseline );
 void SV_InactivateClients( void );
+void SV_SendMessagesToAll( void );
 
 //
 // sv_game.c
