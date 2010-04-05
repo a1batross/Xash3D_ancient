@@ -148,7 +148,7 @@ byte CL_GetMouthOpen( int entityIndex )
 	return ed->pvClientData->mouth.open;
 }
 
-studioframe_t *CL_GetStudioFrame( int entityIndex )
+lerpframe_t *CL_GetLerpFrame( int entityIndex )
 {
 	edict_t	*pEnt = CL_GetEdictByIndex( entityIndex );
 
@@ -793,7 +793,7 @@ void CL_InitWorld( void )
 	}
 
 	// clear viewmodel prevstate
-	Mem_Set( &clgame.viewent.pvClientData->frame, 0, sizeof( studioframe_t ));
+	Mem_Set( &clgame.viewent.pvClientData->frame, 0, sizeof( lerpframe_t ));
 }
 
 void CL_InitEdicts( void )

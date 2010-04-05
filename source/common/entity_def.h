@@ -29,7 +29,6 @@ typedef struct entvars_s
 	vec3_t		movedir;
 
 	vec3_t		angles;		// ENG [all], NET [all]
-	vec3_t		oldangles;	// ENG [all], NET [all]
 	vec3_t		avelocity;	// angular velocity (degrees per second)
 	vec3_t		punchangle;	// NET [player], auto-decaying view angle adjustment
 	vec3_t		viewangles;	// NET [player], viewing angle (old name was v_angle)

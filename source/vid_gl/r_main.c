@@ -722,7 +722,7 @@ static void R_AddSpriteModelToList( ref_entity_t *e )
 
 	if( R_SpriteOccluded( e )) return;
 
-	frame = R_GetSpriteFrame( e->model, e->prev->curframe, e->angles[YAW] );
+	frame = R_GetSpriteFrame( e->model, e->lerp->curstate.frame, e->angles[YAW] );
 	if( e->customShader ) shader = e->customShader;
 	else shader = &r_shaders[frame->shader];
 
@@ -2348,11 +2348,11 @@ bool R_AddGenericEntity( edict_t *pRefEntity, ref_entity_t *refent )
 		break;
 	}
 
-	refent->prev = ri.GetStudioFrame( refent->index );	// setup prevframe data
+	refent->lerp = ri.GetLerpFrame( refent->index );	// get pointer to lerping frame data
 
-	if( refent->prev == NULL )
+	if( refent->lerp == NULL )
 	{
-		MsgDev( D_ERROR, "Rejected entity %i (model %s) -- no prevframe data\n", refent->index, refent->model->name );
+		MsgDev( D_ERROR, "Rejected entity %i (model %s) -- no lerpframe data\n", refent->index, refent->model->name );
 		return false;
 	}
 
@@ -2372,9 +2372,9 @@ bool R_AddGenericEntity( edict_t *pRefEntity, ref_entity_t *refent )
 			{
 				float	numframes = ((msprite_t *)refent->model->extradata)->numframes;
 
-				refent->prev->curframe += (pRefEntity->v.framerate * RI.refdef.frametime);
-				if( refent->prev->curframe > numframes && numframes > 0 )
-					refent->prev->curframe = fmod( refent->prev->curframe, numframes );
+				refent->lerp->curstate.frame += (pRefEntity->v.framerate * RI.refdef.frametime);
+				if( refent->lerp->curstate.frame > numframes && numframes > 0 )
+					refent->lerp->curstate.frame = fmod( refent->lerp->curstate.frame, numframes );
 			}
 			break;
 		case mod_studio:
@@ -2385,15 +2385,9 @@ bool R_AddGenericEntity( edict_t *pRefEntity, ref_entity_t *refent )
           }
 	else
 	{
-		refent->prev->frame = refent->prev->curframe;	// save oldframe
-		refent->prev->curframe = pRefEntity->v.frame;
+		refent->lerp->latched.frame = refent->lerp->curstate.frame;	// save oldframe
+		refent->lerp->curstate.frame = pRefEntity->v.frame;
 	}
-
-	if( refent->ent_type == ED_MOVER || refent->ent_type == ED_BSPBRUSH )
-	{
-		VectorNormalize2( pRefEntity->v.movedir, refent->movedir );
-	}
-	else VectorClear( refent->movedir );
 
 	// calculate angles
 	if( refent->flags & EF_ROTATE )
@@ -2407,6 +2401,20 @@ bool R_AddGenericEntity( edict_t *pRefEntity, ref_entity_t *refent )
 
 	Matrix3x3_FromAngles( refent->angles, refent->axis );
 	VectorClear( refent->origin2 );
+
+	if( refent->ent_type == ED_CLIENT )
+	{
+		refent->gaitsequence = pRefEntity->v.gaitsequence;
+		refent->flags |= EF_OCCLUSIONTEST;
+		refent->lightingOrigin[2] += refent->model->maxs[2] - 2; // drop shadow to floor
+	}
+	else refent->gaitsequence = 0;
+
+	if( refent->ent_type == ED_MOVER || refent->ent_type == ED_BSPBRUSH )
+	{
+		VectorNormalize2( pRefEntity->v.movedir, refent->movedir );
+	}
+	else VectorClear( refent->movedir );
 
 	if( refent->ent_type == ED_VIEWMODEL )
 	{
@@ -2424,14 +2432,6 @@ bool R_AddGenericEntity( edict_t *pRefEntity, ref_entity_t *refent )
 		if( refent->extradata ) Mem_EmptyPool( refent->mempool );
 		refent->extradata = NULL;
 	}
-
-	if( refent->ent_type == ED_CLIENT )
-	{
-		refent->gaitsequence = pRefEntity->v.gaitsequence;
-		refent->flags |= EF_OCCLUSIONTEST;
-		refent->lightingOrigin[2] += refent->model->maxs[2] - 2; // drop shadow to floor
-	}
-	else refent->gaitsequence = 0;
 
 	// because entity without models never added to scene
 	if( !refent->ent_type )
@@ -2538,7 +2538,7 @@ bool R_AddEntityToScene( edict_t *pRefEntity, int ed_type, shader_t customShader
 	refent->movetype = pRefEntity->v.movetype;
 	refent->framerate = pRefEntity->v.framerate;
 	refent->parent = NULL;
-	refent->prev = NULL;
+	refent->lerp = NULL;
 
 	if( pRefEntity->v.rendermode == kRenderGlow && !pRefEntity->v.renderfx )
 		refent->flags |= EF_OCCLUSIONTEST;
@@ -2637,7 +2637,7 @@ bool R_AddTeEntToScene( TEMPENTITY *pTempEntity, int ed_type, shader_t customSha
 	refent->flags = EF_NOSHADOW;
 	refent->gaitsequence = 0;
 	refent->parent = NULL;
-	refent->prev = NULL;
+	refent->lerp = NULL;
 
 	refent->renderamt = R_ComputeFxBlend( refent );
 
@@ -2665,11 +2665,11 @@ bool R_AddTeEntToScene( TEMPENTITY *pTempEntity, int ed_type, shader_t customSha
 		break;
 	}
 
-	refent->prev = pTempEntity->pvEngineData; // setup prevframe data
+	refent->lerp = pTempEntity->pvEngineData; // setup lerpframe data
 
-	if( refent->prev == NULL )
+	if( refent->lerp == NULL )
 	{
-		MsgDev( D_ERROR, "Rejected temp entity (model %s) -- no prevframe data\n", refent->model->name );
+		MsgDev( D_ERROR, "Rejected temp entity (model %s) -- no lerpframe data\n", refent->model->name );
 		return false;
 	}
 
@@ -2680,8 +2680,8 @@ bool R_AddTeEntToScene( TEMPENTITY *pTempEntity, int ed_type, shader_t customSha
 
 	refent->rtype = RT_MODEL;
 
-	refent->prev->frame = refent->prev->curframe;	// save oldframe
-	refent->prev->curframe = pTempEntity->m_flFrame;
+	refent->lerp->latched.frame = refent->lerp->curstate.frame;	// save oldframe
+	refent->lerp->curstate.frame = pTempEntity->m_flFrame;
 
 	// setup light origin
 	if( refent->model ) VectorAverage( refent->model->mins, refent->model->maxs, center );

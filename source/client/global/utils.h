@@ -44,6 +44,7 @@ extern void HUD_CreateEntities( void );
 extern int  HUD_AddVisibleEntity( edict_t *pEnt, int ed_type );
 extern void HUD_StudioEvent( const dstudioevent_t *event, edict_t *entity );
 extern void HUD_StudioFxTransform( edict_t *ent, float transform[4][4] );
+extern int HUD_StudioDoInterp( edict_t *e );
 extern void HUD_ParseTempEntity( void );
 extern void V_CalcRefdef( ref_params_t *parms );
 extern void V_StartPitchDrift( void );
@@ -124,6 +125,17 @@ inline float LerpAngle( float a2, float a1, float frac )
 	if( a1 - a2 > 180 ) a1 -= 360;
 	if( a1 - a2 < -180 ) a1 += 360;
 	return a2 + frac * (a1 - a2);
+}
+
+inline Vector LerpAngle( Vector a2, Vector a1, float frac )
+{
+	Vector	a3;
+
+	a3.x = LerpAngle( a2.x, a1.x, frac );
+	a3.y = LerpAngle( a2.y, a1.y, frac );
+	a3.z = LerpAngle( a2.z, a1.z, frac );
+
+	return a3;
 }
 
 inline float LerpView( float org1, float org2, float ofs1, float ofs2, float frac )
@@ -211,6 +223,7 @@ extern int g_iAlive;		// indicates alive local client or not
 // input.cpp
 extern cvar_t	*v_centerspeed;
 extern cvar_t	*v_centermove;
+extern cvar_t	*r_studio_lerping;
 extern cvar_t	*cl_forwardspeed;
 extern cvar_t	*cl_particlelod;
 extern cvar_t	*cl_particles;

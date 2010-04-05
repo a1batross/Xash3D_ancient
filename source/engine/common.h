@@ -224,7 +224,7 @@ bool CL_GetAttachment( int entityIndex, int number, vec3_t origin, vec3_t angles
 bool CL_SetAttachment( int entityIndex, int number, vec3_t origin, vec3_t angles );
 void CL_StudioEvent( dstudioevent_t *event, edict_t *ent );
 bool CL_GetComment( const char *demoname, char *comment );
-studioframe_t *CL_GetStudioFrame( int entityIndex );
+lerpframe_t *CL_GetLerpFrame( int entityIndex );
 edict_t *CL_GetEdictByIndex( int index );
 edict_t *CL_GetLocalPlayer( void );
 int CL_GetMaxClients( void );

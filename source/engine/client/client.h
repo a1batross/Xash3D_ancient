@@ -173,7 +173,7 @@ struct cl_priv_s
 
 	entity_state_t	current;
 	entity_state_t	prev;		// will always be valid, but might just be a copy of current
-	studioframe_t	frame;		// holds the studio values for right lerping
+	lerpframe_t	frame;		// holds the studio values for right lerping
 
 	// studiomodels attachments
 	vec3_t		origin[MAXSTUDIOATTACHMENTS];

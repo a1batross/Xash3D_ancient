@@ -39,7 +39,7 @@ int CL_AddTempEntity( TEMPENTITY *pTemp, shader_t customShader )
 			if( type == mod_studio || type == mod_sprite )
 			{
 				// alloc engine data to holds lerping values for studiomdls and sprites
-				pTemp->pvEngineData = Mem_Alloc( cls.mempool, sizeof( studioframe_t ));
+				pTemp->pvEngineData = Mem_Alloc( cls.mempool, sizeof( lerpframe_t ));
 			}
 			else
 			{

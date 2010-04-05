@@ -215,8 +215,7 @@ typedef struct ref_entity_s
 
 	struct ref_model_s		*model;		// opaque type outside refresh
 	struct ref_entity_s		*parent;		// link to parent entity (FOLLOW or weaponmodel)
-
-	studioframe_t		*prev;		// previous frame values for lerping
+	lerpframe_t		*lerp;		// pointer to client entity lerpingdata (holds two frames)
 
 	float			framerate;	// custom framerate
 	float			frame;

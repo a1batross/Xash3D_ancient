@@ -325,7 +325,7 @@ float R_GetSpriteFrameInterpolant( ref_entity_t *ent, mspriteframe_t **oldframe,
 	int		m_fDoInterp;
 
 	psprite = ent->model->extradata;
-	frame = (int)ent->prev->curframe;
+	frame = (int)ent->lerp->curstate.frame;
 	lerpFrac = 1.0f;
 
 	// misc info
@@ -343,49 +343,49 @@ float R_GetSpriteFrameInterpolant( ref_entity_t *ent, mspriteframe_t **oldframe,
 	{
 		if( m_fDoInterp )
 		{
-			if( ent->prev->sequence >= psprite->numframes || psprite->frames[ent->prev->sequence].type != FRAME_SINGLE )
+			if( ent->lerp->latched.sequence >= psprite->numframes || psprite->frames[ent->lerp->latched.sequence].type != FRAME_SINGLE )
 			{
 				// this can be happens when rendering switched between single and angled frames
 				// or change model on replace delta-entity
-				ent->prev->sequence = ent->prev->cursequence = frame;
-				ent->prev->curanimtime = RI.refdef.time;
+				ent->lerp->latched.sequence = ent->lerp->curstate.sequence = frame;
+				ent->lerp->curstate.animtime = RI.refdef.time;
 				lerpFrac = 1.0f;
 			}
                               
-			if( ent->prev->curanimtime < RI.refdef.time )
+			if( ent->lerp->curstate.animtime < RI.refdef.time )
 			{
-				if( frame != ent->prev->cursequence )
+				if( frame != ent->lerp->curstate.sequence )
 				{
-					ent->prev->sequence = ent->prev->cursequence;
-					ent->prev->cursequence = frame;
-					ent->prev->curanimtime = RI.refdef.time;
+					ent->lerp->latched.sequence = ent->lerp->curstate.sequence;
+					ent->lerp->curstate.sequence = frame;
+					ent->lerp->curstate.animtime = RI.refdef.time;
 					lerpFrac = 0.0f;
 				}
-				else lerpFrac = (RI.refdef.time - ent->prev->curanimtime) * ent->framerate;
+				else lerpFrac = (RI.refdef.time - ent->lerp->curstate.animtime) * ent->framerate;
 			}
 			else
 			{
-				ent->prev->sequence = ent->prev->cursequence = frame;
-				ent->prev->curanimtime = RI.refdef.time;
+				ent->lerp->latched.sequence = ent->lerp->curstate.sequence = frame;
+				ent->lerp->curstate.animtime = RI.refdef.time;
 				lerpFrac = 0.0f;
 			}
 		}
 		else
 		{
-			ent->prev->sequence = ent->prev->cursequence = frame;
+			ent->lerp->latched.sequence = ent->lerp->curstate.sequence = frame;
 			lerpFrac = 1.0f;
 		}
 
-		if( ent->prev->sequence >= psprite->numframes )
+		if( ent->lerp->latched.sequence >= psprite->numframes )
 		{
 			// reset interpolation on change model
-			ent->prev->sequence = ent->prev->cursequence = frame;
-			ent->prev->curanimtime = RI.refdef.time;
+			ent->lerp->latched.sequence = ent->lerp->curstate.sequence = frame;
+			ent->lerp->curstate.animtime = RI.refdef.time;
 			lerpFrac = 0.0f;
 		}
 
 		// get the interpolated frames
-		if( oldframe ) *oldframe = psprite->frames[ent->prev->sequence].frameptr;
+		if( oldframe ) *oldframe = psprite->frames[ent->lerp->latched.sequence].frameptr;
 		if( curframe ) *curframe = psprite->frames[frame].frameptr;
 	}
 	else if( psprite->frames[frame].type == FRAME_GROUP ) 
@@ -429,40 +429,40 @@ float R_GetSpriteFrameInterpolant( ref_entity_t *ent, mspriteframe_t **oldframe,
 
 		if( m_fDoInterp )
 		{
-			if( ent->prev->sequence >= psprite->numframes || psprite->frames[ent->prev->sequence].type != FRAME_ANGLED )
+			if( ent->lerp->latched.sequence >= psprite->numframes || psprite->frames[ent->lerp->latched.sequence].type != FRAME_ANGLED )
 			{
 				// this can be happens when rendering switched between single and angled frames
 				// or change model on replace delta-entity
-				ent->prev->sequence = ent->prev->cursequence = frame;
-				ent->prev->curanimtime = RI.refdef.time;
+				ent->lerp->latched.sequence = ent->lerp->curstate.sequence = frame;
+				ent->lerp->curstate.animtime = RI.refdef.time;
 				lerpFrac = 1.0f;
 			}
 
-			if( ent->prev->curanimtime < RI.refdef.time )
+			if( ent->lerp->curstate.animtime < RI.refdef.time )
 			{
-				if( frame != ent->prev->cursequence )
+				if( frame != ent->lerp->curstate.sequence )
 				{
-					ent->prev->sequence = ent->prev->cursequence;
-					ent->prev->cursequence = frame;
-					ent->prev->curanimtime = RI.refdef.time;
+					ent->lerp->latched.sequence = ent->lerp->curstate.sequence;
+					ent->lerp->curstate.sequence = frame;
+					ent->lerp->curstate.animtime = RI.refdef.time;
 					lerpFrac = 0.0f;
 				}
-				else lerpFrac = (RI.refdef.time - ent->prev->curanimtime) * ent->framerate;
+				else lerpFrac = (RI.refdef.time - ent->lerp->curstate.animtime) * ent->framerate;
 			}
 			else
 			{
-				ent->prev->sequence = ent->prev->cursequence = frame;
-				ent->prev->curanimtime = RI.refdef.time;
+				ent->lerp->latched.sequence = ent->lerp->curstate.sequence = frame;
+				ent->lerp->curstate.animtime = RI.refdef.time;
 				lerpFrac = 0.0f;
 			}
 		}
 		else
 		{
-			ent->prev->sequence = ent->prev->cursequence = frame;
+			ent->lerp->latched.sequence = ent->lerp->curstate.sequence = frame;
 			lerpFrac = 1.0f;
 		}
 
-		pspritegroup = (mspritegroup_t *)psprite->frames[ent->prev->sequence].frameptr;
+		pspritegroup = (mspritegroup_t *)psprite->frames[ent->lerp->latched.sequence].frameptr;
 		if( oldframe ) *oldframe = pspritegroup->frames[angleframe];
 
 		pspritegroup = (mspritegroup_t *)psprite->frames[frame].frameptr;
@@ -566,7 +566,7 @@ void R_DrawSpriteModel( const meshbuffer_t *mb )
 	case kRenderNormal:
 	case kRenderTransColor:
 	case kRenderTransAlpha:
-		frame = oldframe = R_GetSpriteFrame( e->model, e->prev->curframe, e->angles[YAW] );
+		frame = oldframe = R_GetSpriteFrame( e->model, e->lerp->curstate.frame, e->angles[YAW] );
 		break;
 	case kRenderTransTexture:
 	case kRenderTransAdd:

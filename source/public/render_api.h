@@ -60,37 +60,48 @@ typedef struct
 	vec3_t		normal;
 } fragment_t;
 
-// hold values that needs for right studio lerping
 typedef struct
 {
-	float		frame;
-	float		animtime; 
-	int		sequence;
-	float		sequencetime;
+	float		animtime;		// curstate.animtime	
+	int		sequence;		// curstate.sequence
+	float		frame;		// curstate.frame
+	vec3_t		origin;		// curstate.origin
+	vec3_t		angles;		// curstate.angles
+	byte		blending[16];	// curstate.blending
+	byte		controller[16];	// curstate.controller
+} currentvars_t;
+
+typedef struct
+{
+	float		animtime;		// latched.prevanimtime 
+	float		sequencetime;	// latechd.prevsequencetime
+	byte		seqblending[16];	// blending between sequence when it's changed
+	vec3_t		origin;		// latched.prevorigin
+	vec3_t		angles;		// latched.prevangles
+	int		sequence;		// latched.prevsequence
+	float		frame;		// latched.prevframe
+	byte		controller[16];	// latched.prevcontroller
+	byte		blending[16];	// latched.prevblending
+} latchedvars_t;
+
+// hold values that needs for right studio and sprite lerping
+typedef struct
+{
+	currentvars_t	curstate;
+	latchedvars_t	latched;
 
 	// CLIENT SPECIFIC
-	vec3_t		gaitorigin;		// client oldorigin used to calc velocity
-	float		gaitframe;		// client->frame + yaw
-	float		gaityaw;			// local value
+	vec3_t		gaitorigin;	// client oldorigin used to calc velocity
+	float		gaitframe;	// client->frame + yaw
+	float		gaityaw;		// local value
 
 	// EF_ANIMATE stuff
-	int		m_fSequenceLoops;		// sequence is looped
-	int		m_fSequenceFinished;	// sequence is finished
-	float		m_flFrameRate;     		// looped sequence framerate
-	float		m_flGroundSpeed;   		// looped sequence ground speed (movement)
-	float		m_flLastEventCheck;		// last time when event is checked
-
-          float		curanimtime;		// HACKHACK current animtime	
-	float		curframe;			// HACKHACK current frame
-
-	int		cursequence;		// HACKHACK current sequence
-	byte		curblending[16];		// HACKHACK current blending
-	byte		curcontroller[16];		// HACKHACL current blending
-
-	byte		blending[16];		// previous blending values
-	byte		controller[16];		// previous controller values
-	byte		seqblending[16];		// blending between sequence when it's changed
-} studioframe_t;
+	int		m_fSequenceLoops;	// sequence is looped
+	int		m_fSequenceFinished;// sequence is finished
+	float		m_flFrameRate;     	// looped sequence framerate
+	float		m_flGroundSpeed;   	// looped sequence ground speed (movement)
+	float		m_flLastEventCheck;	// last time when event is checked
+} lerpframe_t;
 
 typedef struct
 {
@@ -204,7 +215,7 @@ typedef struct render_imp_s
 	bool	(*GetAttachment)( int entityIndex, int number, vec3_t origin, vec3_t angles );
 	bool	(*SetAttachment)( int entityIndex, int number, vec3_t origin, vec3_t angles );
 	edict_t	*(*GetClientEdict)( int index );
-	studioframe_t *(*GetStudioFrame)( int entityIndex );
+	lerpframe_t *(*GetLerpFrame)( int entityIndex );
 	byte	(*GetMouthOpen)( int entityIndex );
 	edict_t	*(*GetLocalPlayer)( void );
 	int	(*GetMaxClients)( void );

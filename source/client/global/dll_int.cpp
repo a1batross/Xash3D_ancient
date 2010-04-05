@@ -207,7 +207,6 @@ void HUD_UpdateEntityVars( edict_t *ent, const entity_state_t *state, const enti
 	// copy state to progs
 	ent->v.modelindex = state->modelindex;
 	ent->v.weaponmodel = state->weaponmodel;
-	ent->v.frame = state->frame;
 	ent->v.sequence = state->sequence;
 	ent->v.gaitsequence = state->gaitsequence;
 	ent->v.body = state->body;
@@ -215,7 +214,7 @@ void HUD_UpdateEntityVars( edict_t *ent, const entity_state_t *state, const enti
 	ent->v.effects = state->effects;
 	ent->v.velocity = state->velocity;
 	ent->v.basevelocity = state->basevelocity;
-	ent->v.oldorigin = ent->v.origin;
+	ent->v.oldorigin = ent->v.origin;		// previous origin holds
 	ent->v.mins = state->mins;
 	ent->v.maxs = state->maxs;
 	ent->v.framerate = state->framerate;
@@ -231,7 +230,6 @@ void HUD_UpdateEntityVars( edict_t *ent, const entity_state_t *state, const enti
 	ent->v.movetype = state->movetype;
 	ent->v.flags = state->flags;
 	ent->v.ideal_pitch = state->idealpitch;
-	ent->v.oldangles = ent->v.angles;	// just a delta between frames
 	ent->v.animtime = state->animtime;
 
 	if( state->groundent != -1 )
@@ -245,99 +243,36 @@ void HUD_UpdateEntityVars( edict_t *ent, const entity_state_t *state, const enti
 	switch( ent->v.movetype )
 	{
 	case MOVETYPE_NONE:
+	case MOVETYPE_STEP:
+		// monster's steps will be interpolated on render-side
 		ent->v.origin = state->origin;
+		ent->v.angles = state->angles;
 		break;
 	default:
+		ent->v.angles = LerpAngle( prev->angles, state->angles, m_fLerp );
 		ent->v.origin = LerpPoint( prev->origin, state->origin, m_fLerp );
 		ent->v.basevelocity = LerpPoint( prev->basevelocity, state->basevelocity, m_fLerp );
 		break;
 	}
 
-	// lerping some fields
-	for( i = 0; i < 3; i++ )
+	// interpolate scale, renderamount etc
+	ent->v.scale = LerpPoint( prev->scale, state->scale, m_fLerp );
+	ent->v.rendercolor = LerpPoint( prev->rendercolor, state->rendercolor, m_fLerp );
+	ent->v.renderamt = LerpPoint( prev->renderamt, state->renderamt, m_fLerp );
+
+	// auto-animation uses v.frame for hold ending frame
+	if(!( ent->v.effects & EF_ANIMATE ))
 	{
-		ent->v.angles[i] = LerpAngle( prev->angles[i], state->angles[i], m_fLerp );
-		ent->v.rendercolor[i] = LerpPoint( prev->rendercolor[i], state->rendercolor[i], m_fLerp );
-	}
-
-	if( ent->v.movetype == MOVETYPE_STEP )
-	{
-		float	f = 0;
-		float	d;
-
-		// don't do it if the goalstarttime hasn't updated in a while.
-
-		// NOTE:  Because we need to interpolate multiplayer characters, the interpolation time limit
-		// was increased to 1.0 s., which is 2x the max lag we are accounting for.
-
-		if(( gpGlobals->time < state->animtime + 1.0f ) && ( state->animtime != prev->animtime ))
+		if( ent->v.animtime )
 		{
-			f = (gpGlobals->time - state->animtime) / (state->animtime - prev->animtime);
-			//ALERT( at_console, "%4.2f %.2f %.2f\n", f, state->animtime, gpGlobals->time );
-		}
-
-		if(!( ent->v.flags & EF_NOINTERP ))
-		{
-			// ugly hack to interpolate angle, position.
-			// current is reached 0.1 seconds after being set
-			f = f - 1.0;
+			// use normal studio lerping
+			ent->v.frame = state->frame;
 		}
 		else
 		{
-			f = 0;
+			// sprite frames will be interpolated in other place
+			ent->v.frame = Q_rint( state->frame );
 		}
-
-		for( i = 0; i < 3; i++ )
-		{
-			ent->v.origin[i] += (ent->v.origin[i] - prev->origin[i]) * f;
-		}
-
-		// NOTE:  Because multiplayer lag can be relatively large, we don't want to cap
-		//  f at 1.5 anymore.
-		//if( f > -1.0 && f < 1.5 ) {}
-
-		for( i = 0; i < 3; i++ )
-		{
-			float	ang1, ang2;
-
-			ang1 = ent->v.angles[i];
-			ang2 = prev->angles[i];
-
-			d = ang1 - ang2;
-			if( d > 180 )
-			{
-				d -= 360;
-			}
-			else if( d < -180 )
-			{	
-				d += 360;
-			}
-			ent->v.angles[i] += d * f;
-		}
-		//ALERT( at_console, "%.3f \n", f );
-	}
-
-	// interpolate scale, renderamount etc
-	ent->v.renderamt = LerpPoint( prev->renderamt, state->renderamt, m_fLerp );
-	ent->v.scale = LerpPoint( prev->scale, state->scale, m_fLerp );
-
-	if(!( ent->v.effects & EF_ANIMATE )) // auto-animation uses v.frame for hold ending frame
-	{
-		float	frame = state->frame;
-		float	prevframe = prev->frame;
-		float	lerpTime = (frame - prevframe);
-
-		if( ent->v.animtime )
-		{
-			if(!( ent->v.effects & EF_NOINTERP ))
-			{
-				// adjust lerping values if animation restarted
-				if( lerpTime < 0 ) prevframe = 1.001;
-				ent->v.frame = LerpPoint( prevframe, frame, m_fLerp );
-			}
-			else ent->v.frame = state->frame; // use normal studio lerping
-		}
-		else ent->v.frame = Q_rint( state->frame ); // sprite frames will be interpolated in other place
 	}
 
 	switch( state->ed_type )
@@ -390,26 +325,27 @@ void HUD_UpdateEntityVars( edict_t *ent, const entity_state_t *state, const enti
 		if( state->owner != -1 )
 			ent->v.owner = GetEntityByIndex( state->owner );
 		else ent->v.owner = NULL;
+
+		// add server beam now
+		g_pViewRenderBeams->AddServerBeam( ent );
 		break;
 	default:
 		ent->v.movedir = Vector( 0, 0, 0 );
 		break;
 	}
 
-	// add env_beam to drawing list
-	if( state->ed_type == ED_BEAM )
-		g_pViewRenderBeams->AddServerBeam( ent );
-
 	for( i = 0; i < MAXSTUDIOBLENDS; i++ )
 	{
 		ent->v.blending[i] = LerpByte( prev->blending[i], state->blending[i], m_fLerp ); 
 	}
+
 	for( i = 0; i < MAXSTUDIOCONTROLLERS; i++ )
 	{
 		if( abs( prev->controller[i] - state->controller[i] ) > 128 )
 			ent->v.controller[i] = state->controller[i];
 		else ent->v.controller[i] = LerpByte( prev->controller[i], state->controller[i], m_fLerp );	
 	}
+
 	// g-cont. moved here because we may needs apply null scale to skyportal
 	if( ent->v.scale == 0.0f ) ent->v.scale = 1.0f;	
 	ent->v.pContainingEntity = ent;

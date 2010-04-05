@@ -154,3 +154,12 @@ void HUD_StudioFxTransform( edict_t *ent, float transform[4][4] )
 		break;
 	}
 }
+
+int HUD_StudioDoInterp( edict_t *e )
+{
+	if( r_studio_lerping->integer )
+	{
+		return (e->v.flags & EF_NOINTERP) ? false : true;
+	}
+	return false;
+}

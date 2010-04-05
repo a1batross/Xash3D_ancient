@@ -56,6 +56,7 @@ cvar_t	*cl_bobup;
 cvar_t	*cl_waterdist;
 cvar_t	*cl_chasedist;
 
+cvar_t	*r_studio_lerping;
 cvar_t	*v_iyaw_cycle;
 cvar_t	*v_iroll_cycle;
 cvar_t	*v_ipitch_cycle;
@@ -131,6 +132,7 @@ void V_Init( void )
 	scr_ofsx = g_engfuncs.pfnRegisterVariable( "scr_ofsx", "0", 0, "screen offset by X" );
 	scr_ofsy = g_engfuncs.pfnRegisterVariable( "scr_ofsy", "0", 0, "screen offset by Y" );
 	scr_ofsz = g_engfuncs.pfnRegisterVariable( "scr_ofsz", "0", 0, "screen offset by Z" );
+	r_studio_lerping = g_engfuncs.pfnRegisterVariable( "r_studio_lerping", "1", FCVAR_ARCHIVE, "enables studio model animation lerping" ); // get copy of engine cvar
 
 	cl_vsmoothing = g_engfuncs.pfnRegisterVariable( "cl_vsmoothing", "0.05", 0, "enables lepring in multiplayer" );
 	cl_stairsmooth = g_engfuncs.pfnRegisterVariable( "cl_vstairsmooth", "100", FCVAR_ARCHIVE, "how fast your view moves upward/downward when running up/down stairs" );
