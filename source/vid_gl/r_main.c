@@ -2330,25 +2330,8 @@ bool R_AddGenericEntity( edict_t *pRefEntity, ref_entity_t *refent )
 	// check model
 	if( !refent->model ) return false;
 
-	switch( refent->model->type )
-	{
-	case mod_world:
-	case mod_brush:
-		if( !refent->model->extradata )
-			return false;
-		refent->scale = 1.0f; // ignore scale for brush models
-		refent->frame = pRefEntity->v.frame;	// brush properly animating
-		break;
-	case mod_studio:
-	case mod_sprite:
-		if( !refent->model->extradata )
-			return false;
-		break;
-	case mod_bad: // let the render drawing null model
-		break;
-	}
-
-	refent->lerp = ri.GetLerpFrame( refent->index );	// get pointer to lerping frame data
+	// get pointer to lerping frame data
+	refent->lerp = ri.GetLerpFrame( refent->index );
 
 	if( refent->lerp == NULL )
 	{
@@ -2362,31 +2345,24 @@ bool R_AddGenericEntity( edict_t *pRefEntity, ref_entity_t *refent )
 	VectorCopy( pRefEntity->v.origin, refent->lightingOrigin );
 	refent->lightingOrigin[2] += 1;
 
-	// do animate
-	if( refent->flags & EF_ANIMATE )
+	switch( refent->model->type )
 	{
-		switch( refent->model->type )
-		{
-		case mod_sprite:
-			if(((msprite_t *)refent->model->extradata)->numframes > 1 )
-			{
-				float	numframes = ((msprite_t *)refent->model->extradata)->numframes;
-
-				refent->lerp->curstate.frame += (pRefEntity->v.framerate * RI.refdef.frametime);
-				if( refent->lerp->curstate.frame > numframes && numframes > 0 )
-					refent->lerp->curstate.frame = fmod( refent->lerp->curstate.frame, numframes );
-			}
-			break;
-		case mod_studio:
-		case mod_brush:
-		case mod_world:
-			break;
-		}
-          }
-	else
-	{
-		refent->lerp->latched.frame = refent->lerp->curstate.frame;	// save oldframe
+	case mod_world:
+	case mod_brush:
+		if( !refent->model->extradata )
+			return false;
+		refent->scale = 1.0f;		// ignore scale for brush models
+		refent->frame = pRefEntity->v.frame;	// brush properly animating
+		break;
+	case mod_studio:
+	case mod_sprite:
+		if( !refent->model->extradata )
+			return false;
+		refent->frame = 0.0f;		// keep clear to prevent randomly change skins :-)
 		refent->lerp->curstate.frame = pRefEntity->v.frame;
+		break;
+	case mod_bad: // let the render drawing null model
+		break;
 	}
 
 	// calculate angles
@@ -2679,8 +2655,6 @@ bool R_AddTeEntToScene( TEMPENTITY *pTempEntity, int ed_type, shader_t customSha
 	else refent->customShader = NULL;
 
 	refent->rtype = RT_MODEL;
-
-	refent->lerp->latched.frame = refent->lerp->curstate.frame;	// save oldframe
 	refent->lerp->curstate.frame = pTempEntity->m_flFrame;
 
 	// setup light origin

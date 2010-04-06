@@ -1836,12 +1836,12 @@ static void pfnWeaponAnim( int iAnim, int body, float framerate )
 {
 	edict_t	*viewmodel = &clgame.viewent;
 
-	viewmodel->v.sequence = iAnim;
-	viewmodel->v.body = body;
+	viewmodel->v.animtime = clgame.globals->time;	// start immediately
 	viewmodel->v.framerate = framerate;
-	viewmodel->v.effects |= EF_ANIMATE;
-	viewmodel->v.frame = -1; // force to start new sequence
+	viewmodel->v.sequence = iAnim;
+	viewmodel->v.frame = 0.0f;
 	viewmodel->v.scale = 1.0f;
+	viewmodel->v.body = body;
 }
 
 /*

@@ -30,4 +30,5 @@ Xash 0.71 Beta 05.05.10
 6. fix save\restore global state		OK
 7. rewrite WalkMove				OK
 8. tune UPDATE_BACKUP value for singleplayer	OK
-9. fix monsters interpolation
+9. fix monsters interpolation			OK
+10.

@@ -595,14 +595,19 @@ void V_CalcCameraRefdef( ref_params_t *pparams )
 	 	if( viewentity )
 		{		 
 			dstudiohdr_t *viewmonster = (dstudiohdr_t *)GetModelPtr( viewentity );
+			float m_fLerp = GetLerpFrac();
 
-			v_origin = viewentity->v.origin;
+			if( viewentity->v.movetype == MOVETYPE_STEP )
+				v_origin = LerpPoint( viewentity->v.oldorigin, viewentity->v.origin, m_fLerp );
+			else v_origin = viewentity->v.origin;	// already interpolated
 
 			// calc monster view if supposed
 			if( gHUD.viewFlags & MONSTER_VIEW && viewmonster )
 				v_origin += viewmonster->eyeposition;
 
-			v_angles = viewentity->v.angles;
+			if( viewentity->v.movetype == MOVETYPE_STEP )
+				v_angles = LerpAngle( viewentity->v.oldangles, viewentity->v.angles, m_fLerp );
+			else v_angles = viewentity->v.angles;	// already interpolated
 
 			if( gHUD.viewFlags & INVERSE_X )	// inverse X coordinate
 				v_angles[0] = -v_angles[0];
@@ -615,19 +620,24 @@ void V_CalcCameraRefdef( ref_params_t *pparams )
 	}
 	else if( GetEntityByIndex( pparams->viewentity ) != GetLocalPlayer( ))
 	{
-		// this is a viewentity sets with SET_VIEW builtin
+		// this is a viewentity which sets by SET_VIEW builtin
 		edict_t	*viewentity = GetEntityByIndex( pparams->viewentity );
 	 	if( viewentity )
 		{		 
 			dstudiohdr_t *viewmonster = (dstudiohdr_t *)GetModelPtr( viewentity );
+			float m_fLerp = GetLerpFrac();
 
-			v_origin = viewentity->v.origin;
+			if( viewentity->v.movetype == MOVETYPE_STEP )
+				v_origin = LerpPoint( viewentity->v.oldorigin, viewentity->v.origin, m_fLerp );
+			else v_origin = viewentity->v.origin;	// already interpolated
 
 			// calc monster view if supposed
 			if( viewentity->v.flags & FL_MONSTER && viewmonster )
 				v_origin += viewmonster->eyeposition;
 
-			v_angles = viewentity->v.angles;
+			if( viewentity->v.movetype == MOVETYPE_STEP )
+				v_angles = LerpAngle( viewentity->v.oldangles, viewentity->v.angles, m_fLerp );
+			else v_angles = viewentity->v.angles;	// already interpolated
 
 			if( viewentity->v.flags & FL_PROJECTILE ) // inverse X coordinate
 				v_angles[0] = -v_angles[0];

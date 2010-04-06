@@ -98,6 +98,13 @@ void R_StudioInit( void )
 	}
 }
 
+/*
+====================
+R_StudioFreeAllExtradata
+
+release all ref_entity mempools
+====================
+*/
 void R_StudioFreeAllExtradata( void )
 {
 	int	i;
@@ -108,6 +115,163 @@ void R_StudioFreeAllExtradata( void )
 		r_entities[i].extradata = NULL;
 	}
 	Mem_Set( r_entities, 0, sizeof( r_entities ));
+}
+
+/*
+====================
+R_StudioShutdown
+
+====================
+*/
+void R_StudioShutdown( void )
+{
+	R_StudioFreeAllExtradata ();
+}
+
+/*
+====================
+R_StudioUpdateVars
+
+nointerp version
+====================
+*/
+void R_StudioUpdateVars( edict_t *in, ref_entity_t *out )
+{
+	int	i;
+
+	out->lerp->latched.sequencetime = 0.0f;	// no lerping between sequences
+	out->lerp->latched.sequence = out->lerp->curstate.sequence = in->v.sequence; // keep an actual
+	out->lerp->latched.animtime = out->lerp->curstate.animtime = in->v.animtime;
+
+	VectorCopy( in->v.origin, out->lerp->curstate.origin );
+	VectorCopy( out->lerp->curstate.origin, out->lerp->latched.origin );
+
+	VectorCopy( in->v.angles, out->lerp->curstate.angles );
+	VectorCopy( out->lerp->curstate.angles, out->lerp->latched.angles );
+
+	// copy controllers
+	for( i = 0; i < MAXSTUDIOCONTROLLERS; i++ )
+		out->lerp->latched.controller[i] = out->lerp->curstate.controller[i] = in->v.controller[i];
+
+	// copy blends
+	for( i = 0; i < MAXSTUDIOBLENDS; i++ )
+		out->lerp->latched.blending[i] = out->lerp->curstate.blending[i] = in->v.blending[i];
+}
+
+/*
+====================
+R_StudioUpdateVarsInterpolant
+
+====================
+*/
+void R_StudioUpdateVarsInterpolant( edict_t *in, ref_entity_t *out )
+{
+	int	i;
+		
+	// sequence has changed, hold the previous sequence info
+	if( in->v.sequence != out->lerp->curstate.sequence )
+	{
+		if( out->ent_type == ED_CLIENT )
+			out->lerp->latched.sequencetime = out->lerp->curstate.animtime + 0.01f;
+		else out->lerp->latched.sequencetime = out->lerp->curstate.animtime + 0.1f;
+			
+		// save current blends to right lerping from last sequence
+		for( i = 0; i < MAXSTUDIOBLENDS; i++ )
+			out->lerp->latched.seqblending[i] = out->lerp->curstate.blending[i];
+		out->lerp->latched.sequence = out->lerp->curstate.sequence;	// save old sequence
+	}
+	out->lerp->curstate.sequence = in->v.sequence; // keep an actual
+
+	if( in->v.animtime != out->lerp->curstate.animtime )
+	{
+		// client got new packet, shuffle animtimes
+		out->lerp->latched.animtime = out->lerp->curstate.animtime;
+		VectorCopy( in->v.origin, out->lerp->latched.origin );
+		VectorCopy( in->v.angles, out->lerp->latched.angles );
+
+		for( i = 0; i < MAXSTUDIOCONTROLLERS; i++ )
+			out->lerp->latched.controller[i] = in->v.controller[i];
+	}
+	out->lerp->curstate.animtime = in->v.animtime;
+
+	// copy controllers
+	for( i = 0; i < MAXSTUDIOCONTROLLERS; i++ )
+	{
+		if( out->lerp->curstate.controller[i] != in->v.controller[i] )
+			out->lerp->latched.controller[i] = out->lerp->curstate.controller[i];
+		out->lerp->curstate.controller[i] = in->v.controller[i];
+	}
+
+	// copy blends
+	for( i = 0; i < MAXSTUDIOBLENDS; i++ )
+	{
+		out->lerp->latched.blending[i] = out->lerp->curstate.blending[i];
+		out->lerp->curstate.blending[i] = in->v.blending[i];
+	}
+
+	if( !VectorCompare( in->v.origin, out->lerp->curstate.origin ))
+		VectorCopy( out->lerp->curstate.origin, out->lerp->latched.origin );
+	VectorCopy( in->v.origin, out->lerp->curstate.origin );
+
+	if( VectorIsNull( out->lerp->latched.angles )) // initialize it
+		VectorCopy( out->lerp->curstate.angles, out->lerp->latched.angles );
+
+	if( !VectorCompare( in->v.angles, out->lerp->curstate.angles ))
+		VectorCopy( out->lerp->curstate.angles, out->lerp->latched.angles );
+	VectorCopy( in->v.angles, out->lerp->curstate.angles );
+}
+
+void R_StudioAllocExtradata( edict_t *in, ref_entity_t *e )
+{
+	studiovars_t	*studio;
+	bool		hasChrome = (((mstudiomodel_t *)e->model->extradata)->phdr->flags & STUDIO_HAS_CHROME) ? true : false;
+	int		numbones = ((mstudiomodel_t *)e->model->extradata)->phdr->numbones;
+			
+	if( !e->mempool ) e->mempool = Mem_AllocPool( va( "Entity Pool %i", e - r_entities ));
+	if( !e->extradata ) e->extradata = (void *)Mem_Alloc( e->mempool, sizeof( studiovars_t ));
+	studio = (studiovars_t *)e->extradata;
+	studio->lerp = e->lerp;
+
+	// any stuidio model MUST have previous data for lerping
+	Com_Assert( studio->lerp == NULL );
+
+	if( m_fDoInterp )
+	{
+		R_StudioUpdateVarsInterpolant( in, e );
+	}
+	else
+	{
+		R_StudioUpdateVars( in, e );
+	}
+
+	if( studio->numbones != numbones )
+	{
+		size_t	cache_size = sizeof( matrix4x4 ) * numbones;
+		size_t	names_size = numbones * 32; // bonename length
+
+		// allocate or merge bones cache
+		studio->bonestransform = (matrix4x4 *)Mem_Realloc( e->mempool, studio->bonestransform, cache_size );
+	}
+
+	if( hasChrome )
+	{
+		if( studio->numbones != numbones || !studio->chromeage || !studio->chromeright || !studio->chromeup )
+		{
+			// allocate or merge chrome cache
+			studio->chromeage = (int *)Mem_Realloc( e->mempool, studio->chromeage, numbones * sizeof( int ));
+			studio->chromeright = (vec3_t *)Mem_Realloc( e->mempool, studio->chromeright, numbones * sizeof( vec3_t ));
+			studio->chromeup = (vec3_t *)Mem_Realloc( e->mempool, studio->chromeup, numbones * sizeof( vec3_t ));
+		}
+	}
+	else
+	{
+		if( studio->chromeage ) Mem_Free( studio->chromeage );
+		if( studio->chromeright ) Mem_Free( studio->chromeright );
+		if( studio->chromeup ) Mem_Free( studio->chromeup );
+		studio->chromeright = studio->chromeup = NULL;
+		studio->chromeage = NULL;
+	}
+	studio->numbones = numbones;
 }
 
 void R_StudioAllocTentExtradata( TEMPENTITY *in, ref_entity_t *e )
@@ -124,69 +288,23 @@ void R_StudioAllocTentExtradata( TEMPENTITY *in, ref_entity_t *e )
 	// any stuidio model MUST have lerpframe data for lerping
 	Com_Assert( studio->lerp == NULL );
 
-	// copy controllers
+	e->lerp->latched.sequencetime = 0.0f;					// no lerping between sequences
+	e->lerp->latched.sequence = e->lerp->curstate.sequence = in->m_iSequence;	// keep an actual
+	e->lerp->latched.animtime = e->lerp->curstate.animtime = in->m_flFrameMax;	// HACKHACK: used m_flFrameMax as animtime
+
+	VectorCopy( in->origin, e->lerp->curstate.origin );
+	VectorCopy( e->lerp->curstate.origin, e->lerp->latched.origin );
+
+	VectorCopy( in->angles, e->lerp->curstate.angles );
+	VectorCopy( e->lerp->curstate.angles, e->lerp->latched.angles );
+
+	// reset controllers
 	for( i = 0; i < MAXSTUDIOCONTROLLERS; i++ )
-	{
-		studio->lerp->latched.controller[i] = studio->lerp->curstate.controller[i];
-		studio->lerp->curstate.controller[i] = 0x7F;	// tempents doesn't have bonecontrollers
-	}
+		e->lerp->latched.controller[i] = e->lerp->curstate.controller[i] = 0x7F;
 
-	// copy blends
+	// reset blends
 	for( i = 0; i < MAXSTUDIOBLENDS; i++ )
-	{
-		studio->lerp->latched.blending[i] = studio->lerp->curstate.blending[i];
-		studio->lerp->curstate.blending[i] = 0x7F;	// tempents doesn't have blendings
-	}
-
-	// sequence has changed, hold the previous sequence info
-	if( in->m_iSequence != studio->lerp->curstate.sequence )
-	{
-		studio->lerp->latched.sequencetime = e->lerp->latched.animtime + 0.01f;
-		e->lerp->latched.sequence = studio->lerp->curstate.sequence;
-
-		// save current blendings
-		for( i = 0; i < MAXSTUDIOBLENDS; i++ )
-			studio->lerp->latched.blending[i] = studio->lerp->curstate.blending[i];
-	}
-
-	if( in->flags & FTENT_SPRANIMATE ) 
-	{
-		if( in->m_flFrame == -1 )
-		{
-			in->m_flFrame = e->lerp->curstate.frame = 0;
-			studio->lerp->curstate.sequence = in->m_iSequence;
-			R_StudioResetSequenceInfo( e );
-		}
-		else
-		{
-			if( !studio->lerp->m_fSequenceFinished )
-				R_StudioFrameAdvance( e, 0 );
-
-			if( studio->lerp->m_fSequenceFinished )
-			{
-				if( in->flags & FTENT_SPRANIMATELOOP )
-					in->m_flFrame = -1;
-				// hold at last frame
-			}
-			else
-			{
-				// copy current frame back to let user grab it on a client-side
-				in->m_flFrame = e->lerp->curstate.frame;
-			}
-		}
-	}
-	else
-	{
-		studio->lerp->curstate.sequence = in->m_iSequence;
-		e->lerp->latched.animtime = e->lerp->curstate.animtime;	// must be update each frame!
-		e->lerp->curstate.animtime = in->m_flFrameMax;		// HACKHACK: used m_flFrameMax as animtime
-
-		// push position and angles
-		VectorCopy( e->lerp->curstate.origin, e->lerp->latched.origin );
-		VectorCopy( in->origin, e->lerp->curstate.origin );
-		VectorCopy( e->lerp->curstate.angles, e->lerp->latched.angles );
-		VectorCopy( in->angles, e->lerp->curstate.angles );
-	}
+		e->lerp->latched.blending[i] = e->lerp->curstate.blending[i] = 0x7F;
 
 	if( studio->numbones != numbones )
 	{
@@ -216,133 +334,14 @@ void R_StudioAllocTentExtradata( TEMPENTITY *in, ref_entity_t *e )
 		studio->chromeage = NULL;
 	}
 	studio->numbones = numbones;
-}
-
-void R_StudioAllocExtradata( edict_t *in, ref_entity_t *e )
-{
-	studiovars_t	*studio;
-	bool		hasChrome = (((mstudiomodel_t *)e->model->extradata)->phdr->flags & STUDIO_HAS_CHROME) ? true : false;
-	int		i, numbones = ((mstudiomodel_t *)e->model->extradata)->phdr->numbones;
-			
-	if( !e->mempool ) e->mempool = Mem_AllocPool( va( "Entity Pool %i", e - r_entities ));
-	if( !e->extradata ) e->extradata = (void *)Mem_Alloc( e->mempool, sizeof( studiovars_t ));
-	studio = (studiovars_t *)e->extradata;
-	studio->lerp = e->lerp;
-
-	// any stuidio model MUST have previous data for lerping
-	Com_Assert( studio->lerp == NULL );
-
-	// copy controllers
-	for( i = 0; i < MAXSTUDIOCONTROLLERS; i++ )
-	{
-		studio->lerp->latched.controller[i] = studio->lerp->curstate.controller[i];
-		studio->lerp->curstate.controller[i] = in->v.controller[i];
-	}
-
-	// copy blends
-	for( i = 0; i < MAXSTUDIOBLENDS; i++ )
-	{
-		studio->lerp->latched.blending[i] = studio->lerp->curstate.blending[i];
-		studio->lerp->curstate.blending[i] = in->v.blending[i];
-	}
-
-	// sequence has changed, hold the previous sequence info
-	if( in->v.sequence != studio->lerp->curstate.sequence )
-	{
-		studio->lerp->latched.sequencetime = e->lerp->latched.animtime + 0.01f;
-		e->lerp->latched.sequence = studio->lerp->curstate.sequence;
-		e->lerp->curstate.sequence = in->v.sequence;
-
-		// save current blendings
-		for( i = 0; i < MAXSTUDIOBLENDS; i++ )
-			studio->lerp->latched.blending[i] = studio->lerp->curstate.blending[i];
-	}
-
-	if( e->flags & EF_ANIMATE ) 
-	{
-		if( in->v.frame == -1 )
-		{
-			in->v.frame = e->lerp->curstate.frame = 0;
-			studio->lerp->curstate.sequence = in->v.sequence;
-			R_StudioResetSequenceInfo( e );
-		}
-		else
-		{
-			if( !studio->lerp->m_fSequenceFinished )
-				R_StudioFrameAdvance( e, 0 );
-
-			if( studio->lerp->m_fSequenceFinished )
-			{
-				if( studio->lerp->m_fSequenceLoops )
-					in->v.frame = -1;
-				// hold at last frame
-			}
-			else
-			{
-				// copy current frame back to let user grab it on a client-side
-				in->v.frame = e->lerp->curstate.frame;
-			}
-		}
-	}
-	else
-	{
-		if( in->v.animtime != e->lerp->curstate.animtime )
-		{
-			// client got new packet, shuffle animtimes
-			e->lerp->latched.animtime = e->lerp->curstate.animtime;
-			e->lerp->curstate.animtime = in->v.animtime;
-		}
-
-		if( !VectorCompare( in->v.origin, e->lerp->curstate.origin ))
-		{
-			// push position and angles
-			VectorCopy( e->lerp->curstate.origin, e->lerp->latched.origin );
-			VectorCopy( in->v.origin, e->lerp->curstate.origin );
-		}
-
-		VectorCopy( e->lerp->curstate.angles, e->lerp->latched.angles );
-		VectorCopy( in->v.angles, e->lerp->curstate.angles );
-	}
-
-	if( studio->numbones != numbones )
-	{
-		size_t	cache_size = sizeof( matrix4x4 ) * numbones;
-		size_t	names_size = numbones * 32; // bonename length
-
-		// allocate or merge bones cache
-		studio->bonestransform = (matrix4x4 *)Mem_Realloc( e->mempool, studio->bonestransform, cache_size );
-	}
-
-	if( hasChrome )
-	{
-		if( studio->numbones != numbones || !studio->chromeage || !studio->chromeright || !studio->chromeup )
-		{
-			// allocate or merge chrome cache
-			studio->chromeage = (int *)Mem_Realloc( e->mempool, studio->chromeage, numbones * sizeof( int ));
-			studio->chromeright = (vec3_t *)Mem_Realloc( e->mempool, studio->chromeright, numbones * sizeof( vec3_t ));
-			studio->chromeup = (vec3_t *)Mem_Realloc( e->mempool, studio->chromeup, numbones * sizeof( vec3_t ));
-		}
-	}
-	else
-	{
-		if( studio->chromeage ) Mem_Free( studio->chromeage );
-		if( studio->chromeright ) Mem_Free( studio->chromeright );
-		if( studio->chromeup ) Mem_Free( studio->chromeup );
-		studio->chromeright = studio->chromeup = NULL;
-		studio->chromeage = NULL;
-	}
-	studio->numbones = numbones;
-}
-
-void R_StudioShutdown( void )
-{
-	R_StudioFreeAllExtradata ();
 }
 
 /*
-====================
-MISC STUDIO UTILS
-====================
+=======================================================
+
+	MISC STUDIO UTILS
+
+=======================================================
 */
 /*
 ====================
@@ -378,7 +377,7 @@ static void R_StudioSetupRender( ref_entity_t *e, ref_model_t *mod )
 }
 
 // extract texture filename from modelname
-char *R_ExtName( ref_model_t *mod )
+char *R_StudioTexName( ref_model_t *mod )
 {
 	static string	texname;
 
@@ -393,12 +392,18 @@ int R_StudioExtractBbox( dstudiohdr_t *phdr, int sequence, float *mins, float *m
 	dstudioseqdesc_t	*pseqdesc;
 	pseqdesc = (dstudioseqdesc_t *)((byte *)phdr + phdr->seqindex);
 
-	if( sequence == -1 ) return 0;
+	if( sequence < 0 || sequence >= phdr->numseq )
+		return 0;
 	
 	VectorCopy( pseqdesc[sequence].bbmin, mins );
 	VectorCopy( pseqdesc[sequence].bbmax, maxs );
 
 	return 1;
+}
+
+void R_StudioModelLerpBBox( ref_entity_t *e, ref_model_t *mod )
+{
+	// FIXME: implement
 }
 
 void R_StudioModelBBox( ref_entity_t *e, vec3_t mins, vec3_t maxs )
@@ -455,12 +460,12 @@ texture_t *R_StudioLoadTexture( ref_model_t *mod, dstudiohdr_t *phdr, dstudiotex
 
 static int R_StudioLoadTextures( ref_model_t *mod, dstudiohdr_t *phdr )
 {
-	int		i, j, numshaders = 0;
 	texture_t		*texs[4];
 	dstudiotexture_t	*ptexture = (dstudiotexture_t *)(((byte *)phdr) + phdr->textureindex);
 	string		modname, texname, shadername;
 	string		normalmap, heightmap;
 	int		nm_index, hm_index;
+	int		i, j, numshaders = 0;
 
 	FS_FileBase( mod->name, modname );
 	
@@ -475,7 +480,7 @@ static int R_StudioLoadTextures( ref_model_t *mod, dstudiohdr_t *phdr )
 		if( ptexture[i].flags & STUDIO_NF_CHROME ) phdr->flags |= STUDIO_HAS_CHROME;
 		com.snprintf( shadername, MAX_STRING, "%s.mdl/%s", modname, texname );
 
-		if(R_ShaderCheckCache( shadername ))
+		if( R_ShaderCheckCache( shadername ))
  			goto load_shader;	// external shader found
  
 		Mem_Set( texs, 0, sizeof( texs ));
@@ -590,9 +595,9 @@ void Mod_StudioLoadModel( ref_model_t *mod, const void *buffer )
 	
 	if( phdr->numtextures == 0 )
 	{
-		texbuf = FS_LoadFile( R_ExtName( mod ), NULL );
+		texbuf = FS_LoadFile( R_StudioTexName( mod ), NULL );
 		if( texbuf ) thdr = R_StudioLoadHeader( mod, texbuf );
-		else MsgDev( D_ERROR, "textures for %s not found!\n", mod->name ); 
+		else MsgDev( D_ERROR, "StudioLoadModel: %s missing textures file\n", mod->name ); 
 
 		if( !thdr ) return; // there were problems
 		poutmodel->thdr = (dstudiohdr_t *)Mod_Malloc( mod, LittleLong( thdr->length ));
@@ -608,188 +613,93 @@ void Mod_StudioLoadModel( ref_model_t *mod, const void *buffer )
 	mod->type = mod_studio;
 }
 
-// extract bbox from animation
-int R_ExtractBbox( int sequence, float *mins, float *maxs )
-{
-	return R_StudioExtractBbox( m_pStudioHeader, sequence, mins, maxs );
-}
-
-void SetBodygroup( int iGroup, int iValue )
-{
-	int iCurrent;
-	dstudiobodyparts_t *m_pBodyPart;
-
-	if( iGroup > m_pStudioHeader->numbodyparts )
-		return;
-
-	m_pBodyPart = (dstudiobodyparts_t *)((byte *)m_pStudioHeader + m_pStudioHeader->bodypartindex) + iGroup;
-
-	if (iValue >= m_pBodyPart->nummodels)
-		return;
-
-	iCurrent = (RI.currententity->body / m_pBodyPart->base) % m_pBodyPart->nummodels;
-	RI.currententity->body = (RI.currententity->body - (iCurrent * m_pBodyPart->base) + (iValue * m_pBodyPart->base));
-}
-
-int R_StudioGetBodygroup( int iGroup )
-{
-	dstudiobodyparts_t *m_pBodyPart;
-	
-	if (iGroup > m_pStudioHeader->numbodyparts)
-		return 0;
-
-	m_pBodyPart = (dstudiobodyparts_t *)((byte *)m_pStudioHeader + m_pStudioHeader->bodypartindex) + iGroup;
-
-	if (m_pBodyPart->nummodels <= 1)
-		return 0;
-
-	return (RI.currententity->body / m_pBodyPart->base) % m_pBodyPart->nummodels;
-}
-
 /*
 ====================
-R_StudioGetSequenceInfo
+R_StudioProcessEvents
 
-used for client animation
 ====================
 */
-float R_StudioSequenceDuration( dstudiohdr_t *hdr, ref_entity_t *ent )
-{
-	dstudioseqdesc_t	*pseqdesc;
-
-	if( !hdr || ent->lerp->curstate.sequence >= hdr->numseq )
-		return 0.0f;
-
-	pseqdesc = (dstudioseqdesc_t *)((byte *)hdr + hdr->seqindex) + ent->lerp->curstate.sequence;
-	return pseqdesc->numframes / pseqdesc->fps;
-}
-
-int R_StudioGetSequenceFlags( dstudiohdr_t *hdr, ref_entity_t *ent )
-{
-	dstudioseqdesc_t	*pseqdesc;
-
-	if( !hdr || ent->lerp->curstate.sequence >= hdr->numseq )
-		return 0;
-	
-	pseqdesc = (dstudioseqdesc_t *)((byte *)hdr + hdr->seqindex) + (int)ent->lerp->curstate.sequence;
-	return pseqdesc->flags;
-}
-
-void R_StuioGetSequenceInfo( dstudiohdr_t *hdr, ref_entity_t *ent, float *pflFrameRate, float *pflGroundSpeed )
-{
-	dstudioseqdesc_t	*pseqdesc;
-
-	if( !hdr || ent->lerp->curstate.sequence >= hdr->numseq )
-	{
-		*pflFrameRate = 0.0;
-		*pflGroundSpeed = 0.0;
-		return;
-	}
-
-	pseqdesc = (dstudioseqdesc_t *)((byte *)hdr + hdr->seqindex) + ent->lerp->curstate.sequence;
-
-	if( pseqdesc->numframes > 1 )
-	{
-		*pflFrameRate = 256 * pseqdesc->fps / (pseqdesc->numframes - 1);
-		*pflGroundSpeed = com.sqrt( DotProduct( pseqdesc->linearmovement, pseqdesc->linearmovement ));
-		*pflGroundSpeed = *pflGroundSpeed * pseqdesc->fps / (pseqdesc->numframes - 1);
-	}
-	else
-	{
-		*pflFrameRate = 256.0;
-		*pflGroundSpeed = 0.0;
-	}
-}
-
-float R_StudioFrameAdvance( ref_entity_t *ent, float flInterval )
-{
-	studiovars_t	*pstudio = (studiovars_t *)ent->extradata;
-
-	if( !ent->extradata )
-		return 0.0;
-
-	if( flInterval == 0.0 )
-	{
-		flInterval = ( RI.refdef.time - ent->lerp->curstate.animtime );
-		if( flInterval <= 0.001 )
-		{
-			ent->lerp->curstate.animtime = RI.refdef.time;
-			return 0.0;
-		}
-	}
-
-	if( !ent->lerp->curstate.animtime )
-		flInterval = 0.0;
-
-	ent->lerp->curstate.frame += flInterval * pstudio->lerp->m_flFrameRate * ent->framerate;
-	ent->lerp->curstate.animtime = RI.refdef.time;
-
-	if( ent->lerp->curstate.frame < 0.0 || ent->lerp->curstate.frame >= 256.0 ) 
-	{
-		if( pstudio->lerp->m_fSequenceLoops )
-			ent->lerp->curstate.frame -= (int)(ent->lerp->curstate.frame / 256.0) * 256.0;
-		else ent->lerp->curstate.frame = (ent->lerp->curstate.frame < 0.0) ? 0 : 255;
-		pstudio->lerp->m_fSequenceFinished = true;
-	}
-	return flInterval;
-}
-
-void R_StudioResetSequenceInfo( ref_entity_t *ent )
-{
-	dstudiohdr_t	*hdr;
-	studiovars_t	*pstudio = (studiovars_t *)ent->extradata;
-
-	if( !ent || !ent->lerp || !ent->extradata || !ent->model || !ent->model->extradata )
-		return;
-
-	hdr = ((mstudiomodel_t *)ent->model->extradata)->phdr;
-	if( !hdr ) return;
-
-	R_StuioGetSequenceInfo( hdr, ent, &pstudio->lerp->m_flFrameRate, &pstudio->lerp->m_flGroundSpeed );
-	pstudio->lerp->m_fSequenceLoops = ((R_StudioGetSequenceFlags( hdr, ent ) & STUDIO_LOOPING) != 0 );
-	ent->lerp->latched.animtime = ent->lerp->curstate.animtime;
-	ent->lerp->curstate.animtime = RI.refdef.time;
-	pstudio->lerp->m_fSequenceFinished = false;
-	pstudio->lerp->m_flLastEventCheck = RI.refdef.time;
-}
-
-int R_StudioGetEvent( ref_entity_t *e, dstudioevent_t *pcurrent, float flStart, float flEnd, int index )
+void R_StudioProcessEvents( ref_entity_t *e, edict_t *ed )
 {
 	dstudioseqdesc_t	*pseqdesc;
 	dstudioevent_t	*pevent;
-	int		events = 0;
+	float		flEventFrame;
+	bool		bLooped = false;
+	int		i;
+
+	switch( e->ent_type )
+	{
+	case ED_VIEWMODEL:
+	case ED_TEMPENTITY:
+		break;
+	default:	return;
+	}
 
 	pseqdesc = (dstudioseqdesc_t *)((byte *)m_pStudioHeader + m_pStudioHeader->seqindex) + e->lerp->curstate.sequence;
 	pevent = (dstudioevent_t *)((byte *)m_pStudioHeader + pseqdesc->eventindex);
 
-	if( pseqdesc->numevents == 0 || index > pseqdesc->numevents )
-		return 0;
+	// curstate.frame not used for viewmodel animating
+	flEventFrame = e->lerp->latched.frame;
 
-	if( pseqdesc->numframes > 1 )
+	if( pseqdesc->numevents == 0 )
+		return;
+
+	//Msg( "%i frame %f\n", r_framecount, e->lerp->latched.frame );
+
+	if( e->lerp->m_iEventSequence != e->lerp->curstate.sequence )
 	{
-		flStart *= (pseqdesc->numframes - 1) / 256.0;
-		flEnd *= (pseqdesc->numframes - 1) / 256.0;
+		flEventFrame = 0.0f;
+		e->lerp->m_flPrevEventFrame = -0.01f; // back up to get 0'th frame animations
+		e->lerp->m_iEventSequence = e->lerp->curstate.sequence;
 	}
-	else
-	{
-		flStart = 0;
-		flEnd = 1.0;
-	}
 
-	for( ; index < pseqdesc->numevents; index++ )
-	{
-		// don't send server-side events to the client effects
-		if( pevent[index].event < EVENT_CLIENT )
-			continue;
+	// stalled?
+	if( flEventFrame == e->lerp->m_flPrevEventFrame )
+		return;
 
-		if(( pevent[index].frame >= flStart && pevent[index].frame < flEnd )
-			|| ((pseqdesc->flags & STUDIO_LOOPING) && flEnd >= pseqdesc->numframes - 1 && pevent[index].frame < flEnd - pseqdesc->numframes + 1 ))
+	//Msg( "(seq %d cycle %.3f ) evframe %.3f prevevframe %.3f (time %.3f)\n", e->lerp->curstate.sequence, e->lerp->latched.frame, flEventFrame, e->lerp->m_flPrevEventFrame, RI.refdef.time );
+
+	// check for looping
+	if( flEventFrame <= e->lerp->m_flPrevEventFrame )
+	{
+		if( e->lerp->m_flPrevEventFrame - flEventFrame > 0.5f )
 		{
-			Mem_Copy( pcurrent, &pevent[index], sizeof( *pcurrent ));
-			return index + 1;
+			bLooped = true;
+		}
+		else
+		{
+			// things have backed up, which is bad since it'll probably result in a hitch in the animation playback
+			// but, don't play events again for the same time slice
+			return;
 		}
 	}
-	return 0;
+
+	for( i = 0; i < pseqdesc->numevents; i++ )
+	{
+		// ignore all non-client-side events
+		if( pevent[i].event < EVENT_CLIENT )
+			continue;
+
+		// looped
+		if( bLooped )
+		{
+			if(( pevent[i].frame > e->lerp->m_flPrevEventFrame || pevent[i].frame <= flEventFrame ))
+			{
+				//Msg( "FE %i Looped frame %i, prev %f ev %f (time %.3f)\n", pevent[i].event, pevent[i].frame, e->lerp->m_flPrevEventFrame, flEventFrame, RI.refdef.time );
+				ri.StudioEvent( &pevent[i], ed );
+			}
+		}
+		else
+		{
+			if(( pevent[i].frame > e->lerp->m_flPrevEventFrame && pevent[i].frame <= flEventFrame ))
+			{
+				//Msg( "FE %i Normal frame %i, prev %f ev %f (time %.3f)\n", pevent[i].event, pevent[i].frame, e->lerp->m_flPrevEventFrame, flEventFrame, RI.refdef.time );
+				ri.StudioEvent( &pevent[i], ed );
+			}
+		}
+	}
+
+	e->lerp->m_flPrevEventFrame = flEventFrame;
 }
 
 /*
@@ -813,10 +723,10 @@ void R_StudioCalcBoneAdj( float dadt, float *adj, const byte *pcontroller1, cons
 		if( i == STUDIO_MOUTH )
 		{
 			// mouth hardcoded at controller 4
-			value = mouthopen / 64.0;
-			if( value > 1.0 ) value = 1.0;				
-			value = (1.0 - value) * pbonecontroller[j].start + value * pbonecontroller[j].end;
-			// Msg( "%d %f\n", mouthopen, value );
+			value = mouthopen / 64.0f;
+			if( value > 1.0f ) value = 1.0f;				
+			value = (1.0f - value) * pbonecontroller[j].start + value * pbonecontroller[j].end;
+			//Msg( "%d %f\n", mouthopen, value );
 		}
 		else if( i <= MAXSTUDIOCONTROLLERS )
 		{
@@ -841,7 +751,7 @@ void R_StudioCalcBoneAdj( float dadt, float *adj, const byte *pcontroller1, cons
 				value = bound( 0.0f, value, 1.0f );
 				value = (1.0 - value) * pbonecontroller[j].start + value * pbonecontroller[j].end;
 			}
-			// Msg( "%d %d %f : %f\n", RI.currententity->lerp->curstate.controller[j], RI.currententity->lerp->latched.controller[j], value, dadt );
+			//Msg( "%d %d %f : %f\n", RI.currententity->lerp->curstate.controller[j], RI.currententity->lerp->latched.controller[j], value, dadt );
 		}
 
 		switch( pbonecontroller[j].type & STUDIO_TYPES )
@@ -868,14 +778,14 @@ StudioCalcBoneQuaterion
 */
 void R_StudioCalcBoneQuaterion( int frame, float s, dstudiobone_t *pbone, dstudioanim_t *panim, float *adj, float *q )
 {
-	int	j, k;
-	vec4_t	q1, q2;
-	vec3_t	angle1, angle2;
+	int		j, k;
+	vec4_t		q1, q2;
+	vec3_t		angle1, angle2;
 	dstudioanimvalue_t	*panimvalue;
 
-	for (j = 0; j < 3; j++)
+	for( j = 0; j < 3; j++ )
 	{
-		if (panim->offset[j+3] == 0)
+		if( panim->offset[j+3] == 0 )
 		{
 			angle2[j] = angle1[j] = pbone->value[j+3]; // default;
 		}
@@ -885,37 +795,39 @@ void R_StudioCalcBoneQuaterion( int frame, float s, dstudiobone_t *pbone, dstudi
 			k = frame;
 			
 			// debug
-			if (panimvalue->num.total < panimvalue->num.valid) k = 0;
+			if( panimvalue->num.total < panimvalue->num.valid ) k = 0;
 			
-			while (panimvalue->num.total <= k)
+			while( panimvalue->num.total <= k )
 			{
 				k -= panimvalue->num.total;
 				panimvalue += panimvalue->num.valid + 1;
-				// DEBUG
-				if (panimvalue->num.total < panimvalue->num.valid)
+
+				// debug
+				if( panimvalue->num.total < panimvalue->num.valid )
 					k = 0;
 			}
+
 			// bah, missing blend!
 			if( panimvalue->num.valid > k )
 			{
 				angle1[j] = panimvalue[k+1].value;
 
-				if (panimvalue->num.valid > k + 1)
+				if( panimvalue->num.valid > k + 1 )
 				{
 					angle2[j] = panimvalue[k+2].value;
 				}
 				else
 				{
-					if (panimvalue->num.total > k + 1)
+					if( panimvalue->num.total > k + 1 )
 						angle2[j] = angle1[j];
-					else
-						angle2[j] = panimvalue[panimvalue->num.valid+2].value;
+					else angle2[j] = panimvalue[panimvalue->num.valid+2].value;
 				}
 			}
 			else
 			{
 				angle1[j] = panimvalue[panimvalue->num.valid].value;
-				if (panimvalue->num.total > k + 1)
+
+				if( panimvalue->num.total > k + 1 )
 				{
 					angle2[j] = angle1[j];
 				}
@@ -924,6 +836,7 @@ void R_StudioCalcBoneQuaterion( int frame, float s, dstudiobone_t *pbone, dstudi
 					angle2[j] = panimvalue[panimvalue->num.valid + 2].value;
 				}
 			}
+
 			angle1[j] = pbone->value[j+3] + angle1[j] * pbone->scale[j+3];
 			angle2[j] = pbone->value[j+3] + angle2[j] * pbone->scale[j+3];
 		}
@@ -935,7 +848,7 @@ void R_StudioCalcBoneQuaterion( int frame, float s, dstudiobone_t *pbone, dstudi
 		}
 	}
 
-	if (!VectorCompare( angle1, angle2 ))
+	if( !VectorCompare( angle1, angle2 ))
 	{
 		AngleQuaternion( angle1, q1 );
 		AngleQuaternion( angle2, q2 );
@@ -955,13 +868,14 @@ StudioCalcBonePosition
 */
 void R_StudioCalcBonePosition( int frame, float s, dstudiobone_t *pbone, dstudioanim_t *panim, float *adj, float *pos )
 {
-	int j, k;
+	int		j, k;
 	dstudioanimvalue_t	*panimvalue;
 
-	for (j = 0; j < 3; j++)
+	for( j = 0; j < 3; j++ )
 	{
 		pos[j] = pbone->value[j]; // default;
-		if (panim->offset[j] != 0)
+
+		if( panim->offset[j] != 0 )
 		{
 			panimvalue = (dstudioanimvalue_t *)((byte *)panim + panim->offset[j]);
 			
@@ -969,23 +883,27 @@ void R_StudioCalcBonePosition( int frame, float s, dstudiobone_t *pbone, dstudio
 			k = frame;
 
 			// debug
-			if (panimvalue->num.total < panimvalue->num.valid) k = 0;
+			if( panimvalue->num.total < panimvalue->num.valid )
+				k = 0;
+
 			// find span of values that includes the frame we want
-			while (panimvalue->num.total <= k)
+			while( panimvalue->num.total <= k )
 			{
 				k -= panimvalue->num.total;
 				panimvalue += panimvalue->num.valid + 1;
-  				// DEBUG
-				if (panimvalue->num.total < panimvalue->num.valid)
+
+  				// debug
+				if( panimvalue->num.total < panimvalue->num.valid )
 					k = 0;
 			}
+
 			// if we're inside the span
-			if (panimvalue->num.valid > k)
+			if( panimvalue->num.valid > k )
 			{
 				// and there's more data in the span
-				if (panimvalue->num.valid > k + 1)
+				if( panimvalue->num.valid > k + 1 )
 				{
-					pos[j] += (panimvalue[k+1].value * (1.0 - s) + s * panimvalue[k+2].value) * pbone->scale[j];
+					pos[j] += (panimvalue[k+1].value * (1.0f - s) + s * panimvalue[k+2].value) * pbone->scale[j];
 				}
 				else
 				{
@@ -995,7 +913,7 @@ void R_StudioCalcBonePosition( int frame, float s, dstudiobone_t *pbone, dstudio
 			else
 			{
 				// are we at the end of the repeating values section and there's another section with data?
-				if (panimvalue->num.total <= k + 1)
+				if( panimvalue->num.total <= k + 1 )
 				{
 					pos[j] += (panimvalue[panimvalue->num.valid].value * (1.0 - s) + s * panimvalue[panimvalue->num.valid + 2].value) * pbone->scale[j];
 				}
@@ -1005,7 +923,7 @@ void R_StudioCalcBonePosition( int frame, float s, dstudiobone_t *pbone, dstudio
 				}
 			}
 		}
-		if ( pbone->bonecontroller[j] != -1 && adj )
+		if( pbone->bonecontroller[j] != -1 && adj )
 		{
 			pos[j] += adj[pbone->bonecontroller[j]];
 		}
@@ -1024,10 +942,9 @@ void R_StudioSlerpBones( vec4_t q1[], float pos1[][3], vec4_t q2[], float pos2[]
 	vec4_t	q3;
 	float	s1;
 
-	if( s < 0 ) s = 0;
-	else if( s > 1.0 ) s = 1.0;
+	s = bound( 0.0f, s, 1.0f );
 
-	s1 = 1.0 - s;
+	s1 = 1.0f - s;
 
 	for( i = 0; i < m_pStudioHeader->numbones; i++ )
 	{
@@ -1140,14 +1057,6 @@ void R_StudioPlayerBlend( dstudioseqdesc_t *pseqdesc, int *pBlend, float *pPitch
 	}
 }
 
-matrix4x4 m4x4_identity =
-{
-{ 1, 0, 0, 0 },	// PITCH
-{ 0, 1, 0, 0 },	// YAW
-{ 0, 0, 1, 0 },	// ROLL
-{ 0, 0, 0, 1 },	// ORIGIN
-};
-
 /*
 ====================
 StudioSetUpTransform
@@ -1171,7 +1080,7 @@ void R_StudioSetUpTransform( ref_entity_t *e, bool trivial_accept )
 	if( RP_FOLLOWENTITY( e ))
 	{
 		Matrix4x4_Copy( m_protationmatrix, ((studiovars_t *)e->parent->extradata)->rotationmatrix );
-		m_protationmatrix = m4x4_identity;
+		m_protationmatrix = matrix4x4_identity;
 		return;
 	}
 
@@ -1183,15 +1092,14 @@ void R_StudioSetUpTransform( ref_entity_t *e, bool trivial_accept )
 		float	d, f = 0.0f;
 
 		// don't do it if the goalstarttime hasn't updated in a while.
-		// NOTE:  Because we need to interpolate multiplayer characters, the interpolation time limit
+		// NOTE: Because we need to interpolate multiplayer characters, the interpolation time limit
 		// was increased to 1.0 s., which is 2x the max lag we are accounting for.
 
-		if(( RI.refdef.time < e->lerp->curstate.animtime + 1.0f ) && ( e->lerp->curstate.animtime != e->lerp->latched.animtime ))
+		if( m_fDoInterp && ( RI.refdef.time < e->lerp->curstate.animtime + 1.0f ) && ( e->lerp->curstate.animtime != e->lerp->latched.animtime ))
 		{
 			f = ( RI.refdef.time - e->lerp->curstate.animtime ) / ( e->lerp->curstate.animtime - e->lerp->latched.animtime );
 			//Msg( "%4.2f %.2f %.2f\n", f, e->lerp->curstate.animtime, RI.refdef.time );
 		}
-		else Msg( "skip f\n" );
 
 		if( m_fDoInterp )
 		{
@@ -1199,45 +1107,33 @@ void R_StudioSetUpTransform( ref_entity_t *e, bool trivial_accept )
 			// current is reached 0.1 seconds after being set
 			f = f - 1.0f;
 		}
-		else
-		{
-			f = 0.0f;
-		}
 
-		for( i = 0; i < 3; i++ )
+		if( 1 )	// FIXME: check ground entity, add basevelocity if moving
 		{
-			origin[i] += ( e->lerp->curstate.origin[i] - e->lerp->latched.origin[i] ) * f;
+			origin[0] += ( e->lerp->curstate.origin[0] - e->lerp->latched.origin[0] ) * f;
+			origin[1] += ( e->lerp->curstate.origin[1] - e->lerp->latched.origin[1] ) * f;
+			origin[2] += ( e->lerp->curstate.origin[2] - e->lerp->latched.origin[2] ) * f;
 		}
-
-		// NOTE:  Because multiplayer lag can be relatively large, we don't want to cap f at 1.5 anymore.
-		// if( f > -1.0 && f < 1.5 ) {}
 
 		for( i = 0; i < 3; i++ )
 		{
 			float	ang1, ang2;
 
-			ang1 = e->angles[i];
+			ang1 = e->lerp->curstate.angles[i];
 			ang2 = e->lerp->latched.angles[i];
 
 			d = ang1 - ang2;
-			if( d > 180 )
-			{
-				d -= 360;
-			}
-			else if( d < -180 )
-			{	
-				d += 360;
-			}
+
+			if( d > 180 ) d -= 360;
+			else if( d < -180 ) d += 360;
+
 			angles[i] += d * f;
 		}
-		//Msg( "%.3f \n", f );
-	}
-	else if( e->movetype != MOVETYPE_NONE ) 
-	{
-		VectorCopy( e->angles, angles );
 	}
 
-	if( e->ent_type == ED_CLIENT ) angles[PITCH] = 0; // don't rotate player model, only aim
+	if( e->ent_type == ED_CLIENT || e->ent_type == ED_MONSTER )
+		angles[PITCH] = 0; // don't rotate clients and monsters, only aim
+
 	if( e->ent_type == ED_VIEWMODEL ) angles[PITCH] = -angles[PITCH]; // stupid Half-Life bug
 
 	Matrix4x4_CreateFromEntity( m_protationmatrix, origin[0], origin[1], origin[2], -angles[PITCH], angles[YAW], angles[ROLL], e->scale );
@@ -1250,7 +1146,7 @@ void R_StudioSetUpTransform( ref_entity_t *e, bool trivial_accept )
 	}
 
 	// save matrix for gl_transaform, use identity matrix for bones
-	m_protationmatrix = m4x4_identity;
+	m_protationmatrix = matrix4x4_identity;
 }
 
 
@@ -1285,18 +1181,20 @@ void R_StudioCalcRotations( float pos[][3], vec4_t *q, dstudioseqdesc_t *pseqdes
 	int		frame;
 	dstudiobone_t	*pbone;
 	studiovars_t	*pstudio;
-
 	float		s, mouthopen;
 	float		adj[MAXSTUDIOCONTROLLERS];
 	float		dadt;
 
-	if( f > pseqdesc->numframes - 1 ) f = 0; // bah, fix this bug with changing sequences too fast
-	else if ( f < -0.01f )
+	if( f > pseqdesc->numframes - 1 )
 	{
-		// BUG ( somewhere else ) but this code should validate this data.
+		f = 0.0f; // bah, fix this bug with changing sequences too fast
+	}
+	else if( f < -0.01f )
+	{
+		// BUGBUG ( somewhere else ) but this code should validate this data.
 		// This could cause a crash if the frame # is negative, so we'll go ahead
-		//  and clamp it here
-		MsgDev( D_ERROR, "f = %g\n", f );
+		// and clamp it here
+		MsgDev( D_ERROR, "R_StudioCalcRotations: f = %g\n", f );
 		f = -0.01f;
 	}
 
@@ -1304,9 +1202,9 @@ void R_StudioCalcRotations( float pos[][3], vec4_t *q, dstudioseqdesc_t *pseqdes
 	pstudio = RI.currententity->extradata;
 	Com_Assert( pstudio == NULL );
 
-	// Msg( "%d %.4f %.4f %.4f %.4f %d\n", RI.currententity->lerp->curstate.sequence, RI.refdef.time, RI.currententity->lerp->curstate.animtime, RI.currententity->lerp->curstate.frame, f, frame );
-	// Msg( "%f %f %f\n", RI.currententity->angles[ROLL], RI.currententity->angles[PITCH], RI.currententity->angles[YAW] );
-	// Msg( "frame %d %d\n", frame1, frame2 );
+	//Msg( "%d %.4f %.4f %.4f %.4f %d\n", RI.currententity->lerp->curstate.sequence, RI.refdef.time, RI.currententity->lerp->curstate.animtime, RI.currententity->lerp->curstate.frame, f, frame );
+	//Msg( "%f %f %f\n", RI.currententity->angles[ROLL], RI.currententity->angles[PITCH], RI.currententity->angles[YAW] );
+	//Msg( "frame %d %d\n", frame1, frame2 );
 
 	dadt = R_StudioEstimateInterpolant();
 	s = (f - frame);
@@ -1317,7 +1215,7 @@ void R_StudioCalcRotations( float pos[][3], vec4_t *q, dstudioseqdesc_t *pseqdes
 
 	R_StudioCalcBoneAdj( dadt, adj, pstudio->lerp->curstate.controller, pstudio->lerp->latched.controller, mouthopen );
 
-	for (i = 0; i < m_pStudioHeader->numbones; i++, pbone++, panim++) 
+	for( i = 0; i < m_pStudioHeader->numbones; i++, pbone++, panim++ ) 
 	{
 		R_StudioCalcBoneQuaterion( frame, s, pbone, panim, adj, q[i] );
 		R_StudioCalcBonePosition( frame, s, pbone, panim, adj, pos[i] );
@@ -1328,6 +1226,7 @@ void R_StudioCalcRotations( float pos[][3], vec4_t *q, dstudioseqdesc_t *pseqdes
 	if( pseqdesc->motiontype & STUDIO_Y ) pos[pseqdesc->motionbone][1] = 0.0f;
 	if( pseqdesc->motiontype & STUDIO_Z ) pos[pseqdesc->motionbone][2] = 0.0f;
 
+	// FIXME: enable this ? Half-Life 2 get rid of this code
 	s = 0 * ((1.0f - (f - (int)(f))) / (pseqdesc->numframes)) * RI.currententity->framerate;
 
 	if( pseqdesc->motiontype & STUDIO_LX ) pos[pseqdesc->motionbone][0] += s * pseqdesc->linearmovement[0];
@@ -1343,7 +1242,7 @@ StudioEstimateFrame
 */
 float R_StudioEstimateFrame( dstudioseqdesc_t *pseqdesc )
 {
-	double dfdt, f;
+	double	dfdt, f;
 	
 	if( m_fDoInterp )
 	{
@@ -1352,7 +1251,7 @@ float R_StudioEstimateFrame( dstudioseqdesc_t *pseqdesc )
 	}
 	else dfdt = 0;
 
-	if( pseqdesc->numframes <= 1 ) f = 0;
+	if( pseqdesc->numframes <= 1 ) f = 0.0;
 	else f = (RI.currententity->lerp->curstate.frame * (pseqdesc->numframes - 1)) / 256.0;
  
 	f += dfdt;
@@ -1376,7 +1275,7 @@ StudioSetupBones
 
 ====================
 */
-float R_StudioSetupBones( ref_entity_t *e )
+void R_StudioSetupBones( ref_entity_t *e )
 {
 	int		i;
 	double		f;
@@ -1400,7 +1299,7 @@ float R_StudioSetupBones( ref_entity_t *e )
 
 	// bones already cached for this frame
 	if( e->m_nCachedFrameCount == r_framecount2 )
-		return 0.0f;
+		return;
 
 	cl_entity = ri.GetClientEdict( e->index );
 	if( e->lerp->curstate.sequence >= m_pStudioHeader->numseq ) e->lerp->curstate.sequence = 0;
@@ -1454,6 +1353,7 @@ float R_StudioSetupBones( ref_entity_t *e )
 
 		pseqdesc = (dstudioseqdesc_t *)((byte *)m_pStudioHeader + m_pStudioHeader->seqindex) + pstudio->lerp->latched.sequence;
 		panim = R_StudioGetAnim( RI.currentmodel, pseqdesc );
+
 		// clip prevframe
 		R_StudioCalcRotations( pos1b, q1b, pseqdesc, panim, pstudio->lerp->latched.frame );
 
@@ -1462,7 +1362,7 @@ float R_StudioSetupBones( ref_entity_t *e )
 			panim += m_pStudioHeader->numbones;
 			R_StudioCalcRotations( pos2, q2, pseqdesc, panim, pstudio->lerp->latched.frame );
 
-			s = (pstudio->lerp->latched.blending[0]) / 255.0;
+			s = (pstudio->lerp->latched.seqblending[0]) / 255.0;
 			R_StudioSlerpBones( q1b, pos1b, q2, pos2, s );
 
 			if( pseqdesc->numblends == 4 )
@@ -1473,20 +1373,21 @@ float R_StudioSetupBones( ref_entity_t *e )
 				panim += m_pStudioHeader->numbones;
 				R_StudioCalcRotations( pos4, q4, pseqdesc, panim, pstudio->lerp->latched.frame );
 
-				s = (pstudio->lerp->latched.blending[0]) / 255.0;
+				s = (pstudio->lerp->latched.seqblending[0]) / 255.0;
 				R_StudioSlerpBones( q3, pos3, q4, pos4, s );
 
-				s = (pstudio->lerp->latched.blending[1]) / 255.0;
+				s = (pstudio->lerp->latched.seqblending[1]) / 255.0;
 				R_StudioSlerpBones( q1b, pos1b, q3, pos3, s );
 			}
 		}
 
-		s = 1.0 - (RI.refdef.time - pstudio->lerp->latched.sequencetime) / 0.2;
+		s = 1.0f - ( RI.refdef.time - pstudio->lerp->latched.sequencetime ) / 0.2f;
 		R_StudioSlerpBones( q, pos, q1b, pos1b, s );
 	}
 	else
 	{
-		// Msg( "prevframe = %4.2f\n", f );
+		// store prevframe otherwise
+		//Msg( "prevframe = %4.2f\n", f );
 		pstudio->lerp->latched.frame = f;
 	}
 
@@ -1513,7 +1414,7 @@ float R_StudioSetupBones( ref_entity_t *e )
 		}
 	}
           
-	for (i = 0; i < m_pStudioHeader->numbones; i++) 
+	for( i = 0; i < m_pStudioHeader->numbones; i++ ) 
 	{
 		Matrix4x4_FromOriginQuat( bonematrix, pos[i][0], pos[i][1], pos[i][2], q[i][0], q[i][1], q[i][2], q[i][3] );
 		if( pbones[i].parent == -1 ) 
@@ -1525,7 +1426,6 @@ float R_StudioSetupBones( ref_entity_t *e )
 		} 
 		else Matrix4x4_ConcatTransforms( m_pbonestransform[i], m_pbonestransform[pbones[i].parent], bonematrix );
 	}
-	return (float)f;
 }
 
 /*
@@ -1549,7 +1449,7 @@ StudioMergeBones
 
 ====================
 */
-float R_StudioMergeBones( ref_entity_t *e, ref_model_t *m_pSubModel )
+void R_StudioMergeBones( ref_entity_t *e, ref_model_t *m_pSubModel )
 {
 	int		i, j;
 	double		f;
@@ -1579,7 +1479,7 @@ float R_StudioMergeBones( ref_entity_t *e, ref_model_t *m_pSubModel )
 
 	f = R_StudioEstimateFrame( pseqdesc );
 
-//	if( e->lerp->curstate.frame > f ) Msg( "%f %f\n", e->prev->frame, f );
+//	if( e->lerp->curstate.frame > f ) Msg( "%f %f\n", e->lerp->latched.frame, f );
 
 	panim = R_StudioGetAnim( m_pSubModel, pseqdesc );
 	R_StudioCalcRotations( pos, q, pseqdesc, panim, f );
@@ -1614,8 +1514,6 @@ float R_StudioMergeBones( ref_entity_t *e, ref_model_t *m_pSubModel )
 
 	// copy bones back to the merged entity
 	Mem_Copy( pstudio->bonestransform, localbones, sizeof( matrix4x4 ) * m_pStudioHeader->numbones );
-
-	return (float)f;
 }
 
 
@@ -1667,12 +1565,11 @@ static void R_StudioCalcAttachments( ref_entity_t *e )
 
 bool R_StudioComputeBBox( vec3_t bbox[8] )
 {
-	vec3_t		vectors[3];
+	vec3_t		vectors[3], angles, tmp;
 	ref_entity_t	*e = RI.currententity;
-	vec3_t		tmp, angles;
 	int		i, seq = RI.currententity->lerp->curstate.sequence;
 
-	if(!R_ExtractBbox( seq, studio_mins, studio_maxs ))
+	if( !R_StudioExtractBbox( m_pStudioHeader, seq, studio_mins, studio_maxs ))
 		return false;
 	
 	studio_radius = RadiusFromBounds( studio_mins, studio_maxs );
@@ -1691,7 +1588,9 @@ bool R_StudioComputeBBox( vec3_t bbox[8] )
 
 	// rotate the bounding box
 	VectorScale( e->angles, -1, angles );
-	if( e->ent_type == ED_CLIENT ) angles[PITCH] = 0; // don't rotate player model, only aim
+
+	if( e->ent_type == ED_CLIENT || e->ent_type == ED_MONSTER )
+		angles[PITCH] = 0; // don't rotate player model, only aim
 	AngleVectorsFLU( angles, vectors[0], vectors[1], vectors[2] );
 
 	for( i = 0; i < 8; i++ )
@@ -1727,7 +1626,7 @@ void R_StudioSetupChrome( float *pchrome, int modelnum, int bone, float *normal 
 {
 	float	n;
 
-	if( m_pchromeage[bone] != (r_framecount2+modelnum))
+	if( m_pchromeage[bone] != ( r_framecount2 + modelnum ))
 	{
 		vec3_t	chromeupvec;		// g_chrome t vector in world reference frame
 		vec3_t	chromerightvec;		// g_chrome s vector in world reference frame
@@ -1750,11 +1649,11 @@ void R_StudioSetupChrome( float *pchrome, int modelnum, int bone, float *normal 
 
 	// calc s coord
 	n = DotProduct( normal, m_pchromeright[bone] );
-	pchrome[0] = (n + 1.0) * 32.0f;
+	pchrome[0] = (n + 1.0f) * 32.0f;
 
 	// calc t coord
 	n = DotProduct( normal, m_pchromeup[bone] );
-	pchrome[1] = (n + 1.0) * 32.0f;
+	pchrome[1] = (n + 1.0f) * 32.0f;
 }
 
 void R_StudioDrawMesh( const meshbuffer_t *mb, short *ptricmds, float s, float t, int features, int flags )
@@ -1765,7 +1664,7 @@ void R_StudioDrawMesh( const meshbuffer_t *mb, short *ptricmds, float s, float t
 
 	MB_NUM2SHADER( mb->shaderkey, shader );
 
-	while( i = *(ptricmds++))
+	while( i = *( ptricmds++ ))
 	{
 		int	vertexState = 0;
 		bool	tri_strip;
@@ -1996,13 +1895,12 @@ void R_StudioDrawAttachments( void )
 	}
 }
 
-void R_StudioDrawHulls ( void )
+void R_StudioDrawHulls( void )
 {
 	int	i;
 	vec3_t	bbox[8];
 
-	// we already have code for drawing hulls
-	// make this go away
+	// looks ugly, skip
 	if( RI.currententity->ent_type == ED_VIEWMODEL )
 		return;
 
@@ -2142,7 +2040,7 @@ void R_StudioEstimateGait( ref_entity_t *e, edict_t *pplayer )
 		if( flYawDiff > 180 ) flYawDiff -= 360;
 		if( flYawDiff < -180 ) flYawDiff += 360;
 
-		if( dt < 0.25 ) flYawDiff *= dt * 4;
+		if( dt < 0.25f ) flYawDiff *= dt * 4;
 		else flYawDiff *= dt;
 
 		pstudio->lerp->gaityaw += flYawDiff;
@@ -2180,13 +2078,13 @@ void R_StudioProcessGait( ref_entity_t *e, edict_t *pplayer, studiovars_t *pstud
 	pstudio->lerp->latched.blending[0] = pstudio->lerp->curstate.blending[0];
 	pstudio->lerp->latched.seqblending[0] = pstudio->lerp->curstate.blending[0];
 
-	// Msg( "%f %d\n", e->angles[PITCH], pstudio->lerp->curstate.blending[0] );
+	//Msg( "%f %d\n", e->angles[PITCH], pstudio->lerp->curstate.blending[0] );
 
 	dt = bound( 0.0f, RI.refdef.frametime, 1.0f );
 
 	R_StudioEstimateGait( e, pplayer );
 
-	// Msg( "%f %f\n", e->angles[YAW], pstudio->lerp->gaityaw );
+	//Msg( "%f %f\n", e->angles[YAW], pstudio->lerp->gaityaw );
 
 	// calc side to side turning
 	flYaw = e->angles[YAW] - pstudio->lerp->gaityaw;
@@ -2242,7 +2140,6 @@ void R_StudioProcessGait( ref_entity_t *e, edict_t *pplayer, studiovars_t *pstud
 
 static bool R_StudioSetupModel( ref_entity_t *e, ref_model_t *mod )
 {
-	float		curframe = 0.0f;
 	edict_t		*m_pEntity = ri.GetClientEdict( e->index );
 	studiovars_t	*pstudio = e->extradata;
 	int		i, m_nPlayerIndex;
@@ -2255,9 +2152,9 @@ static bool R_StudioSetupModel( ref_entity_t *e, ref_model_t *mod )
 	// special handle for player model
 	if( e->ent_type == ED_CLIENT || e->renderfx == kRenderFxDeadPlayer )
 	{
-		// Msg( "DrawPlayer %d\n", pstudio->lerp->blending[0] );
-		// Msg( "DrawPlayer %d %d (%d)\n", r_framecount2, m_pEntity->serialnumber, e->lerp->curstate.sequence );
-		// Msg( "Player %.2f %.2f %.2f\n", m_pEntity->v.velocity[0], m_pEntity->v.velocity[1], m_pEntity->v.velocity[2] );
+		//Msg( "DrawPlayer %d\n", pstudio->lerp->blending[0] );
+		//Msg( "DrawPlayer %d %d (%d)\n", r_framecount2, m_pEntity->serialnumber, e->lerp->curstate.sequence );
+		//Msg( "Player %.2f %.2f %.2f\n", m_pEntity->v.velocity[0], m_pEntity->v.velocity[1], m_pEntity->v.velocity[2] );
 
 		if( e->renderfx == kRenderFxDeadPlayer )
 		{
@@ -2269,7 +2166,7 @@ static bool R_StudioSetupModel( ref_entity_t *e, ref_model_t *mod )
 		if( !m_pEntity ) return 0;
 		m_nPlayerIndex = m_pEntity->serialnumber - 1;
 
-		if( m_nPlayerIndex < 0 || m_nPlayerIndex >= ri.GetMaxClients())
+		if( m_nPlayerIndex < 0 || m_nPlayerIndex >= ri.GetMaxClients( ))
 			return 0;	// weird client ?
 
 		if( m_pEntity->v.gaitsequence <= 0 )
@@ -2291,39 +2188,25 @@ static bool R_StudioSetupModel( ref_entity_t *e, ref_model_t *mod )
 		}
 
 		if( r_himodels->integer ) e->body = 255; // show highest resolution multiplayer model
-		if(!(glw_state.developer == 0 && ri.GetMaxClients() == 1 )) e->body = 1; // force helmet
+		if( !( glw_state.developer == 0 && ri.GetMaxClients() == 1 )) e->body = 1; // force helmet
 
 	}
 	else R_StudioSetUpTransform ( e, false );
 
 	if( e->movetype == MOVETYPE_FOLLOW && e->parent )
 	{
-		curframe = R_StudioMergeBones( e, mod );
+		R_StudioMergeBones( e, mod );
 	}
 	else
 	{
-		curframe = R_StudioSetupBones( e );	
+		R_StudioSetupBones( e );	
 		R_StudioSaveBones( e );
 	}
 
 	if( m_pEntity && e->movetype != MOVETYPE_FOLLOW && !RI.refdef.paused && e->m_nCachedFrameCount != r_framecount2 )
 	{
-		float		flInterval = 0.1f;
-		float		flStart = e->lerp->curstate.frame + (pstudio->lerp->m_flLastEventCheck - e->lerp->curstate.animtime) * pstudio->lerp->m_flFrameRate * e->framerate;
-		float		flEnd = e->lerp->curstate.frame + flInterval * pstudio->lerp->m_flFrameRate * e->framerate;
-		int		index = 0;
-		dstudioevent_t	event;
-
-		Mem_Set( &event, 0, sizeof( event ));
 		R_StudioCalcAttachments( e );
-
-		pstudio->lerp->m_flLastEventCheck = e->lerp->curstate.animtime + flInterval;
-		pstudio->lerp->m_fSequenceFinished = false;
-		if( flEnd >= 256.0f || flEnd <= 0.0f ) 
-			pstudio->lerp->m_fSequenceFinished = true;
-
-		while(( index = R_StudioGetEvent( e, &event, flStart, flEnd, index )) != 0 )
-			ri.StudioEvent( &event, m_pEntity );
+		R_StudioProcessEvents( e, m_pEntity );
 	}
 	e->m_nCachedFrameCount = r_framecount2;	// cached frame
 
@@ -2464,8 +2347,7 @@ void R_DrawStudioModel( const meshbuffer_t *mb )
 		pglDepthRange( gldepthmin, gldepthmin + 0.3 * ( gldepthmax - gldepthmin ) );
 
 		// backface culling for left-handed weapons
-		if( r_lefthand->integer == 1 )
-			GL_FrontFace( !glState.frontFace );
+		if( r_lefthand->integer == 1 ) GL_FrontFace( !glState.frontFace );
           }
 
 	R_StudioDrawPoints( mb, e );
@@ -2475,8 +2357,7 @@ void R_DrawStudioModel( const meshbuffer_t *mb )
 		pglDepthRange( gldepthmin, gldepthmax );
 
 		// backface culling for left-handed weapons
-		if( r_lefthand->integer == 1 )
-			GL_FrontFace( !glState.frontFace );
+		if( r_lefthand->integer == 1 ) GL_FrontFace( !glState.frontFace );
 	}
 }
 
@@ -2494,7 +2375,7 @@ bool R_CullStudioModel( ref_entity_t *e )
 		return true;
 
 	if( e->ent_type == ED_VIEWMODEL && r_lefthand->integer >= 2 )
-		return true;
+		return true; // hidden
 
 	modhandle = Mod_Handle( e->model );
 
@@ -2510,8 +2391,9 @@ bool R_CullStudioModel( ref_entity_t *e )
 		sequence = e->lerp->curstate.sequence;
 	}
 
-	if(!R_ExtractBbox( sequence, studio_mins, studio_maxs ))
+	if( !R_StudioExtractBbox( m_pStudioHeader, sequence, studio_mins, studio_maxs ))
 		return true; // invalid sequence
+
 	studio_radius = RadiusFromBounds( studio_mins, studio_maxs );
 	clipped = R_CullModel( e, studio_mins, studio_maxs, studio_radius );
 	frustum = clipped & 1;
@@ -2520,7 +2402,7 @@ bool R_CullStudioModel( ref_entity_t *e )
 	query = OCCLUSION_QUERIES_ENABLED( RI ) && OCCLUSION_TEST_ENTITY( e ) ? true : false;
 	if( !frustum && query ) R_IssueOcclusionQuery( R_GetOcclusionQueryNum( OQ_ENTITY, e - r_entities ), e, studio_mins, studio_maxs );
 
-	if((RI.refdef.flags & RDF_NOWORLDMODEL) || (r_shadows->integer != 1 && !(r_shadows->integer == 2 && (e->flags & EF_PLANARSHADOW))) || R_CullPlanarShadow( e, studio_mins, studio_maxs, query ))
+	if(( RI.refdef.flags & RDF_NOWORLDMODEL) || (r_shadows->integer != 1 && !(r_shadows->integer == 2 && (e->flags & EF_PLANARSHADOW))) || R_CullPlanarShadow( e, studio_mins, studio_maxs, query ))
 		return frustum; // entity is not in PVS or shadow is culled away by frustum culling
 
 	R_StudioSetupRender( e, e->model );
@@ -2581,7 +2463,9 @@ void R_AddStudioModelToList( ref_entity_t *e )
 		sequence = e->lerp->curstate.sequence;
 	}
 
-	if(!R_ExtractBbox( sequence, studio_mins, studio_maxs )) return; // invalid sequence
+	if( !R_StudioExtractBbox( m_pStudioHeader, sequence, studio_mins, studio_maxs ))
+		return; // invalid sequence
+
 	studio_radius = RadiusFromBounds( studio_mins, studio_maxs );
 	modhandle = Mod_Handle( mod );
 
@@ -2599,7 +2483,7 @@ void R_AddStudioModelToList( ref_entity_t *e )
 		}
 		else
 		{
-//			R_StudioModelLerpBBox( e, mod );
+			R_StudioModelLerpBBox( e, mod );
 			if( !R_CullModel( e, studio_mins, studio_maxs, studio_radius ))
 				r_entShadowBits[entnum] |= RI.shadowGroup->bit;
 			return; // mark as shadowed, proceed with caster otherwise
@@ -2611,7 +2495,7 @@ void R_AddStudioModelToList( ref_entity_t *e )
 #if 0
 		if( !( e->ent_type == ED_VIEWMODEL ) && fog )
 		{
-//			R_StudioModelLerpBBox( e, mod );
+			R_StudioModelLerpBBox( e, mod );
 			if( R_CompletelyFogged( fog, e->origin, studio_radius ))
 				return;
 		}

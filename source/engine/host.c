@@ -747,8 +747,6 @@ void Host_InitCommon( const int argc, const char **argv )
 
 	Host_InitEvents();
 
-	sys_sharedstrings = Cvar_Get( "sys_sharedstrings", "0", CVAR_SYSTEMINFO, "hl1 strings or stringtable" );
-
 	FS_LoadGameInfo( NULL );
 	Image_Init( GI->texmode, -1 );
 
@@ -855,6 +853,7 @@ void Host_Init( const int argc, const char **argv )
 		Cmd_AddCommand ( "net_error", Net_Error_f, "send network bad message from random place");
           }
 
+	sys_sharedstrings = Cvar_Get( "sys_sharedstrings", "0", CVAR_INIT|CVAR_ARCHIVE, "hl1 compatible strings" );
 	host_cheats = Cvar_Get( "sv_cheats", "1", CVAR_SYSTEMINFO, "allow cheat variables to enable" );
 	host_minfps = Cvar_Get( "host_minfps", "10", CVAR_ARCHIVE, "host fps lower limit" );
 	host_maxfps = Cvar_Get( "host_maxfps", "100", CVAR_ARCHIVE, "host fps upper limit" );
@@ -863,7 +862,7 @@ void Host_Init( const int argc, const char **argv )
 	host_registered = Cvar_Get( "registered", "1", CVAR_SYSTEMINFO, "indicate shareware version of game" );
 	timescale = Cvar_Get( "timescale", "1.0", 0, "slow-mo timescale" );
 
-	s = va("^1Xash %g ^3%s", GI->version, buildstring );
+	s = va( "^1Xash %g ^3%s", GI->version, buildstring );
 	Cvar_Get( "version", s, CVAR_INIT, "engine current version" );
 
 	NET_Init();

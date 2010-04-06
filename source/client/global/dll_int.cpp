@@ -190,7 +190,6 @@ int HUD_Redraw( float flTime, int state )
 
 void HUD_UpdateEntityVars( edict_t *ent, const entity_state_t *state, const entity_state_t *prev )
 {
-	int	i;
 	float	m_fLerp;
 
 	if( state->ed_type == ED_CLIENT && state->ed_flags & ESF_NO_PREDICTION )
@@ -247,6 +246,8 @@ void HUD_UpdateEntityVars( edict_t *ent, const entity_state_t *state, const enti
 		// monster's steps will be interpolated on render-side
 		ent->v.origin = state->origin;
 		ent->v.angles = state->angles;
+		ent->v.oldorigin = prev->origin;	// used for lerp 'monster view'
+		ent->v.oldangles = prev->angles;	// used for lerp 'monster view'
 		break;
 	default:
 		ent->v.angles = LerpAngle( prev->angles, state->angles, m_fLerp );
@@ -260,32 +261,26 @@ void HUD_UpdateEntityVars( edict_t *ent, const entity_state_t *state, const enti
 	ent->v.rendercolor = LerpPoint( prev->rendercolor, state->rendercolor, m_fLerp );
 	ent->v.renderamt = LerpPoint( prev->renderamt, state->renderamt, m_fLerp );
 
-	// auto-animation uses v.frame for hold ending frame
-	if(!( ent->v.effects & EF_ANIMATE ))
+	if( ent->v.animtime )
 	{
-		if( ent->v.animtime )
-		{
-			// use normal studio lerping
-			ent->v.frame = state->frame;
-		}
-		else
-		{
-			// sprite frames will be interpolated in other place
-			ent->v.frame = Q_rint( state->frame );
-		}
+		// use normal studio lerping
+		ent->v.frame = state->frame;
+	}
+	else
+	{
+		// round sprite and brushmodel frames
+		ent->v.frame = Q_rint( state->frame );
 	}
 
 	switch( state->ed_type )
 	{
 	case ED_CLIENT:
-		for( i = 0; i < 3; i++ )
-		{
-			ent->v.punchangle[i] = LerpAngle( prev->punch_angles[i], state->punch_angles[i], m_fLerp);
-			ent->v.viewangles[i] = LerpAngle( prev->viewangles[i], state->viewangles[i], m_fLerp);
-			ent->v.view_ofs[i] = LerpAngle( prev->viewoffset[i], state->viewoffset[i], m_fLerp);
-		}
+		ent->v.punchangle = LerpAngle( prev->punch_angles, state->punch_angles, m_fLerp );
+		ent->v.viewangles = LerpAngle( prev->viewangles, state->viewangles, m_fLerp );
+		ent->v.view_ofs = LerpPoint( prev->viewoffset, state->viewoffset, m_fLerp );
 
-		if( prev->fov < 90 && state->fov == 90 ) ent->v.fov = state->fov; // fov is reset, so don't lerping
+		if( prev->fov != 90.0f && state->fov == 90.0f )
+			ent->v.fov = state->fov; // fov is reset, so don't lerping
 		else ent->v.fov = LerpPoint( prev->fov, state->fov, m_fLerp ); 
 		ent->v.maxspeed = state->maxspeed;
 
@@ -334,17 +329,15 @@ void HUD_UpdateEntityVars( edict_t *ent, const entity_state_t *state, const enti
 		break;
 	}
 
-	for( i = 0; i < MAXSTUDIOBLENDS; i++ )
-	{
-		ent->v.blending[i] = LerpByte( prev->blending[i], state->blending[i], m_fLerp ); 
-	}
+	int	i;
 
+	// copy blendings
+	for( i = 0; i < MAXSTUDIOBLENDS; i++ )
+		ent->v.blending[i] = state->blending[i];
+
+	// copy controllers
 	for( i = 0; i < MAXSTUDIOCONTROLLERS; i++ )
-	{
-		if( abs( prev->controller[i] - state->controller[i] ) > 128 )
-			ent->v.controller[i] = state->controller[i];
-		else ent->v.controller[i] = LerpByte( prev->controller[i], state->controller[i], m_fLerp );	
-	}
+		ent->v.controller[i] = state->controller[i];
 
 	// g-cont. moved here because we may needs apply null scale to skyportal
 	if( ent->v.scale == 0.0f ) ent->v.scale = 1.0f;	

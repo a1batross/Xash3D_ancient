@@ -42,7 +42,7 @@ struct tempent_s
 {
 	int		flags;
 	float		die;
-	float		m_flFrameMax;
+	float		m_flFrameMax;	// this is also animtime for studiomodels
 	float		x, y;
 	vec3_t		m_vecVelocity;	// tent velocity
 	vec3_t		m_vecAvelocity;	// tent avelocity

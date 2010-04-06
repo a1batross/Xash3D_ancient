@@ -95,12 +95,10 @@ typedef struct
 	float		gaitframe;	// client->frame + yaw
 	float		gaityaw;		// local value
 
-	// EF_ANIMATE stuff
-	int		m_fSequenceLoops;	// sequence is looped
-	int		m_fSequenceFinished;// sequence is finished
-	float		m_flFrameRate;     	// looped sequence framerate
-	float		m_flGroundSpeed;   	// looped sequence ground speed (movement)
-	float		m_flLastEventCheck;	// last time when event is checked
+	// EVENT SPECIFIC
+	float		m_flPrevEventFrame;	// previous event frame
+	int		m_iEventSequence;	// current event sequence
+
 } lerpframe_t;
 
 typedef struct

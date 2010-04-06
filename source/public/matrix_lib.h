@@ -25,7 +25,7 @@
 */
 #define Matrix3x3_LoadIdentity( mat )	Matrix3x3_Copy( mat, matrix3x3_identity )
 
-static const matrix3x3 matrix3x3_identity =
+static matrix3x3 matrix3x3_identity =
 {
 { 1, 0, 0 },	// PITCH	[forward]
 { 0, 1, 0 },	// YAW	[right]
@@ -282,7 +282,7 @@ _inline void Matrix3x3_ConcatRotate( matrix3x3 out, float angle, float x, float 
 #define Matrix4x4_LoadIdentity( mat )	Matrix4x4_Copy( mat, matrix4x4_identity )
 #define Matrix4x4_Copy( out, in )	Mem_Copy( out, in, sizeof( matrix4x4 ))
 
-static const matrix4x4 matrix4x4_identity =
+static matrix4x4 matrix4x4_identity =
 {
 { 1, 0, 0, 0 },	// PITCH
 { 0, 1, 0, 0 },	// YAW

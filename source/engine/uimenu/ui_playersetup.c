@@ -238,7 +238,7 @@ UI_PlayerSetup_Ownerdraw
 static void UI_PlayerSetup_Ownerdraw( void *self )
 {
 	menuCommon_s	*item = (menuCommon_s *)self;
-	float	realtime = uiStatic.realTime * 0.001f;
+	float		realtime = uiStatic.realTime * 0.001f;
 
 	// draw the background
 	UI_FillRect( item->x, item->y, item->width, item->height, uiPromptBgColor );
@@ -249,7 +249,6 @@ static void UI_PlayerSetup_Ownerdraw( void *self )
 	V_ClearScene();
 
 	// update renderer timings
-	uiPlayerSetup.ent.v.animtime = realtime;
 	uiPlayerSetup.refdef.time = realtime;
 	uiPlayerSetup.refdef.frametime = cls.frametime;
 
@@ -395,12 +394,13 @@ static void UI_PlayerSetup_Init( void )
 	uiPlayerSetup.refdef.flags = RDF_NOWORLDMODEL;
 
 	uiPlayerSetup.ent.serialnumber = MAX_EDICTS - 1;
+	uiPlayerSetup.ent.v.animtime = uiStatic.realTime * 0.001f;	// start animation
 	uiPlayerSetup.ent.v.sequence = 1;
 	uiPlayerSetup.ent.v.scale = 1.0f;
-	uiPlayerSetup.ent.v.frame = -1.0f;
+	uiPlayerSetup.ent.v.frame = 0.0f;
 	uiPlayerSetup.ent.v.framerate = 1.0f;
 	uiPlayerSetup.ent.v.modelindex = MAX_MODELS - 1;
-	uiPlayerSetup.ent.v.effects |= (EF_ANIMATE|EF_FULLBRIGHT);
+	uiPlayerSetup.ent.v.effects |= EF_FULLBRIGHT;
 	uiPlayerSetup.ent.v.controller[0] = 127;
 	uiPlayerSetup.ent.v.controller[1] = 127;
 	uiPlayerSetup.ent.v.controller[2] = 127;
