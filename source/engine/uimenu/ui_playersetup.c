@@ -44,7 +44,7 @@ typedef struct
 	string		currentModel;
 
 	ref_params_t	refdef;
-	edict_t		ent;
+	edict_t		*ent;
 	
 	menuFramework_s	menu;
 
@@ -187,7 +187,9 @@ static void UI_PlayerSetup_UpdateConfig( void )
 	if( !com.stricmp( name, "player" ))
 		com.strncpy( path, "models/player.mdl", MAX_STRING );
 	else com.snprintf( path, MAX_STRING, "models/player/%s/%s.mdl", name, name );
-	uiPlayerSetup.ent.v.model = re->RegisterModel( path, MAX_MODELS - 1 );
+
+	if( uiPlayerSetup.ent )
+		uiPlayerSetup.ent->v.model = re->RegisterModel( path, MAX_MODELS - 1 );
 }
 
 /*
@@ -253,7 +255,7 @@ static void UI_PlayerSetup_Ownerdraw( void *self )
 	uiPlayerSetup.refdef.frametime = cls.frametime;
 
 	// draw the player model
-	re->AddRefEntity( &uiPlayerSetup.ent, ED_NORMAL, -1 );
+	re->AddRefEntity( uiPlayerSetup.ent, ED_NORMAL, -1 );
 	re->RenderFrame( &uiPlayerSetup.refdef );
 }
 
@@ -393,21 +395,36 @@ static void UI_PlayerSetup_Init( void )
 	uiPlayerSetup.refdef.fov_y = UI_PlayerSetup_CalcFov( uiPlayerSetup.refdef.fov_x, uiPlayerSetup.refdef.viewport[2], uiPlayerSetup.refdef.viewport[3] );
 	uiPlayerSetup.refdef.flags = RDF_NOWORLDMODEL;
 
-	uiPlayerSetup.ent.serialnumber = MAX_EDICTS - 1;
-	uiPlayerSetup.ent.v.animtime = uiStatic.realTime * 0.001f;	// start animation
-	uiPlayerSetup.ent.v.sequence = 1;
-	uiPlayerSetup.ent.v.scale = 1.0f;
-	uiPlayerSetup.ent.v.frame = 0.0f;
-	uiPlayerSetup.ent.v.framerate = 1.0f;
-	uiPlayerSetup.ent.v.modelindex = MAX_MODELS - 1;
-	uiPlayerSetup.ent.v.effects |= EF_FULLBRIGHT;
-	uiPlayerSetup.ent.v.controller[0] = 127;
-	uiPlayerSetup.ent.v.controller[1] = 127;
-	uiPlayerSetup.ent.v.controller[2] = 127;
-	uiPlayerSetup.ent.v.controller[3] = 127;
-	uiPlayerSetup.ent.v.origin[0] = 92;
-	uiPlayerSetup.ent.v.origin[2] = 2;
-	uiPlayerSetup.ent.v.angles[1] = 180;
+	uiPlayerSetup.ent = CL_GetEdictByIndex( MAX_EDICTS - 1 );
+
+	if( !uiPlayerSetup.ent )
+	{
+		MsgDev( D_ERROR, "Unable to find player model edict\n" );
+		return;
+	}
+
+	uiPlayerSetup.ent->v.animtime = uiStatic.realTime * 0.001f;	// start animation
+	uiPlayerSetup.ent->v.sequence = 1;
+	uiPlayerSetup.ent->v.scale = 1.0f;
+	uiPlayerSetup.ent->v.frame = 0.0f;
+	uiPlayerSetup.ent->v.framerate = 1.0f;
+	uiPlayerSetup.ent->v.modelindex = MAX_MODELS - 1;
+	uiPlayerSetup.ent->v.effects |= EF_FULLBRIGHT;
+	uiPlayerSetup.ent->v.controller[0] = 127;
+	uiPlayerSetup.ent->v.controller[1] = 127;
+	uiPlayerSetup.ent->v.controller[2] = 127;
+	uiPlayerSetup.ent->v.controller[3] = 127;
+	uiPlayerSetup.ent->pvClientData->frame.curstate.controller[0] = 127;
+	uiPlayerSetup.ent->pvClientData->frame.curstate.controller[1] = 127;
+	uiPlayerSetup.ent->pvClientData->frame.curstate.controller[2] = 127;
+	uiPlayerSetup.ent->pvClientData->frame.curstate.controller[3] = 127;
+	uiPlayerSetup.ent->pvClientData->frame.latched.controller[0] = 127;
+	uiPlayerSetup.ent->pvClientData->frame.latched.controller[1] = 127;
+	uiPlayerSetup.ent->pvClientData->frame.latched.controller[2] = 127;
+	uiPlayerSetup.ent->pvClientData->frame.latched.controller[3] = 127;
+	uiPlayerSetup.ent->v.origin[0] = 92;
+	uiPlayerSetup.ent->v.origin[2] = 2;
+	uiPlayerSetup.ent->v.angles[1] = 180;
 }
 
 /*

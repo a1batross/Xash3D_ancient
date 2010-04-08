@@ -42,8 +42,8 @@ typedef struct physic_exp_s
 	void (*EndRegistration)( void );
 
 	// areaportal management
-	void (*SetAreaPortals)( byte *portals, size_t size );
-	void (*GetAreaPortals)( byte **portals, size_t *size );
+	void (*SaveAreaPortals)( const char *filename );
+	void (*LoadAreaPortals)( const char *filename );
 	void (*SetAreaPortalState)( int portalnum, int area, int otherarea, bool open );
 	int (*BoxLeafnums)( vec3_t mins, vec3_t maxs, int *list, int listsize, int *lastleaf );
 	bool (*BoxVisible)( const vec3_t mins, const vec3_t maxs, byte *visbits );

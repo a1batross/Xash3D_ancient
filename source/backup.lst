@@ -13,6 +13,7 @@ launchers.bat
 todo.log
 
 baserc\
+bshift\
 client\
 client\hud\
 client\global\

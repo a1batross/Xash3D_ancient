@@ -567,8 +567,10 @@ void CBaseDoor :: ShowInfo ( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_
 void CBaseDoor::DoorGoUp( void )
 {
 	// It could be going-down, if blocked.
-	ASSERT(m_iState == STATE_OFF || m_iState == STATE_TURN_OFF);
+	ASSERT( m_iState == STATE_OFF || m_iState == STATE_TURN_OFF );
 	EMIT_SOUND(ENT(pev), CHAN_STATIC, (char*)STRING(pev->noise1), 1, ATTN_NORM);
+	SET_AREAPORTAL( edict(), true ); // open areaportal
+
 	m_iState = STATE_TURN_ON;
 	SetMoveDone( DoorHitTop );
 
@@ -579,26 +581,26 @@ void CBaseDoor::DoorGoUp( void )
 
 void CBaseDoor::DoorHitTop( void )
 {
-	STOP_SOUND(ENT(pev), CHAN_STATIC, (char*)STRING(pev->noise1) );
-	EMIT_SOUND(ENT(pev), CHAN_STATIC, (char*)STRING(pev->noise2), 1, ATTN_NORM);
+	STOP_SOUND( ENT( pev ), CHAN_STATIC, STRING( pev->noise1 ));
+	EMIT_SOUND( ENT( pev ), CHAN_STATIC, STRING( pev->noise2 ), 1, ATTN_NORM );
 
-	ASSERT(m_iState == STATE_TURN_ON);
+	ASSERT( m_iState == STATE_TURN_ON );
 	m_iState = STATE_ON;
 
-	if(m_flWait == -1)
+	if( m_flWait == -1 )
 	{
-		m_iState = STATE_DEAD;//keep door in this position
+		m_iState = STATE_DEAD; // keep door in this position
 		return;
 	}
 
-	if(pev->impulse == 0)//time base door
+	if( pev->impulse == 0 ) // time base door
 	{
 		SetThink( DoorGoDown );
 		SetNextThink( m_flWait );
 	}
 	
 	// Fire the close target (if startopen is set, then "top" is closed)
-	if (pev->spawnflags & SF_START_ON)
+	if( pev->spawnflags & SF_START_ON )
 		UTIL_FireTargets( pev->target, m_hActivator, this, USE_OFF );
 	else 	UTIL_FireTargets( pev->target, m_hActivator, this, USE_ON );
 }
@@ -622,9 +624,11 @@ void CBaseDoor::DoorHitBottom( void )
 	ASSERT(m_iState == STATE_TURN_OFF);
 	m_iState = STATE_OFF;
 
-	if (pev->spawnflags & SF_START_ON)
+	SET_AREAPORTAL( edict(), false );	// close areaportal
+
+	if ( pev->spawnflags & SF_START_ON )
 		UTIL_FireTargets( pev->target, m_hActivator, this, USE_ON );
-	else	UTIL_FireTargets( pev->target, m_hActivator, this, USE_OFF );
+	else UTIL_FireTargets( pev->target, m_hActivator, this, USE_OFF );
 
 	UTIL_FireTargets( pev->target, m_hActivator, this, USE_ON );
 }
@@ -634,9 +638,9 @@ void CBaseDoor::Blocked( CBaseEntity *pOther )
 	CBaseEntity	*pTarget	= NULL;
 	CBaseDoor		*pDoor	= NULL;
 
-	UTIL_AssignOrigin(this, pev->origin);
-	//make delay before retouching
-	if ( gpGlobals->time < m_flBlockedTime) return;
+	UTIL_AssignOrigin( this, pev->origin );
+	// make delay before retouching
+	if( gpGlobals->time < m_flBlockedTime ) return;
 	m_flBlockedTime = gpGlobals->time + 0.5;
 
 	if(m_pParent && m_pParent->edict() && pFlags & PF_PARENTMOVE) m_pParent->Blocked( pOther);

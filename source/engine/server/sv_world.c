@@ -530,6 +530,9 @@ trace_t SV_Move( const vec3_t start, vec3_t mins, vec3_t maxs, const vec3_t end,
 	clip.passedict = e;
 	clip.umask = World_MaskForEdict( e );
 
+	if( VectorCompare( clip.mins, clip.maxs ))
+		clip.umask &= ~BASECONT_CLIP;	// pointraces ignore clip
+
 	// clip to world
 	clip.trace = SV_ClipMoveToEntity( EDICT_NUM( 0 ), start, mins, maxs, end, clip.umask, 0 );
 
@@ -644,7 +647,7 @@ int SV_BaseContents( const vec3_t p, edict_t *e )
 	}
 
 	// or in contents from all the water entities
-	num = SV_AreaEdicts( p, p, touch, MAX_EDICTS, AREA_WATER );
+	num = SV_AreaEdicts( p, p, touch, MAX_EDICTS, AREA_CUSTOM );
 
 	for( i = 0; i < num; i++ )
 	{
@@ -683,6 +686,8 @@ edict_t *SV_TestPlayerPosition( const vec3_t origin, edict_t *pass, TraceResult 
 	svgame.pmove->usehull = bound( 0, svgame.pmove->usehull, 3 );
 	mins = svgame.pmove->player_mins[svgame.pmove->usehull];
 	maxs = svgame.pmove->player_maxs[svgame.pmove->usehull];
+
+	if( pass ) SV_SetMinMaxSize( pass, mins, maxs );
 
 	result = SV_Move( origin, mins, maxs, origin, MOVE_NORMAL, pass );
 	if( tr ) Mem_Copy( tr, &result, sizeof( *tr ));

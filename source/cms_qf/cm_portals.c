@@ -202,7 +202,7 @@ bool CM_AddAreaPortal( int portalnum, int area, int otherarea )
 	carea_t		*a;
 	careaportal_t	*ap;
 
-	if( portalnum >= MAX_MAP_AREAPORTALS )
+	if( portalnum >= MAX_CM_AREAPORTALS )
 		return false;
 	if( !area || area > cm.numareas || !otherarea || otherarea > cm.numareas )
 		return false;
@@ -273,78 +273,69 @@ void CM_FloodAreaConnections( void )
 	}
 }
 
-void CM_SetAreaPortals( byte *portals, size_t size )
+void CM_SaveAreaPortals( const char *filename )
 {
 	int	i, j;
-	vfile_t	*f;
+	file_t	*f;
 
-	f = VFS_Create( portals, size );
+	f = FS_Open( filename, "wb" );
+	if( !f ) return;
 
-	VFS_Read( f, &cm.numareaportals, sizeof( int ));
-
-	for( i = 1; i < cm.numareaportals; i++ )
-	{
-		VFS_Read( f, &j, sizeof( int ));
-		VFS_Read( f, &cm.areaportals[j], sizeof( cm.areaportals[0] ));
-	}
-
-	VFS_Read( f, &cm.numareas, sizeof( int ));
-
-	cm.areas = Mem_Realloc( cms.mempool, cm.areas, cm.numareas * sizeof( *cm.areas ));
-
-	for( i = 1; i < cm.numareas; i++ )
-	{
-		VFS_Read( f, &cm.areas[i].numareaportals, sizeof( int ));
-
-		for( j = 0; j < cm.areas[i].numareaportals; j++ )
-			VFS_Read( f, &cm.areas[i].areaportals[j], sizeof( int ));
-	}
-
-	CM_FloodAreaConnections ();
-	VFS_Close( f );
-}
-
-void CM_GetAreaPortals( byte **portals, size_t *size )
-{
-	int	i, j;
-	vfile_t	*f;
-	byte	*prt;
-
-	f = VFS_Open( NULL, "w" ); 
-	VFS_Write( f, &cm.numareaportals, sizeof( int ));
-
-	for( i = 1; i < MAX_MAP_AREAPORTALS; i++ )
+	FS_Write( f, &cm.numareaportals, sizeof( int ));
+	for( i = 0; i < MAX_CM_AREAPORTALS; i++ )
 	{
 		if( cm.areaportals[i].area )
 		{
-			VFS_Write( f, &i, sizeof( int ));
-			VFS_Write( f, &cm.areaportals[i], sizeof( cm.areaportals[0] ));
+			FS_Write( f, &i, sizeof( int ));
+			FS_Write( f, &cm.areaportals[i], sizeof( cm.areaportals[0] ));
 		}
 	}
 
-	VFS_Write( f, &cm.numareas, sizeof( int ));
+	FS_Write( f, &cm.numareas, sizeof( int ));
 
-	for( i = 1; i < cm.numareas; i++ )
+	for( i = 0; i < cm.numareas; i++ )
 	{
-		VFS_Write( f, &cm.areas[i].numareaportals, sizeof( int ));
+		FS_Write( f, &cm.areas[i].numareaportals, sizeof( int ));
 
 		for( j = 0; j < cm.areas[i].numareaportals; j++ )
-			VFS_Write( f, &cm.areas[i].areaportals[j], sizeof( int ));
+			FS_Write( f, &cm.areas[i].areaportals[j], sizeof( int ));
 	}
 
-	// copy portals out
-	prt = Mem_Alloc( cms.mempool, VFS_Tell( f ));
-	Mem_Copy( prt, VFS_GetBuffer( f ), VFS_Tell( f ));
+	FS_Close( f );
+}
 
-	if( size ) *size = VFS_Tell( f );
-	*portals = prt;
+void CM_LoadAreaPortals( const char *filename )
+{
+	int	i, j;
+	file_t	*f;
 
-	VFS_Close( f );
+	f = FS_Open( filename, "rb" );
+	if( !f ) return;
+
+	FS_Read( f, &cm.numareaportals, sizeof( int ));
+
+	for( i = 0; i < cm.numareaportals; i++ )
+	{
+		FS_Read( f, &j, sizeof( int ));
+		FS_Read( f, &cm.areaportals[j], sizeof( cm.areaportals[0] ));
+	}
+	FS_Read( f, &cm.numareas, sizeof( int ));
+
+	for( i = 0; i < cm.numareas; i++ )
+	{
+		FS_Read( f, &cm.areas[i].numareaportals, sizeof( int ));
+
+		for( j = 0; j < cm.areas[i].numareaportals; j++ )
+			FS_Read( f, &cm.areas[i].areaportals[j], sizeof( int ));
+	}
+	FS_Close( f );
+
+	CM_FloodAreaConnections ();	// rebuild connections
 }
 
 void CM_SetAreaPortalState( int portalnum, int area, int otherarea, bool open )
 {
-	if( portalnum >= MAX_MAP_AREAPORTALS )
+	if( portalnum >= MAX_CM_AREAPORTALS )
 		Host_Error( "CM_SetAreaPortalState: areaportal > cm.numareaportals\n" );
 
 	if( !cm.areaportals[portalnum].area )

@@ -168,8 +168,25 @@ void CM_FreeModel( cmodel_t *mod )
 const void *CM_VisData( void ) { return cm.pvs; }
 int CM_NumShaders( void ) { return cm.numshaders; }
 int CM_NumInlineModels( void ) { return cm.nummodels; }
-script_t *CM_EntityScript( void ) { return cm.entityscript; }
 const char *CM_ShaderName( int index ){ return cm.shaders[bound( 0, index, cm.numshaders-1 )].name; }
+
+script_t *CM_EntityScript( void )
+{
+	string	entfilename;
+	script_t	*ents;
+
+	// check for entfile too
+	com.strncpy( entfilename, cm.name, sizeof( entfilename ));
+	FS_StripExtension( entfilename );
+	FS_DefaultExtension( entfilename, ".ent" );
+
+	if(( ents = Com_OpenScript( entfilename, NULL, 0 )))
+	{
+		MsgDev( D_INFO, "^2Read entity patch:^7 %s\n", entfilename );
+		return ents;
+	}
+	return cm.entityscript;
+}
 
 /*
 ===============================================================================

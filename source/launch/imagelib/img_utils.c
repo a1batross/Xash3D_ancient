@@ -185,8 +185,8 @@ static const loadformat_t load_hl1[] =
 // version7 - using only Half-Life 2 images
 static const loadformat_t load_hl2[] =
 {
-{ "materials/%s%s.%s", "vtf", Image_LoadVTF, IL_HINT_NO },	// hl2 dds wrapper
-{ "materials/%s%s.%s", "tga", Image_LoadTGA, IL_HINT_NO },	// for Vgui, saveshots etc
+{ "%s%s.%s", "vtf", Image_LoadVTF, IL_HINT_NO },	// hl2 dds wrapper
+{ "%s%s.%s", "tga", Image_LoadTGA, IL_HINT_NO },	// for Vgui, saveshots etc
 { NULL, NULL, NULL, IL_HINT_NO }
 };
 
@@ -407,6 +407,9 @@ void Image_Setup( const char *formats, const uint flags )
 		image.loadformats = load_xash; // unrecognized version, use default
 		Image_SetPaths( "env", "jpg", "png", "png" );
 	}
+
+	if( Sys.app_name == HOST_RIPPER )
+		image.baseformats = image.loadformats;
 }
 
 void Image_Shutdown( void )

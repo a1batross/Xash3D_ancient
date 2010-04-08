@@ -183,7 +183,7 @@ void SV_ActivateServer( void )
 	// create a baseline for more efficient communications
 	SV_CreateBaseline();
 
-	sv.frametime = 0;
+	sv.frametime = 100;
 
 	// run two frames to allow everything to settle
 	SV_Physics();

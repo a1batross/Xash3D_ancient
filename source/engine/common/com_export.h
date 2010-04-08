@@ -15,8 +15,8 @@ extern render_exp_t	*re;
 // physic.dll exports
 //
 #define CM_RegisterModel		if( pe ) pe->RegisterModel
-#define CM_SetAreaPortals		if( pe ) pe->SetAreaPortals
-#define CM_GetAreaPortals		if( pe ) pe->GetAreaPortals
+#define CM_LoadAreaPortals		if( pe ) pe->LoadAreaPortals
+#define CM_SaveAreaPortals		if( pe ) pe->SaveAreaPortals
 #define CM_SetAreaPortalState		if( pe ) pe->SetAreaPortalState
 #define CM_GetAttachment		if( pe ) pe->Mod_GetAttachment
 #define CM_GetBonePosition		if( pe ) pe->Mod_GetBonePos

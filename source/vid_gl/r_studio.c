@@ -213,9 +213,6 @@ void R_StudioUpdateVarsInterpolant( edict_t *in, ref_entity_t *out )
 		VectorCopy( out->lerp->curstate.origin, out->lerp->latched.origin );
 	VectorCopy( in->v.origin, out->lerp->curstate.origin );
 
-	if( VectorIsNull( out->lerp->latched.angles )) // initialize it
-		VectorCopy( out->lerp->curstate.angles, out->lerp->latched.angles );
-
 	if( !VectorCompare( in->v.angles, out->lerp->curstate.angles ))
 		VectorCopy( out->lerp->curstate.angles, out->lerp->latched.angles );
 	VectorCopy( in->v.angles, out->lerp->curstate.angles );
@@ -369,11 +366,19 @@ static void R_StudioSetupRender( ref_entity_t *e, ref_model_t *mod )
 	m_pchromeright = ((studiovars_t *)e->extradata)->chromeright;
 
 	// misc info
-	if( r_studio_lerping->integer )
+	if( e->ent_type == ED_VIEWMODEL )
+	{
+		// viewmodel can't properly animate without lerping
+		m_fDoInterp = true;
+	}
+	else if( r_studio_lerping->integer )
 	{
 		m_fDoInterp = (e->flags & EF_NOINTERP) ? false : true;
 	}
-	else m_fDoInterp = false;
+	else
+	{
+		m_fDoInterp = false;
+	}
 }
 
 // extract texture filename from modelname
@@ -1090,6 +1095,7 @@ void R_StudioSetUpTransform( ref_entity_t *e, bool trivial_accept )
 	if( e->movetype == MOVETYPE_STEP ) 
 	{
 		float	d, f = 0.0f;
+		edict_t	*m_pEntity, *m_pGroundEntity;
 
 		// don't do it if the goalstarttime hasn't updated in a while.
 		// NOTE: Because we need to interpolate multiplayer characters, the interpolation time limit
@@ -1108,7 +1114,18 @@ void R_StudioSetUpTransform( ref_entity_t *e, bool trivial_accept )
 			f = f - 1.0f;
 		}
 
-		if( 1 )	// FIXME: check ground entity, add basevelocity if moving
+		m_pEntity = ri.GetClientEdict( e->index );
+		if( m_pEntity ) m_pGroundEntity = m_pEntity->v.groundentity;
+
+		if( m_pGroundEntity && m_pGroundEntity->v.movetype == MOVETYPE_PUSH && !VectorIsNull( m_pGroundEntity->v.velocity ))
+		{
+			d = RI.lerpFrac;
+
+			origin[0] += ( e->origin[0] - m_pEntity->v.oldorigin[0] ) * d;
+			origin[1] += ( e->origin[1] - m_pEntity->v.oldorigin[1] ) * d;
+			origin[2] += ( e->origin[2] - m_pEntity->v.oldorigin[2] ) * d;
+		}
+		else
 		{
 			origin[0] += ( e->lerp->curstate.origin[0] - e->lerp->latched.origin[0] ) * f;
 			origin[1] += ( e->lerp->curstate.origin[1] - e->lerp->latched.origin[1] ) * f;
@@ -1297,10 +1314,13 @@ void R_StudioSetupBones( ref_entity_t *e )
 	static float	pos4[MAXSTUDIOBONES][3];
 	static vec4_t	q4[MAXSTUDIOBONES];
 
+	Com_Assert( e->model == NULL || e->model->extradata == NULL );
+
 	// bones already cached for this frame
 	if( e->m_nCachedFrameCount == r_framecount2 )
 		return;
 
+	RI.currententity = e;
 	cl_entity = ri.GetClientEdict( e->index );
 	if( e->lerp->curstate.sequence >= m_pStudioHeader->numseq ) e->lerp->curstate.sequence = 0;
 	pseqdesc = (dstudioseqdesc_t *)((byte *)m_pStudioHeader + m_pStudioHeader->seqindex) + e->lerp->curstate.sequence;
@@ -1309,10 +1329,10 @@ void R_StudioSetupBones( ref_entity_t *e )
 
 //	if( e->lerp->curstate.frame > f ) Msg( "%f %f\n", e->lerp->curstate.frame, f );
 
-	pstudio = RI.currententity->extradata;
+	pstudio = e->extradata;
 	Com_Assert( pstudio == NULL );
 
-	panim = R_StudioGetAnim( RI.currentmodel, pseqdesc );
+	panim = R_StudioGetAnim( e->model, pseqdesc );
 	R_StudioCalcRotations( pos, q, pseqdesc, panim, f );
 
 	if( pseqdesc->numblends > 1 )
@@ -1352,7 +1372,7 @@ void R_StudioSetupBones( ref_entity_t *e )
 		float s;
 
 		pseqdesc = (dstudioseqdesc_t *)((byte *)m_pStudioHeader + m_pStudioHeader->seqindex) + pstudio->lerp->latched.sequence;
-		panim = R_StudioGetAnim( RI.currentmodel, pseqdesc );
+		panim = R_StudioGetAnim( e->model, pseqdesc );
 
 		// clip prevframe
 		R_StudioCalcRotations( pos1b, q1b, pseqdesc, panim, pstudio->lerp->latched.frame );
@@ -1401,7 +1421,7 @@ void R_StudioSetupBones( ref_entity_t *e )
 
 		pseqdesc = (dstudioseqdesc_t *)((byte *)m_pStudioHeader + m_pStudioHeader->seqindex) + e->gaitsequence;
 
-		panim = R_StudioGetAnim( RI.currentmodel, pseqdesc );
+		panim = R_StudioGetAnim( e->model, pseqdesc );
 		R_StudioCalcRotations( pos2, q2, pseqdesc, panim, pstudio->lerp->gaitframe );
 
 		for( i = 0; i < m_pStudioHeader->numbones; i++ )

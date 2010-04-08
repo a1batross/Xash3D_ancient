@@ -818,6 +818,22 @@ void SV_EntityPatchRead( SAVERESTOREDATA *pSaveData, const char *level )
 	FS_Close( pFile );
 }
 
+void SV_AreaPortalsWrite( const char *level )
+{
+	string		name;
+
+	com.snprintf( name, sizeof( name ), "save/%s.HL4", level );
+	CM_SaveAreaPortals( name );
+}
+
+void SV_AreaPortalsRead( const char *level )
+{
+	string		name;
+
+	com.snprintf( name, sizeof( name ), "save/%s.HL4", level );
+	CM_LoadAreaPortals( name );
+}
+
 /*
 =============
 SV_SaveGameState
@@ -910,6 +926,8 @@ SAVERESTOREDATA *SV_SaveGameState( void )
 
 	// FIXME: here a point to save client state e.g. decals
 
+	SV_AreaPortalsWrite( sv.name );
+
 	return pSaveData;
 }
 
@@ -927,6 +945,8 @@ int SV_LoadGameState( char const *level, bool createPlayers )
 	SV_ParseSaveTables( pSaveData, &header, 1 );
 
 	SV_EntityPatchRead( pSaveData, level );
+
+	SV_AreaPortalsRead( level );
 
 	Cvar_SetValue( "skill", header.skillLevel );
 	com.strncpy( sv.name, header.mapName, sizeof( sv.name ));

@@ -482,6 +482,9 @@ trace_t CL_Move( const vec3_t start, vec3_t mins, vec3_t maxs, const vec3_t end,
 	clip.passedict = e;
 	clip.umask = World_MaskForEdict( e );
 
+	if( VectorCompare( clip.mins, clip.maxs ))
+		clip.umask &= ~BASECONT_CLIP;	// pointraces ignore clip
+
 	// clip to world
 	clip.trace = CL_ClipMoveToEntity( EDICT_NUM( 0 ), start, mins, maxs, end, clip.umask, 0 );
 
@@ -596,7 +599,7 @@ int CL_BaseContents( const vec3_t p, edict_t *e )
 	}
 
 	// or in contents from all the water entities
-	num = CL_AreaEdicts( p, p, touch, MAX_EDICTS, AREA_WATER );
+	num = CL_AreaEdicts( p, p, touch, MAX_EDICTS, AREA_CUSTOM );
 
 	for( i = 0; i < num; i++ )
 	{

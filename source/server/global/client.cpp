@@ -1223,6 +1223,7 @@ void UpdateEntityState( entity_state_t *to, edict_t *from, int baseline )
 	else if( to->ed_type == ED_MOVER || to->ed_type == ED_BSPBRUSH || to->ed_type == ED_PORTAL )
 	{
 		to->body = DirToBits( pNet->pev->movedir );
+		to->velocity = pNet->pev->velocity;
 
 		// this is conveyor - send speed to render for right texture scrolling
 		to->framerate = pNet->pev->speed;

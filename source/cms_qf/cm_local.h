@@ -26,6 +26,7 @@ extern cvar_t		*cm_nocurves;
 extern cvar_t		*cm_debugsize;
 
 #define Host_Error		com.error
+#define MAX_CM_AREAPORTALS	MAX_EDICTS
 #define BOX_MODEL_HANDLE	MAX_MODELS - 1
 #define PLANE_NORMAL_EPSILON	0.00001f
 #define PLANE_DIST_EPSILON	0.01f
@@ -94,16 +95,16 @@ typedef struct
 typedef struct
 {
 	int		numareaportals;
-	int		areaportals[MAX_MAP_AREAPORTALS];
+	int		areaportals[MAX_CM_AREAPORTALS];
 	int		floodnum;		// if two areas have equal floodnums, they are connected
 	int		floodvalid;
 } carea_t;
 
 typedef struct
 {
-	bool		open;
-	int		area;
-	int		otherarea;
+	byte		open;
+	byte		area;		// MAX_MAP_AREAS is 256
+	byte		otherarea;
 } careaportal_t;
 
 typedef struct leaflist_s
@@ -167,7 +168,7 @@ typedef struct clipmap_s
 	cface_t		*faces;
 	int		numfaces;
 
-	careaportal_t	areaportals[MAX_MAP_AREAPORTALS];
+	careaportal_t	areaportals[MAX_CM_AREAPORTALS];
 	int		numareaportals;
 
 	int		floodvalid;
@@ -222,8 +223,8 @@ void CM_BoxLeafnums_r( leaflist_t *ll, int nodenum );
 void CM_CalcPHS( void );
 byte *CM_FatPVS( const vec3_t org, bool portal );
 byte *CM_FatPHS( int cluster, bool portal );
-void CM_SetAreaPortals( byte *portals, size_t size );
-void CM_GetAreaPortals( byte **portals, size_t *size );
+void CM_LoadAreaPortals( const char *filename );
+void CM_SaveAreaPortals( const char *filename );
 void CM_SetAreaPortalState( int portalnum, int area, int otherarea, bool open );
 int CM_WriteAreaBits( byte *buffer, int area, bool portal );
 void CM_FloodAreaConnections( void );

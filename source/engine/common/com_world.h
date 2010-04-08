@@ -27,7 +27,7 @@ ENTITY AREA CHECKING
 
 #define AREA_SOLID			1
 #define AREA_TRIGGERS		2
-#define AREA_WATER			3
+#define AREA_CUSTOM			3	// user skins - water, lava, fog etc
 
 // link_t is only used for entity area links now
 typedef struct link_s

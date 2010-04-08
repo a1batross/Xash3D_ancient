@@ -310,7 +310,7 @@ void Conv_RunSearch( void )
 			if( search2 ) Mem_Free( search2 );
 		}
 		if( search ) Mem_Free( search );
-		else AddMask( "*.jpg" );	// Quake3 textures
+		else AddMask( "*.vtf" );	// Quake3 textures
 		imageflags |= IL_DDS_HARDWARE; // because we want save textures into original DXT format
 		Image_Init( "Half-Life 2", imageflags );
 		break;

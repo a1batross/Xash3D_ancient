@@ -63,8 +63,8 @@ physic_exp_t DLLEXPORT *CreateAPI ( stdlib_api_t *input, physic_imp_t *engfuncs 
 	Phys.RegisterModel = CM_RegisterModel;
 	Phys.EndRegistration = CM_EndRegistration;
 
-	Phys.SetAreaPortals = CM_SetAreaPortals;
-	Phys.GetAreaPortals = CM_GetAreaPortals;
+	Phys.LoadAreaPortals = CM_LoadAreaPortals;
+	Phys.SaveAreaPortals = CM_SaveAreaPortals;
 	Phys.SetAreaPortalState = CM_SetAreaPortalState;
 	Phys.BoxLeafnums = CM_BoxLeafnums;
 	Phys.BoxVisible = CM_BoxVisible;

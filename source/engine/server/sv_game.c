@@ -15,6 +15,9 @@ void SV_SetMinMaxSize( edict_t *e, const float *min, const float *max )
 {
 	int	i;
 
+	if( !SV_IsValidEdict( e ) || !min || !max )
+		return;
+
 	for( i = 0; i < 3; i++ )
 		if( min[i] > max[i] )
 			Host_Error( "SV_SetMinMaxSize: backwards mins/maxs\n" );
@@ -130,6 +133,61 @@ static bool SV_EntitiesIn( int mode, const vec3_t v1, const vec3_t v2 )
 	else if( !CM_AreasConnected( area1, area2 ))
 		return false;
 	return true;
+}
+
+void SV_WriteEntityPatch( const char *filename )
+{
+	file_t		*f;
+	dheader_t		*header;
+	int		ver = -1, lumpofs = 0, lumplen = 0;
+	byte		buf[MAX_SYSPATH]; // 1 kb
+	bool		result = false;
+			
+	f = FS_Open( va( "maps/%s.bsp", filename ), "rb" );
+	if( !f ) return;
+
+	Mem_Set( buf, 0, MAX_SYSPATH );
+	FS_Read( f, buf, MAX_SYSPATH );
+                              
+	switch( LittleLong( *(uint *)buf ))
+	{
+	case IDBSPMODHEADER:
+	case RBBSPMODHEADER:
+	case QFBSPMODHEADER:
+	case XRBSPMODHEADER:
+		header = (dheader_t *)buf;
+		ver = LittleLong(((int *)buf)[1]);
+		switch( ver )
+		{
+		case Q3IDBSP_VERSION:	// quake3 arena
+		case RTCWBSP_VERSION:	// return to castle wolfenstein
+		case RFIDBSP_VERSION:	// raven or qfusion bsp
+		case XRIDBSP_VERSION:	// x-real engine
+			lumpofs = LittleLong( header->lumps[LUMP_ENTITIES].fileofs );
+			lumplen = LittleLong( header->lumps[LUMP_ENTITIES].filelen );
+			break;
+		default:
+			FS_Close( f );
+			return;
+		}
+		break;
+	default:
+		FS_Close( f );
+		return;
+	}
+
+	if( lumplen >= 10 )
+	{
+		char	*entities = NULL;
+		
+		FS_Seek( f, lumpofs, SEEK_SET );
+		entities = (char *)Z_Malloc( lumplen + 1 );
+		FS_Read( f, entities, lumplen );
+		FS_WriteFile( va( "maps/%s.ent", filename ), entities, lumplen );
+		Msg( "Write 'maps/%s.ent'\n", filename );
+		Mem_Free( entities );
+	}
+	FS_Close( f );
 }
 
 script_t *SV_GetEntityScript( const char *filename )
@@ -3596,8 +3654,6 @@ void SV_SpawnEntities( const char *mapname, script_t *entities )
 
 	// spawn the rest of the entities on the map
 	SV_LoadFromFile( entities );
-
-	SV_FreeOldEntities (); // release all ents until map loading
 
 	MsgDev( D_NOTE, "Total %i entities spawned\n", svgame.globals->numEntities );
 }

@@ -172,10 +172,7 @@ bool SV_WalkMove( edict_t *ent, const vec3_t move, int iMode )
 		else trace = SV_Move( neworg, ent->v.mins, ent->v.maxs, end, MOVE_NORMAL|FTRACE_SIMPLEBOX, ent );
 
 		if( trace.fAllSolid || trace.fStartSolid )
-		{
-			Msg( "WalkMove: all solid || start solid\n" );
 			return false;
-		}
 	}
 
 	if( trace.flFraction == 1.0f )
@@ -191,7 +188,6 @@ bool SV_WalkMove( edict_t *ent, const vec3_t move, int iMode )
 			ent->v.flags &= ~FL_ONGROUND;
 			return true;
 		}
-		Msg( "WalkMove: walked off and edge\n" );
 		return false; // walked off an edge
 	}
 
@@ -207,7 +203,6 @@ bool SV_WalkMove( edict_t *ent, const vec3_t move, int iMode )
 	if( trace.fStartSolid )
 	{
 		VectorCopy( oldorg, ent->v.origin );
-		Msg( "WalkMove: start solid\n" );
 		return false;
 	}
 
@@ -219,13 +214,11 @@ bool SV_WalkMove( edict_t *ent, const vec3_t move, int iMode )
 			// and is trying to correct
 			if( !VectorCompare( ent->v.origin, oldorg ))
 				SV_LinkEdict( ent, relink );
-			Msg( "WalkMove: partialground - ok\n" );
 			return true;
 		}
 
 		ent->v.flags |= FL_PARTIALGROUND;
 		VectorCopy( oldorg, ent->v.origin );
-		Msg( "WalkMove: restore old pos\n" );
 		return false;
 	}
 
@@ -498,7 +491,7 @@ static void PM_SetupMove( playermove_t *pmove, edict_t *clent, usercmd_t *ucmd, 
 	VectorCopy( clent->v.absmin, absmin );
 	VectorCopy( clent->v.absmax, absmax );
 
-	count = SV_AreaEdicts( absmin, absmax, touch, MAX_EDICTS, AREA_WATER );
+	count = SV_AreaEdicts( absmin, absmax, touch, MAX_EDICTS, AREA_CUSTOM );
 
 	// build list of ladders around player
 	for( i = 0; i < count; i++ )

@@ -497,6 +497,32 @@ void SV_Kill_f( void )
 }
 
 /*
+==================
+SV_EntPatch_f
+==================
+*/
+void SV_EntPatch_f( void )
+{
+	const char	*mapname;
+
+	if( Cmd_Argc() < 2 )
+	{
+		if( sv.state != ss_dead )
+		{
+			mapname = sv.name;
+		}
+		else
+		{
+			Msg( "Usage: entpatch <mapname>\n" );
+			return;
+		}
+	}
+	else mapname = Cmd_Argv( 2 );
+
+	SV_WriteEntityPatch( mapname );
+}
+
+/*
 ================
 SV_Status_f
 ================
@@ -659,6 +685,7 @@ void SV_InitOperatorCommands( void )
 	Cmd_AddCommand( "changelevel", SV_ChangeLevel_f, "changing level" );
 	Cmd_AddCommand( "restart", SV_Restart_f, "restarting current level" );
 	Cmd_AddCommand( "reload", SV_Reload_f, "continue from latest save or restart level" );
+	Cmd_AddCommand( "entpatch", SV_EntPatch_f, "write entity patch to allow external editing" );
 
 	if( host.type == HOST_DEDICATED )
 	{
@@ -691,7 +718,7 @@ void SV_KillOperatorCommands( void )
 	Cmd_RemoveCommand( "changelevel" );
 	Cmd_RemoveCommand( "restart" );
 	Cmd_RemoveCommand( "reload" );
-	Cmd_RemoveCommand( "sectorlist" );
+	Cmd_RemoveCommand( "entpatch" );
 
 	if( host.type == HOST_DEDICATED )
 	{

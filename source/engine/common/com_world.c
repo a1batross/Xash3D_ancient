@@ -122,7 +122,7 @@ uint World_MaskForEdict( const edict_t *e )
 		else if( e->v.flags & ( FL_CLIENT|FL_FAKECLIENT ))
 		{
 			if( e->v.health > 0.0f )
-				return MASK_PLAYERSOLID;
+				return (MASK_PLAYERSOLID|BASECONT_LADDER);	// FIXME
 			return MASK_DEADSOLID;
 		}
 		else if( e->v.solid == SOLID_TRIGGER )
