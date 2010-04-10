@@ -240,7 +240,7 @@ void SV_Map_f( void )
 	sv.loadgame = false; // set right state
 	SV_ClearSaveDir ();	// delete all temporary *.hl files
 
-	if( svs.initialized ) SV_InitGame ();	// clear old state
+	SV_DeactivateServer();
 	SV_SpawnServer( mapname, NULL );
 	SV_LevelInit( mapname, NULL, NULL, false );
 	SV_ActivateServer ();

@@ -595,9 +595,9 @@ DBG_AssertFunction(
 		return;
 	char szOut[512];
 	if (szMessage != NULL)
-		sprintf(szOut, "ASSERT FAILED:\n %s \n(%s@%d)\n%s", szExpr, szFile, szLine, szMessage);
+		sprintf(szOut, "ASSERT FAILED:\n %s \n(%s@%d)\n%s\n", szExpr, szFile, szLine, szMessage);
 	else
-		sprintf(szOut, "ASSERT FAILED:\n %s \n(%s@%d)", szExpr, szFile, szLine);
+		sprintf(szOut, "ASSERT FAILED:\n %s \n(%s@%d)\n", szExpr, szFile, szLine);
 	ALERT(at_debug, szOut);
 	}
 #endif	// DEBUG
@@ -1233,6 +1233,11 @@ void UTIL_ScreenShake( const Vector &center, float amplitude, float frequency, f
 {
 	int		i;
 	float		localAmplitude;
+	ScreenShake	shake;
+
+	shake.command = (unsigned short)eCommand;
+	shake.duration = FixedUnsigned16( duration, 1<<12 );	// 4.12 fixed
+	shake.frequency = FixedUnsigned16( frequency, 1<<8 );	// 8.8 fixed
 
 	for( i = 1; i <= gpGlobals->maxClients; i++ )
 	{
@@ -1256,11 +1261,13 @@ void UTIL_ScreenShake( const Vector &center, float amplitude, float frequency, f
 		{
 			if ( eCommand == SHAKE_STOP ) localAmplitude = 0;
 
+			shake.amplitude = FixedUnsigned16( localAmplitude, 1<<12 );	// 4.12 fixed
+
 			MESSAGE_BEGIN( MSG_ONE, gmsgShake, NULL, pPlayer->edict() );
-				WRITE_BYTE( eCommand );	// shake command (SHAKE_START, STOP, FREQUENCY, AMPLITUDE)
-				WRITE_FLOAT( localAmplitude );// shake magnitude/amplitude
-				WRITE_FLOAT( frequency );	// shake noise frequency
-				WRITE_FLOAT( duration );	// shake lasts this long
+				WRITE_SHORT( shake.command );		// shake command (SHAKE_START, STOP, FREQUENCY, AMPLITUDE)
+				WRITE_SHORT( shake.amplitude );	// shake magnitude/amplitude
+				WRITE_SHORT( shake.duration );	// shake lasts this long
+				WRITE_SHORT( shake.frequency );	// shake noise frequency
 			MESSAGE_END();
 		}
 	}
@@ -1296,9 +1303,9 @@ void UTIL_ScreenFadeWrite( const ScreenFade &fade, CBaseEntity *pEntity )
 
 	MESSAGE_BEGIN( MSG_ONE, gmsgFade, NULL, pEntity->edict() );		// use the magic #1 for "one client"
 		
-		WRITE_FLOAT( fade.duration );		// fade lasts this long
-		WRITE_FLOAT( fade.holdTime );		// fade lasts this long
-		WRITE_BYTE( fade.fadeFlags );		// fade type (in / out)
+		WRITE_SHORT( fade.duration );		// fade lasts this long
+		WRITE_SHORT( fade.holdTime );		// fade lasts this long
+		WRITE_SHORT( fade.fadeFlags );	// fade type (in / out)
 		WRITE_BYTE( fade.r );		// fade red
 		WRITE_BYTE( fade.g );		// fade green
 		WRITE_BYTE( fade.b );		// fade blue
@@ -2571,7 +2578,7 @@ unsigned short CSaveRestoreBuffer :: TokenHash( const char *pszToken )
 	for ( int i=0; i<m_pdata->tokenCount; i++ )
 	{
 #if _DEBUG
-		static qboolean beentheredonethat = FALSE;
+		static BOOL beentheredonethat = FALSE;
 		if ( i > 50 && !beentheredonethat )
 		{
 			beentheredonethat = TRUE;

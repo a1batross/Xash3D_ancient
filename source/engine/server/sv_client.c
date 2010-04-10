@@ -1385,7 +1385,6 @@ static void SV_ReadClientMove( sv_client_t *cl, sizebuf_t *msg )
 	int	checksum1, checksum2;
 	int	key, lastframe, net_drop;
 	usercmd_t	oldest, oldcmd, newcmd, nulcmd;
-	bool	paused;
 
 	key = msg->readcount;
 	checksum1 = MSG_ReadByte( msg );
@@ -1422,10 +1421,7 @@ static void SV_ReadClientMove( sv_client_t *cl, sizebuf_t *msg )
 		return;
 	}
 
-	// get client pause
-	paused = ( sv.paused || (( sv_maxclients->integer <= 1 ) && !CL_IsInGame( )));
-
-	if( !paused )
+	if( !sv.paused )
 	{
 		SV_PreRunCmd( cl, &newcmd );	// get random_seed from newcmd
 

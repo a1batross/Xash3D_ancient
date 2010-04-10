@@ -11,29 +11,15 @@
 #define HUD_PRINTCENTER		4
 
 #define MAX_WEAPONS			32
-#define WEAPON_ALLWEAPONS	(1<<32)
-#define MAX_AMMO_SLOTS  	32
+#define WEAPON_ALLWEAPONS		(~(1<<WEAPON_SUIT))
+#define MAX_AMMO_SLOTS  		32
 #define ITEM_SUIT			BIT( 31 )
+#define WEAPON_SUIT			31
 
 #define HIDEHUD_WEAPONS		BIT( 0 )
 #define HIDEHUD_FLASHLIGHT		BIT( 1 )
 #define HIDEHUD_ALL			BIT( 2 )
 #define HIDEHUD_HEALTH		BIT( 3 )
-
-enum ShakeCommand_t
-{
-	SHAKE_START = 0,	// Starts the screen shake for all players within the radius.
-	SHAKE_STOP,	// Stops the screen shake for all players within the radius.
-	SHAKE_AMPLITUDE,	// Modifies the amplitude of an active screen shake for all players within the radius.
-	SHAKE_FREQUENCY,	// Modifies the frequency of an active screen shake for all players within the radius.
-};
-
-#define FFADE_IN		0x0001 // Fade in (not out)
-#define FFADE_OUT		0x0002 // Fade out (not in)
-#define FFADE_MODULATE	0x0004 // Modulate (don't blend)
-#define FFADE_STAYOUT	0x0008 // ignores the duration, stays faded out until new ScreenFade message received
-#define FFADE_CUSTOMVIEW	0x0010 // fading only at custom viewing (don't sending this to engine )
-#define FFADE_PURGE		0x0020 // Purges all other fades, replacing them with this one
 
 // camera flags
 #define CAMERA_ON		1

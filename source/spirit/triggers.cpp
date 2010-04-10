@@ -583,10 +583,10 @@ void CMultiManager :: KeyValue( KeyValueData *pkvd )
 void CMultiManager :: Spawn( void )
 {
 	// LRC
-	if( m_cTargets > MAX_MULTI_TARGETS )
+	if( m_cTargets >= MAX_MULTI_TARGETS )
 	{
 		ALERT(at_warning, "multi_manager \"%s\" has too many targets (limit is %d, it has %d)\n", STRING( pev->targetname ), MAX_MULTI_TARGETS, m_cTargets );
-		m_cTargets = MAX_MULTI_TARGETS;
+		m_cTargets = MAX_MULTI_TARGETS - 1;
 	}
 
 	// check for invalid multi_managers

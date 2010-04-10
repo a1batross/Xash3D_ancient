@@ -434,9 +434,9 @@ int CHud :: MsgFunc_ScreenFade( const char *pszName, int iSize, void *pbuf )
 {
 	BEGIN_READ( pszName, iSize, pbuf );	
 
-	float fadeTime = READ_FLOAT();
-	float holdTime = READ_FLOAT();
-	int fadeFlags = READ_BYTE();
+	float fadeTime = (float)(unsigned short)READ_SHORT() * (1.0f / (float)(1<<12));
+	float holdTime = (float)(unsigned short)READ_SHORT() * (1.0f / (float)(1<<12));
+	int fadeFlags = READ_SHORT();
 
 	Vector m_FadeColor;
 	
@@ -457,10 +457,10 @@ int CHud::MsgFunc_ScreenShake( const char *pszName, int iSize, void *pbuf )
 {
 	BEGIN_READ( pszName, iSize, pbuf );
 
-	ShakeCommand_t eCommand = (ShakeCommand_t)READ_BYTE();
-	float amplitude = READ_FLOAT();
-	float frequency = READ_FLOAT();
-	float duration = READ_FLOAT();
+	ShakeCommand_t eCommand = (ShakeCommand_t)READ_SHORT();
+	float amplitude = (float)(unsigned short)READ_SHORT() * (1.0f / (float)(1<<12));
+	float duration = (float)(unsigned short)READ_SHORT() * (1.0f / (float)(1<<12));
+	float frequency = (float)(unsigned short)READ_SHORT() * (1.0f / (float)(1<<8));
 
 	if( eCommand == SHAKE_STOP )
 	{

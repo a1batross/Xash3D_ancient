@@ -164,7 +164,7 @@ int CM_PointContents( const vec3_t p, model_t model )
 	if( leaf->area == -1 )
 	{
 		// p is in the void and we should return solid so particles can be removed from the void
-		return CONTENTS_SOLID;
+		return BASECONT_SOLID;
 	}
 
 	contents = 0;

@@ -566,7 +566,7 @@ void SV_BaselineForEntity( const edict_t *pEdict )
 
 		base = &sv_ent->s;
 
-		if( pEdict->v.modelindex || pEdict->v.effects )
+		if( pEdict->v.modelindex || base->soundindex || pEdict->v.effects )
 		{
 			// take current state as baseline
 			SV_UpdateEntityState( pEdict, true );
@@ -617,9 +617,9 @@ void SV_ClassifyEdict( edict_t *ent, int m_iNewClass )
 
 	if( sv_ent->s.ed_type != ED_SPAWNED )
 	{
-		// or leave unclassified, wait for next SV_LinkEdict...
-		// Msg( "AutoClass: %s: <%s>\n", STRING( ent->v.classname ), ed_name[sv_ent->s.ed_type] );
+		MsgDev( D_NOTE, "AutoClass: %s: <%s>\n", STRING( ent->v.classname ), ed_name[sv_ent->s.ed_type] );
 	}
+	// else leave unclassified, wait for next SV_LinkEdict...
 }
 
 void SV_SetClientMaxspeed( sv_client_t *cl, float fNewMaxspeed )
@@ -923,7 +923,7 @@ edict_t* pfnFindEntityByString( edict_t *pStartEdict, const char *pszField, cons
 	if( desc == NULL )
 	{
 		MsgDev( D_ERROR, "SV_FindEntityByString: field %s not found\n", pszField );
-		return pStartEdict;
+		return NULL;
 	}
 
 	for( e++; e < svgame.globals->numEntities; e++ )
@@ -1287,9 +1287,9 @@ int pfnDropToFloor( edict_t* e )
 		return false;
 	}
 
+	SV_UnstickEntity( e );
 	VectorCopy( e->v.origin, end );
 	end[2] -= 256;
-	SV_UnstickEntity( e );
 
 	trace = SV_Move( e->v.origin, e->v.mins, e->v.maxs, end, MOVE_NORMAL, e );
 
@@ -1309,7 +1309,7 @@ int pfnDropToFloor( edict_t* e )
 			SV_LinkEdict( e, true );
 			e->v.flags |= FL_ONGROUND;
 			e->v.groundentity = NULL;
-			return true;
+			return 1;
 		}
 		else if( trace.flFraction < 1.0f )
 		{
@@ -1319,27 +1319,28 @@ int pfnDropToFloor( edict_t* e )
 			SV_LinkEdict( e, true );
 			e->v.flags |= FL_ONGROUND;
 			e->v.groundentity = trace.pHit;
-			return true;
+			return 1;
 		}
 		else
 		{
 			MsgDev( D_ERROR, "SV_DropToFloor: allsolid at %g %g %g\n", e->v.origin[0], e->v.origin[1], e->v.origin[2] );
 		}
-		return false;
+		return 0;
 	}
 	else
 	{
-		if( trace.flFraction != 1.0f )
-		{
-			if( trace.flFraction < 1.0f )
-				VectorCopy( trace.vecEndPos, e->v.origin );
-			SV_LinkEdict( e, true );
-			e->v.flags |= FL_ONGROUND;
-			e->v.groundentity = trace.pHit;
-			return true;
-		}
+		if( trace.fAllSolid )
+			return -1;
+
+		if( trace.flFraction == 1.0f )
+			return 0;
+
+		VectorCopy( trace.vecEndPos, e->v.origin );
+		SV_LinkEdict( e, true );
+		e->v.flags |= FL_ONGROUND;
+		e->v.groundentity = trace.pHit;
+		return 1;
 	}
-	return false;
 }
 
 /*
@@ -2716,7 +2717,7 @@ void pfnSetClientMaxspeed( const edict_t *pEdict, float fNewMaxspeed )
 	cl = SV_ClientFromEdict( pEdict, false ); // connected clients allowed
 	if( !cl )
 	{
-		MsgDev( D_ERROR, "SV_SetClientMaxspeed: client is not spawned!\n" );
+		MsgDev( D_ERROR, "SV_SetClientMaxspeed: client is not active!\n" );
 		return;
 	}
 
@@ -3408,7 +3409,7 @@ static enginefuncs_t gEngfuncs =
 	pfnFreeFile,
 	pfnEndGame,
 	pfnCompareFileTime,
-	pfnRemoveFile,
+	pfnGetGameDir,
 	pfnClassifyEdict,
 	pfnFadeClientVolume,
 	pfnSetClientMaxspeed,
@@ -3654,6 +3655,7 @@ void SV_SpawnEntities( const char *mapname, script_t *entities )
 
 	// spawn the rest of the entities on the map
 	SV_LoadFromFile( entities );
+	if( !pe ) Com_CloseScript( entities );
 
 	MsgDev( D_NOTE, "Total %i entities spawned\n", svgame.globals->numEntities );
 }

@@ -305,7 +305,6 @@ void SV_CheckTimeouts( void )
 
 	// calc sv.frametime
 	sv.frametime = ( 1000 / sv_fps->integer );
-	svgame.globals->realtime = svs.realtime;
 
 	droppoint = svs.realtime - (timeout->value * 1000);
 	zombiepoint = svs.realtime - (zombietime->value * 1000);

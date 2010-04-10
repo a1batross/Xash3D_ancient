@@ -1119,11 +1119,24 @@ void R_StudioSetUpTransform( ref_entity_t *e, bool trivial_accept )
 
 		if( m_pGroundEntity && m_pGroundEntity->v.movetype == MOVETYPE_PUSH && !VectorIsNull( m_pGroundEntity->v.velocity ))
 		{
+			dstudioseqdesc_t		*pseqdesc;
+		
+			pseqdesc = (dstudioseqdesc_t *)((byte *)m_pStudioHeader + m_pStudioHeader->seqindex) + e->lerp->curstate.sequence;
 			d = RI.lerpFrac;
 
 			origin[0] += ( e->origin[0] - m_pEntity->v.oldorigin[0] ) * d;
 			origin[1] += ( e->origin[1] - m_pEntity->v.oldorigin[1] ) * d;
 			origin[2] += ( e->origin[2] - m_pEntity->v.oldorigin[2] ) * d;
+
+			d = f - d;
+
+			// monster walking on moving platform
+			if( pseqdesc->motiontype & STUDIO_LX )
+			{
+				origin[0] += ( e->lerp->curstate.origin[0] - e->lerp->latched.origin[0] ) * d;
+				origin[1] += ( e->lerp->curstate.origin[1] - e->lerp->latched.origin[1] ) * d;
+				origin[2] += ( e->lerp->curstate.origin[2] - e->lerp->latched.origin[2] ) * d;
+			}
 		}
 		else
 		{

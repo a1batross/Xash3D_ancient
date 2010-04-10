@@ -141,6 +141,7 @@ TYPEDESCRIPTION	CBasePlayer::m_playerSaveData[] =
 	DEFINE_FIELD( CBasePlayer, m_flFadeTime, FIELD_TIME ),
           
           DEFINE_FIELD( CBasePlayer, m_flStartTime, FIELD_TIME ),
+          DEFINE_FIELD( CBasePlayer, m_flNextNuclearDamage, FIELD_TIME ),
 	
 	DEFINE_FIELD( CBasePlayer, Rain_dripsPerSecond, FIELD_INTEGER ),
 	DEFINE_FIELD( CBasePlayer, Rain_windX, FIELD_FLOAT ),
@@ -402,13 +403,15 @@ void CBasePlayer :: TraceAttack( entvars_t *pevAttacker, float flDamage, Vector 
 			break;
 		}
 
-		if( bitsDamageType & DMG_NUCLEAR && !fadeNeedsUpdate )
+		if( bitsDamageType & DMG_NUCLEAR && m_flNextNuclearDamage < gpGlobals->time )
 		{
 			m_FadeColor = Vector( 255, 255, 255 );
 			m_FadeAlpha = 240;			
 			m_iFadeFlags = FFADE_IN|FFADE_MODULATE;
 			m_flFadeTime = 25.0f;
+			m_flFadeHold = 0.0f;
 			fadeNeedsUpdate = TRUE;
+			m_flNextNuclearDamage = gpGlobals->time + 1.0f;
 		}
 		else SpawnBlood(ptr->vecEndPos, BloodColor(), flDamage);// a little surface blood.
 		TraceBleed( flDamage, vecDir, ptr, bitsDamageType );
@@ -911,7 +914,7 @@ void CBasePlayer::Killed( entvars_t *pevAttacker, int iGib )
 	m_FadeAlpha = 254;			
 	m_iFadeFlags = FFADE_OUT|FFADE_MODULATE;
 	m_flFadeTime = 6.0f;
-	m_flFadeHold = 999999.0f;
+	m_flFadeHold = 9999.0f;
 	fadeNeedsUpdate = TRUE;
 
 	// death sound fading
@@ -2752,6 +2755,7 @@ void CBasePlayer::Spawn( void )
 	//m_iAcessLevel = 2;
 
 	m_flNextDecalTime = 0;	// let this player decal as soon as he spawns.
+	m_flNextNuclearDamage = 0;
 
 	m_flgeigerDelay = gpGlobals->time + 2.0;	// wait a few seconds until user-defined message registrations
 												// are recieved by all clients
@@ -3896,9 +3900,9 @@ void CBasePlayer :: UpdateClientData( void )
 	{
 		// update screenfade
 		MESSAGE_BEGIN( MSG_ONE, gmsg.Fade, NULL, pev );
-			WRITE_FLOAT( m_flFadeTime );  
-			WRITE_FLOAT( m_flFadeHold );
-			WRITE_BYTE( m_iFadeFlags );		// fade flags
+			WRITE_SHORT( FixedUnsigned16( m_flFadeTime, 1<<12 ));  
+			WRITE_SHORT( FixedUnsigned16( m_flFadeHold, 1<<12 ));
+			WRITE_SHORT( m_iFadeFlags );		// fade flags
 			WRITE_BYTE( (byte)m_FadeColor.x );	// fade red
 			WRITE_BYTE( (byte)m_FadeColor.y );	// fade green
 			WRITE_BYTE( (byte)m_FadeColor.z );	// fade blue

@@ -72,7 +72,7 @@ static DLL_FUNCTIONS gFunctionTable =
 	BuildLevelList,		// pfnParmsChangeLevel
 
 	GetGameDescription,		// pfnGetGameDescription    Returns string describing current .dll game.
-	GetEntvarsDescirption,	// pfnGetEntvarsDescirption   Notifies .dll of new customization for player.
+	GetEntvarsDescirption,	// pfnGetEntvarsDescirption   engine uses this to lookup entvars table
 
 	SpectatorConnect,		// pfnSpectatorConnect      Called when spectator joins server
 	SpectatorDisconnect,	// pfnSpectatorDisconnect   Called when spectator leaves the server
@@ -181,7 +181,7 @@ int DispatchCreate( edict_t *pent, const char *szName )
 {
 	if( FNullEnt( pent ) || !szName || !*szName )
 		return -1;
-
+#if 0
 	int istr = ALLOC_STRING( szName );
 
 	// Xash3D extension
@@ -193,6 +193,7 @@ int DispatchCreate( edict_t *pent, const char *szName )
 		pWeapon->pev->netname = istr; 
 		return 0;
 	}
+#endif
 	return -1;
 }
 
@@ -304,6 +305,9 @@ void DispatchSave( edict_t *pent, SAVERESTOREDATA *pSaveData )
 			pEntity->m_fPevNextThink = pEntity->pev->nextthink;
 			pEntity->m_fNextThink += delta;
 		}
+
+		if( gpGlobals->changelevel )
+			pEntity->ClearPointers();
 
 		pTable->location = pSaveData->size;		// Remember entity position for file I/O
 		pTable->classname = pEntity->pev->classname;	// Remember entity class for respawn
@@ -548,10 +552,15 @@ void CBaseEntity::Activate( void )
 		UTIL_AddToAliasList((CBaseAlias*)this);
 	}
 
+	if( gpGlobals->changelevel )
+		m_activated = FALSE;
+
 	if (m_activated) return;
 	m_activated = TRUE;
 	InitMoveWith();
-	PostSpawn();
+
+	if( !gpGlobals->changelevel )
+		PostSpawn();
 }
 
 //LRC- called by activate() to support movewith
@@ -763,6 +772,7 @@ void CBaseEntity :: ResetParent( void )
 
 void CBaseEntity :: ClearPointers( void )
 {
+	m_pMoveWith = NULL;
 	m_pChildMoveWith = NULL;
 	m_pSiblingMoveWith = NULL;
 	m_pAssistLink = NULL;

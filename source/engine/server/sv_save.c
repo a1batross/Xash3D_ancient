@@ -345,6 +345,7 @@ void LandmarkOrigin( SAVERESTOREDATA *pSaveData, vec3_t output, const char *pLan
 int EntityInSolid( edict_t *ent )
 {
 	edict_t	*pParent = ent->v.aiment;
+	vec3_t	point;
 
 	// HACKHACK -- If you're attached to a client, always go through
 	if( SV_IsValidEdict( pParent ))
@@ -352,8 +353,12 @@ int EntityInSolid( edict_t *ent )
 		if( pParent->v.flags & FL_CLIENT )
 			return 0;
 	}
-
+	VectorAverage( ent->v.absmin, ent->v.absmax, point );
+#if 1
+	return (SV_PointContents( point ) == CONTENTS_SOLID);
+#else
 	return SV_TestEntityPosition( ent, vec3_origin );
+#endif
 }
 
 void SV_ClearSaveDir( void )
@@ -1262,6 +1267,9 @@ void SV_ChangeLevel( bool loadfromsavedgame, const char *mapname, const char *st
 
 	if( loadfromsavedgame )
 	{
+		// smooth transition in-progress
+		svgame.globals->changelevel = true;
+
 		// save the current level's state
 		pSaveData = SV_SaveGameState();
 		sv.loadgame = true;
@@ -1278,6 +1286,7 @@ void SV_ChangeLevel( bool loadfromsavedgame, const char *mapname, const char *st
 		// Finish saving gamestate
 		SV_SaveFinish( pSaveData );
 
+		svgame.globals->changelevel = true;
 		svgame.globals->time = (sv.time * 0.001f);
 		SV_LevelInit( level, oldlevel, startspot, true );
 		sv.paused = true; // pause until all clients connect

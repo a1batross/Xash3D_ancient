@@ -619,26 +619,10 @@ extern DLL_GLOBAL int			g_Language;
 // sentence groups
 #define CBSENTENCENAME_MAX 16
 #define CVOXFILESENTENCEMAX		1536		// max number of sentences in game. NOTE: this must match
+						// CVOXFILESENTENCEMAX in engine\sound.h!!!
 
-static unsigned short FixedUnsigned16( float value, float scale )
-{
-	int output;
-
-	output = value * scale;
-	if ( output < 0 ) output = 0;
-	if ( output > 0xFFFF ) output = 0xFFFF;
-	return (unsigned short)output;
-}
-
-static short FixedSigned16( float value, float scale )
-{
-	int output;
-
-	output = value * scale;
-	if ( output > 32767 ) output = 32767;
-	if ( output < -32768 ) output = -32768;
-	return (short)output;
-}										// CVOXFILESENTENCEMAX in engine\sound.h!!!
+extern unsigned short FixedUnsigned16( float value, float scale );
+extern short FixedSigned16( float value, float scale );
 
 extern char gszallsentencenames[CVOXFILESENTENCEMAX][CBSENTENCENAME_MAX];
 extern int gcallsentences;

@@ -2100,6 +2100,8 @@ void SV_Physics( void )
 	svgame.globals->frametime = sv.frametime * 0.001f;
 	svgame.dllFuncs.pfnStartFrame();
 
+//	Msg( "SV_Physics: %g, frametime %g\n", svgame.globals->time, svgame.globals->frametime );
+
 	SV_CheckAllEnts ();
 
 	// treat each object in turn

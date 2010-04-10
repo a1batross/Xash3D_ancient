@@ -34,7 +34,7 @@ typedef struct
 	float	angle;
 	Vector	appliedOffset;
 	float	appliedAngle;
-} ScreenShake;
+} CL_ScreenShake;
 
 typedef struct
 {
@@ -44,7 +44,7 @@ typedef struct
 	Vector	fadeColor;
 	float	fadeAlpha;
 	int	fadeFlags;	// Fading flags
-} ScreenFade;
+} CL_ScreenFade;
 
 typedef struct
 {
@@ -694,10 +694,10 @@ public:
 	int	m_HUD_number_0;
 
 	// screen shake handler
-	ScreenShake	m_Shake;
+	CL_ScreenShake	m_Shake;
 
 	// screen fade handler
-	ScreenFade	m_FadeList[HUD_MAX_FADES];
+	CL_ScreenFade	m_FadeList[HUD_MAX_FADES];
 
 	Vector	m_vecFadeColor;
 	float	m_flFadeAlpha;

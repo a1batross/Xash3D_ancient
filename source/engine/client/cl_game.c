@@ -2573,7 +2573,7 @@ static cl_enginefuncs_t gEngfuncs =
 	pfnFreeLibrary,
 	Host_Error,
 	pfnFileExists,
-	pfnRemoveFile,
+	pfnGetGameDir,
 	VGui_GetPanel,
 	VGui_ViewportPaintBackground,
 	pfnLoadFile,

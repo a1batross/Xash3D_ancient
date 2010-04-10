@@ -370,13 +370,24 @@ public:
 	int		IsDormant( void );
 	BOOL    IsLockedByMaster( void ) { return FALSE; }
 
-	static CBaseEntity *Instance( edict_t *pent )
-	{
+#ifdef _DEBUG
+	static CBaseEntity *Instance( edict_t *pent ) 
+	{ 
 		if ( !pent )
 			pent = ENT(0);
-		CBaseEntity *pEnt = (CBaseEntity *)GET_PRIVATE(pent);
-		return pEnt;
+		CBaseEntity *pEnt = (CBaseEntity *)GET_PRIVATE(pent); 
+		ASSERT(pEnt!=NULL); 
+		return pEnt; 
 	}
+#else
+	static CBaseEntity *Instance( edict_t *pent )
+	{ 
+		if ( !pent )
+			pent = ENT(0);
+		CBaseEntity *pEnt = (CBaseEntity *)GET_PRIVATE(pent); 
+		return pEnt; 
+	}
+#endif
 
 	static CBaseEntity *Instance( entvars_t *pev ) { return Instance( ENT( pev ) ); }
 	static CBaseEntity *Instance( int eoffset) { return Instance( ENT( eoffset) ); }

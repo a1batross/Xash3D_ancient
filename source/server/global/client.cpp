@@ -948,10 +948,13 @@ void StartFrame( void )
 		// maxspeed is modified, refresh maxspeed for each client
 		for( int i = 0; i < gpGlobals->maxClients; i++ )
 		{
-			CBaseEntity *pClient = UTIL_PlayerByIndex( i + 1 );
-			if( FNullEnt( pClient )) continue;
+			edict_t	*pClientEdict = INDEXENT( i + 1 );
 
-			g_engfuncs.pfnSetClientMaxspeed( pClient->edict(), sv_maxspeed->value );
+			if( pClientEdict == NULL || pClientEdict->free )
+				continue;
+
+			// can update even if client it's not active
+			g_engfuncs.pfnSetClientMaxspeed( pClientEdict, sv_maxspeed->value );
 		}
 
 		sprintf( msg, "sv_maxspeed is changed to %g\n", sv_maxspeed->value );
@@ -1076,7 +1079,9 @@ int AutoClassify( edict_t *pentToClassify )
 
 int ServerClassifyEdict( edict_t *pentToClassify )
 {
-	if( FNullEnt( pentToClassify ))
+	// NOTE: we can't use FNullEnt here to handle 'worldspawn' properly
+	// but must skip clients because they not spawned at this point
+	if( !pentToClassify || pentToClassify->free || !pentToClassify->pvPrivateData )
 		return ED_SPAWNED;
 
 	CBaseEntity *pClass;
@@ -1645,8 +1650,8 @@ void LinkUserMessages( void )
 	gmsg.HideWeapon = REG_USER_MSG( "HideWeapon", 1 );
 	gmsg.WeaponAnim = REG_USER_MSG( "WeaponAnim", 3 );
 	gmsg.ShowMenu = REG_USER_MSG( "ShowMenu", -1 );
-	gmsg.Shake = REG_USER_MSG( "ScreenShake", 13 );
-	gmsg.Fade = REG_USER_MSG( "ScreenFade", 13 );
+	gmsg.Shake = REG_USER_MSG( "ScreenShake", sizeof( ScreenShake ));
+	gmsg.Fade = REG_USER_MSG( "ScreenFade", sizeof( ScreenFade ));
 	gmsg.AmmoX = REG_USER_MSG( "AmmoX", 2 );
 	gmsg.TeamNames = REG_USER_MSG( "TeamNames", -1 );
 	gmsg.StatusText = REG_USER_MSG( "StatusText", -1 );

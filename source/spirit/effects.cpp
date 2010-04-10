@@ -663,7 +663,7 @@ void CLightning::StrikeUse( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_T
 
 int IsPointEntity( CBaseEntity *pEnt )
 {
-	if (pEnt->pev->modelindex && !(pEnt->pev->flags & FL_CUSTOMENTITY)) //LRC- follow (almost) any entity that has a model
+	if( pEnt->pev->modelindex && ( pEnt->m_iClassType != ED_BEAM ))
 		return 0;
 	else
 		return 1;

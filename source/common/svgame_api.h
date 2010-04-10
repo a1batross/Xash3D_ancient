@@ -42,7 +42,7 @@ typedef struct globalvars_s
 	int		trace_hitgroup;
 	int		trace_flags;
 
-	int		realtime;		// server system time (not clamped)
+	int		changelevel;	// transition in progress when true
 	int		numEntities;	// actual ents count (was cdAudioTrack)
 	int		maxClients;
 	int		maxEntities;
@@ -158,7 +158,7 @@ typedef struct enginefuncs_s
 	void	(*pfnFreeFile)( void *buffer );
 	void	(*pfnEndGame)( const char *engine_command );		// was pfnEndSection
 	int	(*pfnCompareFileTime)( const char *filename1, const char *filename2, int *iCompare );
-	void	(*pfnRemoveFile)( const char *szFilename );
+	void	(*pfnGetGameDir)( char *szGetGameDir );
 	void	(*pfnClassifyEdict)( edict_t *pEdict, int ed_type );	// was pfnCvar_RegisterVariable
 	void	(*pfnFadeClientVolume)( const edict_t *pEdict, float fadePercent, float fadeOutSeconds, float holdTime, float fadeInSeconds );
 	void	(*pfnSetClientMaxspeed)( const edict_t *pEdict, float fNewMaxspeed );

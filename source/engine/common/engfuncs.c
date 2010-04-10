@@ -486,12 +486,12 @@ void pfnFreeLibrary( void *hInstance )
 
 /*
 =============
-pfnRemoveFile
+pfnGetGameDir
 
 =============
 */
-void pfnRemoveFile( const char *szFilename )
+void pfnGetGameDir( char *szGetGameDir )
 {
-	if( !szFilename || !*szFilename ) return;
-	FS_Delete( szFilename );
+	if( !szGetGameDir ) return;
+	com.strcpy( szGetGameDir, GI->gamedir );
 }

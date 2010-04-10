@@ -375,7 +375,7 @@ void ClientCommand( edict_t *pEntity )
 
 	entvars_t *pev = &pEntity->v;
 
-	if( FStrEq( pcmd, "noclip" ))
+	if ( FStrEq( pcmd, "noclip" ))
 	{
 		if( pEntity->v.movetype == MOVETYPE_WALK )
 		{
@@ -388,7 +388,7 @@ void ClientCommand( edict_t *pEntity )
 			ClientPrint( &pEntity->v, HUD_PRINTCONSOLE, "noclip off\n" );
 		}
 	}
-	else if( FStrEq( pcmd, "god" ))
+	else if ( FStrEq( pcmd, "god" ))
 	{
 		pEntity->v.flags = pEntity->v.flags ^ FL_GODMODE;
 
@@ -396,7 +396,7 @@ void ClientCommand( edict_t *pEntity )
 			ClientPrint( &pEntity->v, HUD_PRINTCONSOLE, "godmode OFF\n" );
 		else ClientPrint( &pEntity->v, HUD_PRINTCONSOLE, "godmode ON\n" );
 	}
-	else if( FStrEq( pcmd, "fly" ))
+	else if ( FStrEq( pcmd, "fly" ))
 	{
 		if ( pEntity->v.movetype == MOVETYPE_FLY )
 		{
@@ -749,10 +749,13 @@ void StartFrame( void )
 		// maxspeed is modified, refresh maxspeed for each client
 		for( int i = 0; i < gpGlobals->maxClients; i++ )
 		{
-			CBaseEntity *pClient = UTIL_PlayerByIndex( i + 1 );
-			if( FNullEnt( pClient )) continue;
+			edict_t	*pClientEdict = INDEXENT( i + 1 );
 
-			g_engfuncs.pfnSetClientMaxspeed( pClient->edict(), g_psv_maxspeed->value );
+			if( pClientEdict == NULL || pClientEdict->free )
+				continue;
+
+			// can update even if client it's not active
+			g_engfuncs.pfnSetClientMaxspeed( pClientEdict, g_psv_maxspeed->value );
 		}
 
 		sprintf( msg, "sv_maxspeed is changed to %g\n", g_psv_maxspeed->value );
@@ -1044,7 +1047,9 @@ int AutoClassify( edict_t *pentToClassify )
 
 int ServerClassifyEdict( edict_t *pentToClassify )
 {
-	if( FNullEnt( pentToClassify ))
+	// NOTE: we can't use FNullEnt here to handle 'worldspawn' properly
+	// but must skip clients because they not spawned at this point
+	if( !pentToClassify || pentToClassify->free || !pentToClassify->pvPrivateData )
 		return ED_SPAWNED;
 
 	CBaseEntity *pClass;

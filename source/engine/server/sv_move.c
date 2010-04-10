@@ -653,6 +653,9 @@ void SV_RunCmd( sv_client_t *cl, usercmd_t *ucmd )
 			VectorCopy( clent->v.basevelocity, clent->v.clbasevelocity );
 	}
 
+	if(( sv_maxclients->integer <= 1 ) && !CL_IsInGame( ))
+		ucmd->msec = 0; // pause
+
 	// setup playermove state
 	PM_SetupMove( svgame.pmove, clent, ucmd, cl->physinfo );
 

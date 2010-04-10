@@ -277,6 +277,9 @@ void DispatchSave( edict_t *pent, SAVERESTOREDATA *pSaveData )
 			pEntity->m_fNextThink += delta;
 		}
 
+		if( gpGlobals->changelevel )
+			pEntity->ClearPointers();
+
 		pTable->location = pSaveData->size;		// Remember entity position for file I/O
 		pTable->classname = pEntity->pev->classname;	// Remember entity class for respawn
 

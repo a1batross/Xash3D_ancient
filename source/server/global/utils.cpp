@@ -615,26 +615,6 @@ edict_t *UTIL_FindClientTransitions( edict_t *pClient )
 	}
 	return chain;
 }
-
-//========================================================================
-//	UTIL_ClearPTR - clear all pointers before changelevel
-//========================================================================
-void UTIL_ClearPTR( void )
-{
-	CBaseEntity *pEntity = NULL;
-	
-	for( int i = 1; i < gpGlobals->numEntities; i++ )
-	{
-		edict_t *pEntityEdict = INDEXENT( i );
-		if( pEntityEdict && !pEntityEdict->free && !FStringNull( pEntityEdict->v.globalname ))
-		{
-			pEntity = CBaseEntity::Instance( pEntityEdict );
-		}
-		if (!pEntity) continue;
-		else pEntity->ClearPointers();
-	}
-}
-
 //========================================================================
 //	UTIL_ChangeLevel - used for loading next level
 //========================================================================
@@ -677,7 +657,6 @@ void UTIL_ChangeLevel( const char *szNextMap, const char *szNextSpot )
 	// map must exist and contain info_player_start
 	if( IS_MAP_VALID( st_szNextMap ))
 	{
-		UTIL_ClearPTR();
 		ALERT( at_aiconsole, "CHANGE LEVEL: %s %s\n", st_szNextMap, st_szNextSpot );
 		CHANGE_LEVEL( st_szNextMap, st_szNextSpot );
 	}
@@ -1626,8 +1605,8 @@ void DBG_AssertFunction( BOOL fExpr, const char* szExpr, const char* szFile, int
 
 	char szOut[512];
 	if( szMessage != NULL )
-		sprintf( szOut, "ASSERT FAILED:\n %s \n(%s@%d)\n%s", szExpr, szFile, szLine, szMessage );
-	else sprintf( szOut, "ASSERT FAILED:\n %s \n(%s@%d)", szExpr, szFile, szLine );
+		sprintf( szOut, "ASSERT FAILED:\n %s \n(%s@%d)\n%s\n", szExpr, szFile, szLine, szMessage );
+	else sprintf( szOut, "ASSERT FAILED:\n %s \n(%s@%d)\n", szExpr, szFile, szLine );
 	HOST_ERROR( szOut );
 }
 #endif	// DEBUG
@@ -2029,6 +2008,34 @@ void UTIL_EmitAmbientSound( edict_t *entity, const Vector &vecOrigin, const char
 		EMIT_AMBIENT_SOUND(entity, rgfl, samp, vol, attenuation, fFlags, pitch);
 }
 
+unsigned short FixedUnsigned16( float value, float scale )
+{
+	int output;
+
+	output = value * scale;
+	if ( output < 0 )
+		output = 0;
+	if ( output > 0xFFFF )
+		output = 0xFFFF;
+
+	return (unsigned short)output;
+}
+
+short FixedSigned16( float value, float scale )
+{
+	int output;
+
+	output = value * scale;
+
+	if ( output > 32767 )
+		output = 32767;
+
+	if ( output < -32768 )
+		output = -32768;
+
+	return (short)output;
+}
+
 // Shake the screen of all clients within radius
 // radius == 0, shake all clients
 // UNDONE: Allow caller to shake clients not ONGROUND?
@@ -2061,7 +2068,12 @@ void UTIL_ScreenShake( const Vector &center, float amplitude, float frequency, f
 {
 	int		i;
 	float		localAmplitude;
+	ScreenShake	shake;
 
+	shake.command = (unsigned short)eCommand;
+	shake.duration = FixedUnsigned16( duration, 1<<12 );	// 4.12 fixed
+	shake.frequency = FixedUnsigned16( frequency, 1<<8 );	// 8.8 fixed
+	
 	for( i = 1; i <= gpGlobals->maxClients; i++ )
 	{
 		CBaseEntity *pPlayer = UTIL_PlayerByIndex( i );
@@ -2084,11 +2096,13 @@ void UTIL_ScreenShake( const Vector &center, float amplitude, float frequency, f
 		{
 			if ( eCommand == SHAKE_STOP ) localAmplitude = 0;
 
+			shake.amplitude = FixedUnsigned16( localAmplitude, 1<<12 );	// 4.12 fixed
+
 			MESSAGE_BEGIN( MSG_ONE, gmsg.Shake, NULL, pPlayer->edict() );
-				WRITE_BYTE( eCommand );	// shake command (SHAKE_START, STOP, FREQUENCY, AMPLITUDE)
-				WRITE_FLOAT( localAmplitude );// shake magnitude/amplitude
-				WRITE_FLOAT( frequency );	// shake noise frequency
-				WRITE_FLOAT( duration );	// shake lasts this long
+				WRITE_SHORT( shake.command );		// shake command (SHAKE_START, STOP, FREQUENCY, AMPLITUDE)
+				WRITE_SHORT( shake.amplitude );	// shake magnitude/amplitude
+				WRITE_SHORT( shake.duration );	// shake lasts this long
+				WRITE_SHORT( shake.frequency );	// shake noise frequency
 			MESSAGE_END();
 		}
 	}

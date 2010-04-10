@@ -187,6 +187,10 @@ int CM_PointContents( const vec3_t p, model_t model )
 		leaf = &cm.leafs[CM_PointLeafnum( p )];
 		superContents = leaf->contents;
 
+		// TEST: across transition check
+		if( !leaf->area && leaf->cluster == -1 )
+			return BASECONT_SOLID;
+
 		markbrush = leaf->markbrushes;
 		nummarkbrushes = leaf->nummarkbrushes;
 

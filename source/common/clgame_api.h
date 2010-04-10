@@ -216,7 +216,7 @@ typedef struct cl_enginefuncs_s
 	void	(*pfnFreeLibrary)( void *hInstance );			// was Key_LookupBinding
 	void	(*pfnHostError)( const char *szFmt, ... );		// was pfnGetLevelName
 	int	(*pfnFileExists)( const char *filename );		// was pfnGetScreenFade
-	void	(*pfnRemoveFile)( const char *szFilename );		// was pfnSetScreenFade
+	void	(*pfnGetGameDir)( char *szGetGameDir );			// was pfnSetScreenFade
 
 	// vgui handlers
 	void*	(*VGui_GetPanel)( void );				// UNDONE: wait for version 0.75

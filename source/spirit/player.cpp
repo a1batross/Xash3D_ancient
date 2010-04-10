@@ -289,8 +289,8 @@ void LinkUserMessages( void )
 	gmsgRoomType = REG_USER_MSG( "RoomType", 1 );
 	gmsgWeaponAnim = REG_USER_MSG( "WeaponAnim", 3 );
 	gmsgShowMenu = REG_USER_MSG( "ShowMenu", -1 );
-	gmsgShake = REG_USER_MSG("ScreenShake", 13 );
-	gmsgFade = REG_USER_MSG("ScreenFade", 13 );
+	gmsgShake = REG_USER_MSG("ScreenShake", sizeof( ScreenShake ));
+	gmsgFade = REG_USER_MSG("ScreenFade", sizeof( ScreenFade ));
 	gmsgAmmoX = REG_USER_MSG("AmmoX", 2);
 	gmsgTeamNames = REG_USER_MSG( "TeamNames", -1 );
 	gmsgStatusIcon = REG_USER_MSG( "StatusIcon", -1 );

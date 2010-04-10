@@ -80,9 +80,9 @@ SOURCE="$(InputPath)"
 # PROP Intermediate_Dir "..\temp\server\!debug"
 # PROP Ignore_Export_Lib 1
 # PROP Target_Dir ""
-# ADD BASE CPP /nologo /G5 /MT /W3 /O2 /I "..\server" /I "..\common" /I "..\common" /I "..\server\ents" /I "..\server\global" /I "..\server\weapons" /I "..\server\game" /I "..\server\monsters" /D "NDEBUG" /D "WIN32" /D "_WINDOWS" /D "_MBCS" /YX /FD /c
+# ADD BASE CPP /nologo /G5 /MT /W3 /O2 /I "..\server" /I "..\common" /I "..\server\ents" /I "..\server\global" /I "..\server\weapons" /I "..\server\game" /I "..\server\monsters" /D "NDEBUG" /D "WIN32" /D "_WINDOWS" /D "_MBCS" /YX /FD /c
 # SUBTRACT BASE CPP /Fr
-# ADD CPP /nologo /MDd /W3 /Gm /Gi /GX /ZI /Od /I "./" /I "ents" /I "game" /I "global" /I "monsters" /I "../common" /I "../game_shared" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /FR /FD /c
+# ADD CPP /nologo /MDd /W3 /Gm /Gi /GX /ZI /Od /I "./" /I "ents" /I "game" /I "global" /I "monsters" /I "../common" /I "../game_shared" /D "DEBUG" /D "WIN32" /D "_WINDOWS" /FR /FD /c
 # SUBTRACT CPP /u /YX
 # ADD BASE MTL /nologo /D "NDEBUG" /mktyplib203 /win32
 # ADD MTL /nologo /D "_DEBUG" /mktyplib203 /win32

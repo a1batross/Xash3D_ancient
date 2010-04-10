@@ -128,10 +128,10 @@ void SV_CreateBaseline( void )
 	edict_t	*pEdict;
 	int	entnum;	
 
-	for( entnum = 1; entnum < svgame.globals->numEntities; entnum++ )
+	for( entnum = 0; entnum < svgame.globals->numEntities; entnum++ )
 	{
 		pEdict = EDICT_NUM( entnum );
-		if( pEdict->free ) continue;
+		if( !SV_IsValidEdict( pEdict )) continue;
 		SV_ClassifyEdict( pEdict, ED_SPAWNED );
 	}
 }
@@ -169,7 +169,7 @@ void SV_ActivateServer( void )
 	if( !svs.initialized )
 	{
 		// probably server.dll doesn't loading
-		Host_AbortCurrentFrame ();
+//		Host_AbortCurrentFrame ();
 		return;
 	}
 
@@ -183,7 +183,8 @@ void SV_ActivateServer( void )
 	// create a baseline for more efficient communications
 	SV_CreateBaseline();
 
-	sv.frametime = 100;
+	if( !sv.loadgame )
+		sv.frametime = 0;
 
 	// run two frames to allow everything to settle
 	SV_Physics();
@@ -191,6 +192,7 @@ void SV_ActivateServer( void )
 
 	// invoke to refresh all movevars
 	Mem_Set( &svgame.oldmovevars, 0, sizeof( movevars_t ));
+	svgame.globals->changelevel = false;	// changelevel ends here
 
 	// setup hostflags
 	sv.hostflags = 0;
@@ -223,6 +225,9 @@ deactivate server, free edicts stringtables etc
 void SV_DeactivateServer( void )
 {
 	int	i;
+
+	if( !svs.initialized || sv.state == ss_dead )
+		return;
 
 	SV_FreeEdicts ();
 	sv.state = ss_dead;
@@ -311,6 +316,7 @@ bool SV_SpawnServer( const char *mapname, const char *startspot )
 	if( !svs.initialized )
 		return false;
 
+	svgame.globals->changelevel = false;	// will be restored later if needed
 	svs.timestart = Sys_Milliseconds();
 	svs.spawncount++; // any partially connected client will be restarted
 	svs.realtime = 0;

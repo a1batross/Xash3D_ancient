@@ -40,7 +40,7 @@ RSC=rc.exe
 # PROP Use_Debug_Libraries 0
 # PROP Output_Dir "..\temp\spirit\!release"
 # PROP Intermediate_Dir "..\temp\spirit\!release"
-# PROP Ignore_Export_Lib 0
+# PROP Ignore_Export_Lib 1
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /MT /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /YX /c
 # ADD CPP /nologo /G5 /MT /W3 /O2 /I "..\spirit" /I "..\common" /I "..\game_shared" /D "NDEBUG" /D "WIN32" /D "_WINDOWS" /FD /c
@@ -54,7 +54,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo /o"..\temp\spirit\!release/server.bsc"
 LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:windows /dll /machine:I386
-# ADD LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib /nologo /subsystem:windows /dll /pdb:none /machine:I386 /def:".\spirit.def" /out:"..\temp\spirit\!release/server.dll"
+# ADD LINK32 msvcrt.lib /nologo /subsystem:windows /dll /pdb:none /machine:I386 /nodefaultlib:"libcmt.lib" /def:".\spirit.def" /out:"..\temp\spirit\!release/server.dll"
 # SUBTRACT LINK32 /profile /map /debug
 # Begin Custom Build
 TargetDir=\Xash3D\src_main\temp\spirit\!release
@@ -78,11 +78,11 @@ SOURCE="$(InputPath)"
 # PROP Use_Debug_Libraries 0
 # PROP Output_Dir "..\temp\spirit\!debug"
 # PROP Intermediate_Dir "..\temp\spirit\!debug"
-# PROP Ignore_Export_Lib 0
+# PROP Ignore_Export_Lib 1
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /G5 /MT /W3 /O1 /I "..\dlls" /I "..\engine" /I "..\common" /I "..\game_shared" /D "NDEBUG" /D "WIN32" /D "_WINDOWS" /D "QUIVER" /D "VOXEL" /D "QUAKE2" /D "VALVE_DLL" /YX /FD /c
 # SUBTRACT BASE CPP /Fr
-# ADD CPP /nologo /G5 /MT /W3 /Gm /ZI /Od /I "..\spirit" /I "..\common" /I "..\game_shared" /D "DEBUG" /D "WIN32" /D "_WINDOWS" /Fr /FD /c
+# ADD CPP /nologo /MDd /W3 /Gm /GX /ZI /Od /I "..\spirit" /I "..\common" /I "..\game_shared" /D "DEBUG" /D "WIN32" /D "_WINDOWS" /FR /FD /c
 # SUBTRACT CPP /WX /YX
 # ADD BASE MTL /nologo /D "NDEBUG" /mktyplib203 /win32
 # ADD MTL /nologo /D "NDEBUG" /mktyplib203 /win32
@@ -94,7 +94,7 @@ BSC32=bscmake.exe
 LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib /nologo /subsystem:windows /dll /machine:I386 /def:".\spirit.def" /out:".\Release/server.dll"
 # SUBTRACT BASE LINK32 /profile /map /debug
-# ADD LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib /nologo /subsystem:windows /dll /incremental:yes /debug /machine:I386 /def:".\spirit.def" /out:"..\temp\spirit\!debug/server.dll"
+# ADD LINK32 msvcrtd.lib /nologo /subsystem:windows /dll /incremental:yes /debug /machine:I386 /nodefaultlib:"libcmt.lib" /def:".\spirit.def" /out:"..\temp\spirit\!debug/server.dll" /pdbtype:sept
 # SUBTRACT LINK32 /profile /map
 # Begin Custom Build
 TargetDir=\Xash3D\src_main\temp\spirit\!debug

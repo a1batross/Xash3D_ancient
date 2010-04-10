@@ -292,22 +292,32 @@ void CBaseEntity :: ResetParent( void )
 //=======================================================================
 void CBaseEntity :: SetupPhysics( void )
 {
-	//rebuild all parents
+	// rebuild all parents
 	if( pFlags & PF_LINKCHILD ) LinkChild( this );
 
+	if ( gpGlobals->changelevel )
+	{
+		ALERT( at_console, "rebuild Phys()\n" );
+		m_physinit = FALSE;	// rebuild parents on next level
+	}
 	if( m_physinit ) return;
 	SetParent(); //set all parents
 	m_physinit = true;
-	PostSpawn();//post spawn
+
+	if ( !gpGlobals->changelevel )
+	{
+		PostSpawn();//post spawn
+	}
 }
 
 void CBaseEntity :: RestorePhysics( void )
 {
-	if(m_iParent) SetParent();
+	if( m_iParent ) SetParent();
 }
 
 void CBaseEntity :: ClearPointers( void )
 {
+	m_pParent = NULL;
 	m_pChild = NULL;
 	m_pNextChild = NULL;
 	m_pLinkList = NULL;

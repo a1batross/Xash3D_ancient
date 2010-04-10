@@ -10,6 +10,7 @@ extern cl_enginefuncs_t g_engfuncs;
 
 #include "event_api.h"
 #include "enginecallback.h"
+#include "shake.h"
 
 #define FILE_GLOBAL	static
 #define DLL_GLOBAL

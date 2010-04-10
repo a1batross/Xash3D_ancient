@@ -169,7 +169,7 @@ void pfnEngineFprintf( void *pfile, char *szFmt, ... );
 int pfnFSeek( void *file, long offset, int whence );
 int pfnFClose( void *file );
 long pfnFTell( void *file );
-void pfnRemoveFile( const char *szFilename );
+void pfnGetGameDir( char *szGetGameDir );
 const char *pfnCmd_Args( void );
 const char *pfnCmd_Argv( int argc );
 int pfnCmd_Argc( void );

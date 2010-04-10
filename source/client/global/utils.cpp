@@ -431,7 +431,7 @@ void AngleMatrix( const vec3_t angles, float (*matrix)[4] )
 //
 void SetScreenFade( Vector fadeColor, float alpha, float duration, float holdTime, int fadeFlags )
 {
-	ScreenFade *sf = NULL;
+	CL_ScreenFade *sf = NULL;
 
 	for( int i = 0; i < HUD_MAX_FADES; i++ )
 	{
@@ -490,7 +490,7 @@ void DrawScreenFade( void )
 	// Cycle through all fades and remove any that have finished (work backwards)
 	for( i = HUD_MAX_FADES - 1; i >= 0; i-- )
 	{
-		ScreenFade *pFade = &gHUD.m_FadeList[i];
+		CL_ScreenFade *pFade = &gHUD.m_FadeList[i];
 
 		if( pFade->fadeFlags == 0 ) continue;	// free slot
 
@@ -504,7 +504,7 @@ void DrawScreenFade( void )
 		if(( gHUD.m_flTime > pFade->fadeReset ) && ( gHUD.m_flTime > pFade->fadeEnd ))
 		{
 			// remove this Fade from the list
-			memset( pFade, 0, sizeof( ScreenFade ));
+			memset( pFade, 0, sizeof( CL_ScreenFade ));
 		}
 	}
 
@@ -515,7 +515,7 @@ void DrawScreenFade( void )
 	// Cycle through all fades in the list and calculate the overall color/alpha
 	for ( i = 0; i < HUD_MAX_FADES; i++ )
 	{
-		ScreenFade *pFade = &gHUD.m_FadeList[i];
+		CL_ScreenFade *pFade = &gHUD.m_FadeList[i];
 
 		if( pFade->fadeFlags == 0 ) continue;	// free slot
 
@@ -565,13 +565,13 @@ void ClearPermanentFades( void )
 {
 	for( int i = HUD_MAX_FADES - 1; i >= 0; i-- )
 	{
-		ScreenFade *pFade = &gHUD.m_FadeList[i];
+		CL_ScreenFade *pFade = &gHUD.m_FadeList[i];
 		if( pFade->fadeFlags == 0 ) continue;	// free slot
 
 		if( pFade->fadeFlags & FFADE_STAYOUT )
 		{
 			// remove this Fade from the list
-			memset( pFade, 0, sizeof( ScreenFade ));
+			memset( pFade, 0, sizeof( CL_ScreenFade ));
 		}
 	}
 }
