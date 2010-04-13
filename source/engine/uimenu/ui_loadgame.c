@@ -131,7 +131,7 @@ static void UI_LoadGame_GetGameList( void )
 	search_t	*t;
 	int	i;
 
-	t = FS_Search( "save/*.sav", true );
+	t = FS_Search( "$save/*.sav", true );
 
 	for( i = 0; t && i < t->numfilenames; i++ )
 	{

@@ -522,7 +522,7 @@ void CL_PlayDemo_f( void )
 	CL_Disconnect();
 	Host_ShutdownServer();
 
-	com.snprintf( filename, MAX_STRING, "demos/%s.dem", Cmd_Argv( 1 ));
+	com.snprintf( filename, MAX_STRING, "$demos/%s.dem", Cmd_Argv( 1 ));
 	if(!FS_FileExists( filename ))
 	{
 		MsgDev( D_ERROR, "couldn't open %s\n", filename );

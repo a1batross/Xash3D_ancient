@@ -171,6 +171,21 @@ Returns false if the entity removed itself.
 */
 bool SV_RunThink( edict_t *ent )
 {
+#if 1
+	float	thinktime;
+
+	thinktime = ent->v.nextthink;
+	if( thinktime <= 0.0f || thinktime > ( sv.time * 0.001f ) + ( sv.frametime * 0.001f ))
+		return true;
+		
+	if( thinktime < svgame.globals->time )
+		thinktime = ( sv.time * 0.001f );	// don't let things stay in the past.
+						// it is possible to start that way
+						// by a trigger with a local time.
+	ent->v.nextthink = 0;
+	svgame.globals->time = thinktime;
+	svgame.dllFuncs.pfnThink( ent );
+#else
 	int	i;
 	float	newtime;
 
@@ -196,6 +211,7 @@ bool SV_RunThink( edict_t *ent )
 		if( ent->v.nextthink <= svgame.globals->time || ent->v.nextthink > newtime || !sv_synchthink->integer )
 			break;
 	}
+#endif
 	return !ent->free;
 }
 
@@ -1167,6 +1183,22 @@ bool SV_PushAngles( edict_t *pusher, vec3_t move, vec3_t amove )
 			VectorAdd( check->v.origin, move, check->v.origin );
 			VectorAdd( check->v.angles, amove, check->v.angles);
 
+			if( check->v.flags & FL_CLIENT )
+			{
+				sv_client_t	*cl;
+
+				if(( cl = SV_ClientFromEdict( check, true )) != NULL )
+				{
+					// Because we can run multiple ticks per server frame,
+					// accumulate a total offset here instead of straight
+					// setting it. The engine will reset anglechange to 0
+					// when the message is actually sent to the client
+					cl->anglechangetotal += amove[1];
+					cl->anglechangefinal = amove[1];
+					check->v.fixangle = 2;
+				}
+			}
+
 			// figure movement due to the pusher's amove
 			VectorSubtract( check->v.origin, pusher->v.origin, org );
 			org2[0] = DotProduct( org, forward );
@@ -1182,7 +1214,7 @@ bool SV_PushAngles( edict_t *pusher, vec3_t move, vec3_t amove )
 				check->v.groundentity = 0;
 
 			block = SV_TestEntityPosition( check, vec3_origin );
-			if (!block)
+			if( !block )
 			{	
 				// pushed ok
 				SV_LinkEdict( check, false );
@@ -1209,7 +1241,6 @@ bool SV_PushAngles( edict_t *pusher, vec3_t move, vec3_t amove )
 			continue;
 		}
 
-		MsgDev( D_INFO, "Pusher hit %s\n", SV_ClassName( check ));
 		svgame.globals->time = (sv.time * 0.001f);
 		svgame.dllFuncs.pfnBlocked( pusher, check );
 
@@ -1272,19 +1303,19 @@ void SV_Physics_Pusher( edict_t *ent )
 	float	thinktime;
 	float	oldltime;
 	float	movetime;
-	vec3_t	oldorg, move;
+	vec3_t	oldorg, lmove;
 	vec3_t	oldang, amove;
 	float	l;
 
 	oldltime = ent->v.ltime;
 	thinktime = ent->v.nextthink;
 
-	if( thinktime < ent->v.ltime + svgame.globals->frametime )
+	if( thinktime < ent->v.ltime + ( sv.frametime * 0.001f ))
 	{
 		movetime = thinktime - ent->v.ltime;
-		if( movetime < 0 ) movetime = 0;
+		if( movetime < 0.0f ) movetime = 0.0f;
 	}
-	else movetime = svgame.globals->frametime;
+	else movetime = sv.frametime * 0.001f;
 
 	if( movetime )
 	{
@@ -1301,15 +1332,15 @@ void SV_Physics_Pusher( edict_t *ent )
 		svgame.dllFuncs.pfnThink( ent );
 		if( ent->free ) return;
 
-		VectorSubtract( ent->v.origin, oldorg, move );
+		VectorSubtract( ent->v.origin, oldorg, lmove );
 		VectorSubtract( ent->v.angles, oldang, amove);
 
-		l = VectorLength( move ) + VectorLength( amove );
-		if( l > 1.0f / 64 )
+		l = VectorLength( lmove ) + VectorLength( amove );
+		if( l > ( 1.0f / 64 ))
 		{
-			Msg( "**** snap: %f\n", l );
 			VectorCopy( oldorg, ent->v.origin );
-			SV_PushAngles( ent, move, amove );
+			VectorCopy( oldang, ent->v.angles );
+			SV_PushAngles( ent, lmove, amove );
 		}
 
 	}
@@ -1318,9 +1349,8 @@ void SV_Physics_Pusher( edict_t *ent )
 		ent->v.nextthink = 0;
 		svgame.globals->time = (sv.time * 0.001f);
 		svgame.dllFuncs.pfnThink( ent );
-		if( ent->free ) return;
 	}
-
+	SV_LinkEdict( ent, false );
 }
 
 /*
@@ -2098,9 +2128,8 @@ void SV_Physics( void )
 	// let the progs know that a new frame has started
 	svgame.globals->time = sv.time * 0.001f;
 	svgame.globals->frametime = sv.frametime * 0.001f;
-	svgame.dllFuncs.pfnStartFrame();
 
-//	Msg( "SV_Physics: %g, frametime %g\n", svgame.globals->time, svgame.globals->frametime );
+	svgame.dllFuncs.pfnStartFrame();
 
 	SV_CheckAllEnts ();
 
@@ -2114,7 +2143,7 @@ void SV_Physics( void )
 	}
 
 	// treat each object in turn
-	if( !sv_playersonly->integer )
+	if( !( sv.hostflags & SVF_PLAYERSONLY ))
 	{
 		for( i = svgame.globals->maxClients + 1; i < svgame.globals->numEntities; i++ )
 		{
@@ -2135,5 +2164,5 @@ void SV_Physics( void )
 
 	svgame.dllFuncs.pfnEndFrame();
 
-	if( !sv_playersonly->integer ) sv.time += sv.frametime;
+	if( !( sv.hostflags & SVF_PLAYERSONLY )) sv.time += sv.frametime;
 }

@@ -153,7 +153,7 @@ void CDecal :: TriggerDecal ( CBaseEntity *pActivator, CBaseEntity *pCaller, USE
 		WRITE_SHORT( (int)pev->skin );
 		entityIndex = (short)ENTINDEX(trace.pHit);
 		WRITE_SHORT( entityIndex );
-		if ( entityIndex )
+		if ( entityIndex != NULLENT_INDEX )
 			WRITE_SHORT( (int)VARS(trace.pHit)->modelindex );
 	MESSAGE_END();
 
@@ -661,10 +661,14 @@ void CWorld :: Precache( void )
 	else
 		CVAR_SET_FLOAT( "v_dark", 0.0 );
 
+	pev->spawnflags &= ~SF_WORLD_DARK;		// don't apply fade after save\restore
+
 	if ( pev->spawnflags & SF_WORLD_TITLE )
 		gDisplayTitle = TRUE;		// display the game title if this key is set
 	else
 		gDisplayTitle = FALSE;
+
+	pev->spawnflags &= ~SF_WORLD_TITLE;		// don't show logo after save\restore
 
 	if ( pev->spawnflags & SF_WORLD_FORCETEAM )
 	{

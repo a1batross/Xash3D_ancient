@@ -746,7 +746,7 @@ void EV_FireMP5( event_args_t *args )
 	Vector origin = args->origin;
 	Vector angles = args->angles;
 	Vector velocity = args->velocity;
-	int body;
+	int body, animbase;
 	
 	Vector ShellVelocity;
 	Vector ShellOrigin;
@@ -757,6 +757,7 @@ void EV_FireMP5( event_args_t *args )
 
 	idx = args->entindex;
 	body = args->iparam1;
+	animbase = args->iparam2;	// because spirit and bshift dlls has different enums
 
 	AngleVectors( angles, forward, right, up );
 
@@ -766,7 +767,7 @@ void EV_FireMP5( event_args_t *args )
 	{
 		// Add muzzle flash to current weapon model
 		EV_MuzzleFlash();
-		g_engfuncs.pEventAPI->EV_WeaponAnim( MP5_FIRE1 + RANDOM_LONG( 0, 2 ), body, 1.0f );
+		g_engfuncs.pEventAPI->EV_WeaponAnim( animbase + RANDOM_LONG( 0, 2 ), body, 1.0f );
 
 		V_PunchAxis( 0, RANDOM_FLOAT( -2, 2 ) );
 	}
@@ -825,7 +826,7 @@ void EV_FireShotGunDouble( event_args_t *args )
 	{
 		// Add muzzle flash to current weapon model
 		EV_MuzzleFlash();
-		g_engfuncs.pEventAPI->EV_WeaponAnim( SHOTGUN_FIRE2, args->iparam1, 1.0f );
+		g_engfuncs.pEventAPI->EV_WeaponAnim( args->iparam2, args->iparam1, 1.0f );
 		V_PunchAxis( 0, -10.0 );
 	}
 
@@ -876,7 +877,7 @@ void EV_FireShotGunSingle( event_args_t *args )
 	{
 		// Add muzzle flash to current weapon model
 		EV_MuzzleFlash();
-		g_engfuncs.pEventAPI->EV_WeaponAnim( SHOTGUN_FIRE, args->iparam1, 1.0f );
+		g_engfuncs.pEventAPI->EV_WeaponAnim( args->iparam2, args->iparam1, 1.0f );
 
 		V_PunchAxis( 0, -5.0 );
 	}
@@ -929,7 +930,7 @@ void EV_FirePython( event_args_t *args )
 
 		// Add muzzle flash to current weapon model
 		EV_MuzzleFlash();
-		g_engfuncs.pEventAPI->EV_WeaponAnim( PYTHON_FIRE1, args->iparam1, 1.0f );
+		g_engfuncs.pEventAPI->EV_WeaponAnim( args->iparam2, args->iparam1, 1.0f );
 
 		V_PunchAxis( 0, -10.0 );
 	}

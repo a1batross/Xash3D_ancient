@@ -25,7 +25,6 @@ cvar_t	*sv_maxvelocity;
 cvar_t	*sv_gravity;
 cvar_t	*sv_stepheight;
 cvar_t	*sv_noreload;		// don't reload level state when reentering
-cvar_t	*sv_playersonly;
 cvar_t	*sv_rollangle;
 cvar_t	*sv_rollspeed;
 cvar_t	*sv_wallbounce;
@@ -221,6 +220,24 @@ void SV_UpdateServerInfo( void )
 
 /*
 =================
+SV_CalcFrametime
+=================
+*/
+void SV_CalcFrametime( void )
+{
+	if( sv_fps->modified )
+	{
+		if( sv_fps->value < 10 ) Cvar_Set( "sv_fps", "10" ); // too slow, also, netcode uses a byte
+		else if( sv_fps->value > 90 ) Cvar_Set( "sv_fps", "90" ); // abusive
+		sv_fps->modified = false;
+	}
+
+	// calc sv.frametime
+	sv.frametime = ( 1000 / sv_fps->integer );
+}
+
+/*
+=================
 SV_ReadPackets
 =================
 */
@@ -295,16 +312,6 @@ void SV_CheckTimeouts( void )
 	float		droppoint;
 	float		zombiepoint;
 	int		i, numclients = 0;
-
-	if( sv_fps->modified )
-	{
-		if( sv_fps->value < 10 ) Cvar_Set( "sv_fps", "10" ); // too slow, also, netcode uses a byte
-		else if( sv_fps->value > 90 ) Cvar_Set( "sv_fps", "90" ); // abusive
-		sv_fps->modified = false;
-	}
-
-	// calc sv.frametime
-	sv.frametime = ( 1000 / sv_fps->integer );
 
 	droppoint = svs.realtime - (timeout->value * 1000);
 	zombiepoint = svs.realtime - (zombietime->value * 1000);
@@ -431,6 +438,9 @@ void SV_Frame( int time )
 	// keep the random time dependent
 	rand ();
 
+	// calc sv.frametime
+	SV_CalcFrametime ();
+
 	// check timeouts
 	SV_CheckTimeouts ();
 
@@ -473,11 +483,11 @@ void SV_Frame( int time )
 	// send messages back to the clients that had packets read this frame
 	SV_SendClientMessages ();
 
-	// send a heartbeat to the master if needed
-	Master_Heartbeat ();
-
 	// clear edict flags for next frame
 	SV_PrepWorldFrame ();
+
+	// send a heartbeat to the master if needed
+	Master_Heartbeat ();
 }
 
 //============================================================================
@@ -589,7 +599,6 @@ void SV_Init( void )
 
 	sv_fps = Cvar_Get( "sv_fps", "72.1", CVAR_ARCHIVE, "running server physics at" );
 	sv_stepheight = Cvar_Get( "sv_stepheight", "18", CVAR_ARCHIVE|CVAR_PHYSICINFO, "how high you can step up" );
-	sv_playersonly = Cvar_Get( "playersonly", "0", 0, "freezes time, except for players" );
 	sv_newunit = Cvar_Get( "sv_newunit", "0", 0, "sets to 1 while new unit is loading" );
 	hostname = Cvar_Get( "sv_hostname", "unnamed", CVAR_SERVERINFO | CVAR_ARCHIVE, "host name" );
 	timeout = Cvar_Get( "timeout", "125", 0, "connection timeout" );

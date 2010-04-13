@@ -494,13 +494,13 @@ void GL_InitCommands( void )
 	r_norefresh = Cvar_Get( "r_norefresh", "0", 0, "disable rendering (use with caution)" );
 	r_fullbright = Cvar_Get( "r_fullbright", "0", CVAR_CHEAT|CVAR_LATCH_VIDEO, "disable lightmaps, get fullbright" );
 	r_lightmap = Cvar_Get( "r_lightmap", "0", CVAR_CHEAT, "lightmap debugging tool" );
-	r_drawentities = Cvar_Get( "r_drawentities", "1", CVAR_CHEAT, "render entities" );
+	r_drawentities = Cvar_Get( "r_drawentities", "1", CVAR_CHEAT|CVAR_ARCHIVE, "render entities" );
 	r_drawworld = Cvar_Get( "r_drawworld", "1", CVAR_CHEAT, "render world" );
 	r_novis = Cvar_Get( "r_novis", "0", 0, "ignore vis information (perfomance test)" );
 	r_nocull = Cvar_Get( "r_nocull", "0", 0, "ignore frustrum culling (perfomance test)" );
 	r_speeds = Cvar_Get( "r_speeds", "0", CVAR_ARCHIVE, "shows r_speeds" );
 	r_drawelements = Cvar_Get( "r_drawelements", "1", 0, "use gldrawElements or glDrawRangeElements" );
-	gl_wireframe = Cvar_Get( "gl_wireframe", "0", CVAR_CHEAT|CVAR_ARCHIVE, "show mesh triangles" );
+	gl_wireframe = Cvar_Get( "gl_wireframe", "0", CVAR_CHEAT, "show mesh triangles" );
 	r_lockpvs = Cvar_Get( "r_lockpvs", "0", CVAR_CHEAT, "lockpvs area at current point (pvs test)" );
 	gl_clear = Cvar_Get( "gl_clear", "0", CVAR_ARCHIVE, "clearing screen after each frame" );
 	r_mode = Cvar_Get( "r_mode", VID_DEFAULTMODE, CVAR_ARCHIVE|CVAR_LATCH_VIDEO, "display resolution mode" );

@@ -20,6 +20,13 @@
 #define STRING( offset )	CL_GetString( offset )
 #define MAKE_STRING(str)	CL_AllocString( str )
 
+// add angles
+typedef struct
+{
+	float	yawdelta;
+	float	accum;
+} add_angle_t;
+
 // console stuff
 typedef struct
 {
@@ -91,6 +98,9 @@ typedef struct
 
 	// predicting stuff
 	vec3_t		predicted_origins[CMD_BACKUP];// for debug comparing against server
+	add_angle_t	addangle[CMD_BACKUP];	// accumulate angles from server
+	float		old_addangle;
+	float		cur_addangle;
 
 	float		predicted_step;		// for stair up smoothing
 	uint		predicted_step_time;
@@ -315,7 +325,7 @@ typedef struct
 	bool		demorecording;
 	bool		demoplayback;
 	bool		demowaiting;		// don't record until a non-delta message is received
-	bool		drawplaque;		// draw plaque when level is loading
+	int		drawplaque;		// draw plaque when level is loading
 	string		demoname;			// for demo looping
 
 	file_t		*demofile;

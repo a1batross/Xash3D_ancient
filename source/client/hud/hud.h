@@ -668,7 +668,7 @@ public:
 	int _cdecl MsgFunc_TempEntity( const char *pszName, int iSize, void *pbuf );
 
 	// user commansds
-	void _cdecl UserCmd_LoadingPlaque( void );
+	void _cdecl UserCmd_ChangeLevel( void );
 
 	// Screen information
 	SCREENINFO	m_scrinfo;

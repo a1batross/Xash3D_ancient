@@ -162,8 +162,8 @@ bool Cmd_GetFontList( const char *s, char *completedname, int length )
 	string		matchbuf;
 	int		i, numfonts;
 
-	t = FS_Search(va("gfx/fonts/%s*.*", s ), true);
-	if(!t) return false;
+	t = FS_Search( va( "gfx/fonts/%s*.*", s ), true);
+	if( !t ) return false;
 
 	FS_FileBase( t->filenames[0], matchbuf ); 
 	if( completedname && length ) com.strncpy( completedname, matchbuf, length );
@@ -207,7 +207,7 @@ bool Cmd_GetDemoList( const char *s, char *completedname, int length )
 	string		matchbuf;
 	int		i, numdems;
 
-	t = FS_Search( va( "demos/%s*.dem", s ), true);
+	t = FS_Search( va( "$demos/%s*.dem", s ), true );
 	if( !t ) return false;
 
 	FS_FileBase( t->filenames[0], matchbuf ); 
@@ -251,8 +251,8 @@ bool Cmd_GetMovieList( const char *s, char *completedname, int length )
 	string		matchbuf;
 	int		i, nummovies;
 
-	t = FS_Search(va("media/%s*.roq", s ), true);
-	if(!t) return false;
+	t = FS_Search( va( "media/%s*.roq", s ), true );
+	if( !t ) return false;
 
 	FS_FileBase(t->filenames[0], matchbuf ); 
 	if(completedname && length) com.strncpy( completedname, matchbuf, length );
@@ -296,8 +296,8 @@ bool Cmd_GetMusicList( const char *s, char *completedname, int length )
 	string		matchbuf;
 	int		i, numtracks;
 
-	t = FS_Search(va("media/%s*.ogg", s ), true);
-	if(!t) return false;
+	t = FS_Search( va( "media/%s*.ogg", s ), true );
+	if( !t ) return false;
 
 	FS_FileBase(t->filenames[0], matchbuf ); 
 	if(completedname && length) com.strncpy( completedname, matchbuf, length );
@@ -341,7 +341,7 @@ bool Cmd_GetSavesList( const char *s, char *completedname, int length )
 	string		matchbuf;
 	int		i, numsaves;
 
-	t = FS_Search( va( "save/%s*.sav", s ), true );
+	t = FS_Search( va( "$save/%s*.sav", s ), true );
 	if( !t ) return false;
 
 	FS_FileBase( t->filenames[0], matchbuf ); 
@@ -472,7 +472,7 @@ bool Cmd_GetItemsList( const char *s, char *completedname, int length )
 	string		matchbuf;
 	int		i, numitems;
 
-	t = FS_Search( va("scripts/items/%s*.txt", s ), true );
+	t = FS_Search( va( "scripts/items/%s*.txt", s ), true );
 	if( !t ) return false;
 
 	FS_FileBase( t->filenames[0], matchbuf ); 

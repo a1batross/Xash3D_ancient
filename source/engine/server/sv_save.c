@@ -340,25 +340,46 @@ void LandmarkOrigin( SAVERESTOREDATA *pSaveData, vec3_t output, const char *pLan
 	VectorClear( output );
 }
 
-// UNDONE: This could be a better test - can we run the absbox through the bsp and see
-// if it contains any solid space?  or would that eliminate some entities we want to keep?
 int EntityInSolid( edict_t *ent )
 {
 	edict_t	*pParent = ent->v.aiment;
+	edict_t	*hit, *touch[MAX_EDICTS];
+	int	i, contents, numtouch;
 	vec3_t	point;
 
-	// HACKHACK -- If you're attached to a client, always go through
+	// if you're attached to a client, always go through
 	if( SV_IsValidEdict( pParent ))
 	{
 		if( pParent->v.flags & FL_CLIENT )
 			return 0;
 	}
+
 	VectorAverage( ent->v.absmin, ent->v.absmax, point );
-#if 1
-	return (SV_PointContents( point ) == CONTENTS_SOLID);
-#else
-	return SV_TestEntityPosition( ent, vec3_origin );
-#endif
+
+	// run first test - stuck in the world
+	contents = CM_PointContents( point, 0 );
+
+	// solid or deathfog area
+	if( contents & ( BASECONT_SOLID|BASECONT_NODROP )) 
+		return 1;
+
+	// run second test - stuck in the bspbrush
+	numtouch = SV_AreaEdicts( ent->v.absmin, ent->v.absmax, touch, MAX_EDICTS, AREA_SOLID );
+
+	for( i = 0; i < numtouch; i++ )
+	{
+		hit = touch[i];
+		if( hit == ent ) continue;
+		if( hit->v.solid != SOLID_BSP )
+			continue;
+
+		contents = CM_TransformedPointContents( point, World_HullForEntity( hit ), hit->v.origin, hit->v.angles );
+
+		// stuck in bspbrsuh
+		if( contents & ( BASECONT_SOLID|BASECONT_NODROP )) 
+			return 1;
+	}
+	return 0;
 }
 
 void SV_ClearSaveDir( void )
@@ -367,7 +388,7 @@ void SV_ClearSaveDir( void )
 	int	i;
 
 	// just delete all HL? files
-	t = FS_Search( "save/*.HL?", true );
+	t = FS_Search( "$save/*.HL?", true );
 	if( !t ) return; // already empty
 
 	for( i = 0; i < t->numfilenames; i++ )
@@ -634,8 +655,8 @@ SAVERESTOREDATA *SV_LoadSaveData( const char *level )
 	char			*pszTokenList;
 	int			i, id, size, version;
 	
-	com.snprintf( name, sizeof( name ), "save/%s.HL1", level );
-	MsgDev( D_INFO, "Loading game from %s...\n", name );
+	com.snprintf( name, sizeof( name ), "$save/%s.HL1", level );
+	MsgDev( D_INFO, "Loading game from %s...\n", name + 1 );
 
 	pFile = FS_Open( name, "rb" );
 	if( !pFile )
@@ -806,7 +827,7 @@ void SV_EntityPatchRead( SAVERESTOREDATA *pSaveData, const char *level )
 	file_t	*pFile;
 	int	i, size, entityId;
 
-	com.snprintf( name, sizeof( name ), "save/%s.HL3", level );
+	com.snprintf( name, sizeof( name ), "$save/%s.HL3", level );
 
 	pFile = FS_Open( name, "rb" );
 	if( !pFile ) return;
@@ -1317,7 +1338,7 @@ int SV_SaveGameSlot( const char *pSaveName, const char *pSaveComment )
 
 	pSaveData = SV_SaveInit( 0 );
 
-	com.strncpy( hlPath, "save/*.HL?", sizeof( hlPath ));
+	com.strncpy( hlPath, "$save/*.HL?", sizeof( hlPath ));
 	gameHeader.mapCount = SV_MapCount( hlPath );
 	com.strncpy( gameHeader.mapName, sv.name, sizeof( gameHeader.mapName ));
 	com.strncpy( gameHeader.comment, pSaveComment, sizeof( gameHeader.comment ));
@@ -1457,9 +1478,9 @@ bool SV_LoadGame( const char *pName )
 	if( !pName || !pName[0] )
 		return false;
 
-	com.snprintf( name, sizeof( name ), "save/%s.sav", pName );
+	com.snprintf( name, sizeof( name ), "$save/%s.sav", pName );
 
-	MsgDev( D_INFO, "Loading game from %s...\n", name );
+	MsgDev( D_INFO, "Loading game from %s...\n", name + 1 );
 	SV_ClearSaveDir();
 
 	if( !svs.initialized ) SV_InitGame ();
@@ -1569,7 +1590,7 @@ used for reload game after player death
 */
 const char *SV_GetLatestSave( void )
 {
-	search_t	*f = FS_Search( "save/*.sav", true );
+	search_t	*f = FS_Search( "$save/*.sav", true );
 	int	i, found = 0;
 	long	newest = 0, ft;
 	string	savename;	

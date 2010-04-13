@@ -48,8 +48,8 @@ class CLaserSpot : public CBaseEntity
 public:
 	void Suspend( float flSuspendTime );
 	void EXPORT Revive( void );
-	
-	static CLaserSpot *CreateSpot( void );
+	void UpdateOnRemove( void );	
+	static CLaserSpot *CreateSpot( entvars_t *pevOwner = NULL );
 };
 LINK_ENTITY_TO_CLASS( laser_spot, CLaserSpot );
 
@@ -95,12 +95,20 @@ IMPLEMENT_SAVERESTORE( CRpg, CBasePlayerWeapon );
 
 //=========================================================
 //=========================================================
-CLaserSpot *CLaserSpot::CreateSpot( void )
+CLaserSpot *CLaserSpot::CreateSpot( entvars_t *pevOwner )
 {
 	CLaserSpot *pSpot = GetClassPtr( (CLaserSpot *)NULL );
 	pSpot->Spawn();
 
 	pSpot->pev->classname = MAKE_STRING("laser_spot");
+
+	if( pevOwner ) 
+	{
+		// predictable laserspot (cl_lw must be set to 1)
+		pSpot->pev->flags |= FL_SKIPLOCALHOST;
+		pSpot->pev->owner = ENT( pevOwner );
+		pevOwner->effects |= EF_LASERSPOT;
+	}
 
 	return pSpot;
 }
@@ -114,6 +122,7 @@ void CLaserSpot::Spawn( void )
 	pev->solid = SOLID_NOT;
 
 	pev->rendermode = kRenderGlow;
+	pev->rendercolor = Vector( 200, 12, 12 );
 	pev->renderfx = kRenderFxNoDissipation;
 	pev->renderamt = 255;
 
@@ -140,6 +149,15 @@ void CLaserSpot::Revive( void )
 	pev->effects &= ~EF_NODRAW;
 
 	SetThink( NULL );
+}
+
+void CLaserSpot::UpdateOnRemove( void )
+{
+	// tell the owner about laserspot
+	if( !FNullEnt( pev->owner ))
+		pev->owner->v.effects &= ~EF_LASERSPOT;
+
+	CBaseEntity :: UpdateOnRemove ();
 }
 
 void CLaserSpot::Precache( void )
@@ -183,6 +201,7 @@ CRpgRocket *CRpgRocket::CreateRpgRocket( Vector vecOrigin, Vector vecAngles, CBa
 {
 	CRpgRocket *pRocket = GetClassPtr( (CRpgRocket *)NULL );
 
+	pRocket->SetObjectClass( ED_NORMAL );
 	UTIL_SetOrigin( pRocket->pev, vecOrigin );
 	pRocket->pev->angles = vecAngles;
 	pRocket->Spawn();
@@ -564,6 +583,7 @@ void CRpg::PrimaryAttack()
 	else
 	{
 		PlayEmptySound( );
+		m_flNextPrimaryAttack = UTIL_WeaponTimeBase() + 0.7;//no longer indicate fps :)
 	}
 	UpdateSpot( );
 }
@@ -631,7 +651,7 @@ void CRpg::UpdateSpot( void )
 	{
 		if (!m_pSpot)
 		{
-			m_pSpot = CLaserSpot::CreateSpot();
+			m_pSpot = CLaserSpot::CreateSpot( m_pPlayer->pev );
 		}
 
 		UTIL_MakeVectors( m_pPlayer->pev->viewangles );

@@ -21,6 +21,7 @@ extern int SV_UPDATE_BACKUP;
 
 // hostflags
 #define SVF_SKIPLOCALHOST	BIT( 0 )
+#define SVF_PLAYERSONLY	BIT( 1 )
 
 // mapvalid flags
 #define MAP_IS_EXIST	BIT( 0 )
@@ -118,6 +119,9 @@ typedef struct sv_client_s
 	int		rate;
 
 	int		surpressCount;		// number of messages rate supressed
+
+	float		anglechangetotal;		// add angles to client position
+	float		anglechangefinal;		// add angles to client position
 
 	edict_t		*edict;			// EDICT_NUM(clientnum+1)
 	edict_t		*pViewEntity;		// svc_setview member
@@ -283,7 +287,6 @@ extern	cvar_t		*sv_reconnect_limit;
 extern	cvar_t		*rcon_password;
 extern	cvar_t		*hostname;
 extern	cvar_t		*sv_stepheight;
-extern	cvar_t		*sv_playersonly;
 extern	cvar_t		*sv_rollangle;
 extern	cvar_t		*sv_rollspeed;
 extern	cvar_t		*sv_maxspeed;
@@ -306,14 +309,15 @@ int SV_DecalIndex( const char *name );
 int SV_EventIndex( const char *name );
 int SV_GenericIndex( const char *name );
 int SV_UserMessageIndex( const char *name );
-
 int SV_CalcPacketLoss( sv_client_t *cl );
 void SV_ExecuteUserCommand (char *s);
 void SV_InitOperatorCommands( void );
 void SV_KillOperatorCommands( void );
 void SV_UserinfoChanged( sv_client_t *cl, const char *userinfo );
-void Master_Heartbeat (void);
-void Master_Packet (void);
+void SV_PrepWorldFrame( void );
+void SV_CalcFrametime( void );
+void Master_Heartbeat( void );
+void Master_Packet( void );
 
 //
 // sv_init.c

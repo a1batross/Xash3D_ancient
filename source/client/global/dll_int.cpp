@@ -163,15 +163,6 @@ void HUD_Init( void )
 
 int HUD_Redraw( float flTime, int state )
 {
-	static int oldstate;
-
-	if( oldstate == CL_ACTIVE && state == CL_LOADING )
-	{
-		// HACKHACK: fire only once to prevent multiply GL_BLEND each frame
-		DrawImageBar( 100, "m_loading" ); // HACKHACK
-	}
-	oldstate = state;
-
 	switch( state )
 	{
 	case CL_LOADING:
@@ -183,6 +174,9 @@ int HUD_Redraw( float flTime, int state )
 	case CL_PAUSED:
 		gHUD.Redraw( flTime );
 		DrawPause();
+		break;
+	case CL_CHANGELEVEL:
+		DrawImageBar( 100, "m_loading" );
 		break;
 	}
 	return 1;
@@ -291,9 +285,15 @@ void HUD_UpdateEntityVars( edict_t *ent, const entity_state_t *state, const enti
 		{
 			edict_t	*viewent = GetViewModel();
 
+			// if viewmodel has changed update sequence here
+			if( viewent->v.modelindex != state->viewmodel )
+			{
+//				ALERT( at_console, "Viewmodel changed\n" );
+				SendWeaponAnim( viewent->v.sequence, viewent->v.body, viewent->v.framerate );
+                              }
 			// setup player viewmodel (only for local player!)
 			viewent->v.modelindex = state->viewmodel;
-			gHUD.m_flFOV = ent->v.fov; // keep client fov an actual 
+			gHUD.m_flFOV = ent->v.fov; // keep client fov an actual
 		}
 		break;
 	case ED_PORTAL:

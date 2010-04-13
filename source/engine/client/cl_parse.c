@@ -30,6 +30,7 @@ char *svc_strings[256] =
 	"svc_frame",
 	"svc_sound",
 	"svc_setangle",
+	"svc_addangle",
 	"svc_setview",
 	"svc_print",
 	"svc_centerprint",
@@ -627,8 +628,48 @@ void CL_ParseSetAngle( sizebuf_t *msg )
 	cl.refdef.cl_viewangles[0] = MSG_ReadAngle32( msg );
 	cl.refdef.cl_viewangles[1] = MSG_ReadAngle32( msg );
 	cl.refdef.cl_viewangles[2] = MSG_ReadAngle32( msg );
+
+	if( cl.refdef.cl_viewangles[0] > 180 ) cl.refdef.cl_viewangles[0] -= 360;
+	if( cl.refdef.cl_viewangles[1] > 180 ) cl.refdef.cl_viewangles[1] -= 360;
+	if( cl.refdef.cl_viewangles[2] > 180 ) cl.refdef.cl_viewangles[2] -= 360;
 }
 
+/*
+================
+CL_ParseAddAngle
+
+add the view angle yaw
+================
+*/
+void CL_ParseAddAngle( sizebuf_t *msg )
+{
+	float		ang_total;
+	float		ang_final;
+	float		apply_now;
+	add_angle_t	*a;
+	
+	ang_total = MSG_ReadAngle32( msg );
+	ang_final = MSG_ReadAngle32( msg );
+
+	if( ang_total > 180.0f )
+	{
+		ang_total -= 360.0f;
+	}
+
+	if( ang_final > 180.0f )
+	{
+		ang_final -= 360.0f;
+	}
+
+	// apply this angle after prediction
+	a = &cl.addangle[(cl.frame.serverframe) & CMD_MASK];
+	a->yawdelta = ang_final;
+	a->accum = 0.0f;
+
+	apply_now = ang_total - ang_final;
+
+	cl.refdef.cl_viewangles[1] += apply_now;
+}
 /*
 ================
 CL_ParseCrosshairAngle
@@ -741,7 +782,7 @@ void CL_ParseServerMessage( sizebuf_t *msg )
 			break;
 		case svc_changing:
 			cls.drawplaque = false;
-			Cmd_ExecuteString( "plaque\n" );
+			Cmd_ExecuteString( "hud_changelevel\n" );
 		case svc_reconnect:
 			if( cls.drawplaque )
 				Msg( "Server disconnected, reconnecting\n" );
@@ -775,6 +816,9 @@ void CL_ParseServerMessage( sizebuf_t *msg )
 			break;
 		case svc_setangle:
 			CL_ParseSetAngle( msg );
+			break;
+		case svc_addangle:
+			CL_ParseAddAngle( msg );
 			break;
 		case svc_setview:
 			cl.refdef.viewentity = MSG_ReadWord( msg );

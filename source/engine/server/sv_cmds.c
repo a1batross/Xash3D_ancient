@@ -609,7 +609,7 @@ void SV_ConSay_f( void )
 SV_Heartbeat_f
 ==================
 */
-void SV_Heartbeat_f (void)
+void SV_Heartbeat_f( void )
 {
 	svs.last_heartbeat = MAX_HEARTBEAT;
 }
@@ -665,6 +665,18 @@ void SV_KillServer_f( void )
 }
 
 /*
+===============
+SV_PlayersOnly_f
+
+disable plhysics but players
+===============
+*/
+void SV_PlayersOnly_f( void )
+{
+	sv.hostflags = sv.hostflags ^ SVF_PLAYERSONLY;
+}
+
+/*
 ==================
 SV_InitOperatorCommands
 ==================
@@ -700,6 +712,7 @@ void SV_InitOperatorCommands( void )
 	Cmd_AddCommand( "killsave", SV_DeleteSave_f, "delete a saved game file and saveshot" );
 	Cmd_AddCommand( "autosave", SV_AutoSave_f, "save the game to 'autosave' file" );
 	Cmd_AddCommand( "killserver", SV_KillServer_f, "shutdown current server" );
+	Cmd_AddCommand( "playersonly", SV_PlayersOnly_f, "freezes time, except for players" );
 }
 
 void SV_KillOperatorCommands( void )
@@ -710,6 +723,7 @@ void SV_KillOperatorCommands( void )
 	Cmd_RemoveCommand( "status" );
 	Cmd_RemoveCommand( "serverinfo" );
 	Cmd_RemoveCommand( "clientinfo" );
+	Cmd_RemoveCommand( "playersonly" );
 
 	Cmd_RemoveCommand( "map" );
 	Cmd_RemoveCommand( "movie" );

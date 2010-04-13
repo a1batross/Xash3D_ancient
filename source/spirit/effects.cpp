@@ -2790,6 +2790,7 @@ void CFade::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType
 
 	if ( !(pev->spawnflags & SF_FADE_IN) )
 		fadeFlags |= FFADE_OUT;
+	else fadeFlags |= FFADE_IN;
 
 	if ( pev->spawnflags & SF_FADE_MODULATE )
 		fadeFlags |= FFADE_MODULATE;

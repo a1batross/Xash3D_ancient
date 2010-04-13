@@ -44,7 +44,7 @@ DECLARE_HUDMESSAGE( TempEntity );
 DECLARE_HUDMESSAGE( ServerName );
 DECLARE_HUDMESSAGE( ScreenShake );
 DECLARE_HUDMESSAGE( Intermission );
-DECLARE_HUDCOMMAND( LoadingPlaque );
+DECLARE_HUDCOMMAND( ChangeLevel );
 
 int CHud :: InitMessages( void )
 {
@@ -72,7 +72,7 @@ int CHud :: InitMessages( void )
 	HOOK_MESSAGE( ScreenFade );
 	HOOK_MESSAGE( ScreenShake );
 
-	HOOK_COMMAND( "plaque", LoadingPlaque );
+	HOOK_COMMAND( "hud_changelevel", ChangeLevel );	// send by engine
 
 	viewEntityIndex = 0; // trigger_viewset stuff
 	viewFlags = 0;
@@ -103,7 +103,7 @@ int CHud :: InitMessages( void )
 	return 1;
 }
 
-void CHud :: UserCmd_LoadingPlaque( void )
+void CHud :: UserCmd_ChangeLevel( void )
 {
 	m_iDrawPlaque = 0;	// disable plaque rendering
 }

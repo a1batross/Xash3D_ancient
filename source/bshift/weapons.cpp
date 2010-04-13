@@ -402,6 +402,14 @@ void W_Precache(void)
 	g_sModelIndexLaser = PRECACHE_MODEL( (char *)g_pModelNameLaser );
 	g_sModelIndexLaserDot = PRECACHE_MODEL("sprites/laserdot.spr");
 
+	// custom muzzleflashes
+	PRECACHE_MODEL ("sprites/muzzleflash1.spr");
+	PRECACHE_MODEL ("sprites/muzzleflash2.spr");
+	PRECACHE_MODEL ("sprites/muzzleflash3.spr");
+	PRECACHE_MODEL ("sprites/muzzleflash.spr");
+
+	// ricochet
+	PRECACHE_MODEL ("sprites/richo1.spr");
 
 	// used by explosions
 	PRECACHE_MODEL ("models/grenade.mdl");

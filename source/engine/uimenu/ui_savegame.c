@@ -131,7 +131,7 @@ static void UI_SaveGame_GetGameList( void )
 	search_t	*t;
 	int	i = 0, j;
 
-	t = FS_Search( "save/*.sav", true );
+	t = FS_Search( "$save/*.sav", true );
 
 	if( cls.state == ca_active )
 	{

@@ -116,7 +116,7 @@ searchpath_t fs_directpath; // static direct path
 
 static void FS_InitMemory( void );
 const char *FS_FileExtension( const char *in );
-static searchpath_t *FS_FindFile (const char *name, int *index, bool quiet );
+static searchpath_t *FS_FindFile( const char *name, int *index, bool quiet, bool gamedironly );
 static dlumpinfo_t *W_FindLump( wfile_t *wad, const char *name, const char matchtype );
 static packfile_t* FS_AddFileToPack (const char* name, pack_t* pack, fs_offset_t offset, fs_offset_t packsize, fs_offset_t realsize, int flags);
 static byte *W_LoadFile( const char *path, fs_offset_t *filesizeptr );
@@ -877,7 +877,7 @@ If keep_plain_dirs is set, the pack will be added AFTER the first sequence of
 plain directories.
 ================
 */
-static bool FS_AddPack_Fullpath( const char *pakfile, bool *already_loaded, bool keep_plain_dirs )
+static bool FS_AddPack_Fullpath( const char *pakfile, bool *already_loaded, bool keep_plain_dirs, int flags )
 {
 	searchpath_t	*search;
 	pack_t		*pak = NULL;
@@ -924,6 +924,7 @@ static bool FS_AddPack_Fullpath( const char *pakfile, bool *already_loaded, bool
 				search = (searchpath_t *)Mem_Alloc( fs_mempool, sizeof( searchpath_t ));
 				search->pack = pak;
 				search->next = fs_searchpaths;
+				search->flags |= flags;
 				fs_searchpaths = search;
 			}
 			else // otherwise we want to append directly after insertion_point.
@@ -931,6 +932,7 @@ static bool FS_AddPack_Fullpath( const char *pakfile, bool *already_loaded, bool
 				search = (searchpath_t *)Mem_Alloc( fs_mempool, sizeof( searchpath_t ));
 				search->pack = pak;
 				search->next = insertion_point->next;
+				search->flags |= flags;
 				insertion_point->next = search;
 			}
 		}
@@ -939,6 +941,7 @@ static bool FS_AddPack_Fullpath( const char *pakfile, bool *already_loaded, bool
 			search = (searchpath_t *)Mem_Alloc( fs_mempool, sizeof( searchpath_t ));
 			search->pack = pak;
 			search->next = fs_searchpaths;
+			search->flags |= flags;
 			fs_searchpaths = search;
 		}
 		return true;
@@ -1025,7 +1028,6 @@ static bool FS_AddWad_Fullpath( const char *wadfile, bool *already_loaded, bool 
 	}
 }
 
-
 /*
 ================
 FS_AddPack
@@ -1049,14 +1051,14 @@ bool FS_AddPack( const char *pakfile, bool *already_loaded, bool keep_plain_dirs
 	if( already_loaded ) *already_loaded = false;
 
 	// then find the real name...
-	search = FS_FindFile( pakfile, &index, true );
+	search = FS_FindFile( pakfile, &index, true, false );
 	if( !search || search->pack )
 	{
 		MsgDev( D_WARN, "FS_AddPack: could not find pak \"%s\"\n", pakfile );
 		return false;
 	}
 	com.sprintf( fullpath, "%s%s", search->filename, pakfile );
-	return FS_AddPack_Fullpath( fullpath, already_loaded, keep_plain_dirs );
+	return FS_AddPack_Fullpath( fullpath, already_loaded, keep_plain_dirs, 0 );
 }
 
 /*
@@ -1088,7 +1090,7 @@ void FS_AddGameDirectory( const char *dir, int flags )
 		if( !com.stricmp( FS_FileExtension( list.strings[i] ), "pak" ))
 		{
 			com.sprintf( pakfile, "%s%s", dir, list.strings[i] );
-			FS_AddPack_Fullpath( pakfile, NULL, false );
+			FS_AddPack_Fullpath( pakfile, NULL, false, flags );
 		}
 	}
 
@@ -1098,7 +1100,7 @@ void FS_AddGameDirectory( const char *dir, int flags )
 		if( !com.stricmp( FS_FileExtension( list.strings[i]), "pk2" ))
 		{
 			com.sprintf( pakfile, "%s%s", dir, list.strings[i] );
-			FS_AddPack_Fullpath( pakfile, NULL, false );
+			FS_AddPack_Fullpath( pakfile, NULL, false, flags );
 		}
 	}
 
@@ -1108,7 +1110,7 @@ void FS_AddGameDirectory( const char *dir, int flags )
 		if( !com.stricmp( FS_FileExtension( list.strings[i] ), "pk3" ))
 		{
 			com.sprintf( pakfile, "%s%s", dir, list.strings[i] );
-			FS_AddPack_Fullpath( pakfile, NULL, false );
+			FS_AddPack_Fullpath( pakfile, NULL, false, flags );
 		}
 	}
 
@@ -1300,7 +1302,7 @@ void FS_Rescan( void )
 	FS_ClearSearchPath();
 
 	FS_AddGameHierarchy( SI.GameInfo->basedir, 0 );
-	FS_AddGameHierarchy( SI.GameInfo->gamedir, 0 );
+	FS_AddGameHierarchy( SI.GameInfo->gamedir, FS_GAMEDIR_PATH );
 }
 
 void FS_Rescan_f( void )
@@ -2032,7 +2034,7 @@ Return the searchpath where the file was found (or NULL)
 and the file index in the package if relevant
 ====================
 */
-static searchpath_t *FS_FindFile( const char *name, int* index, bool quiet )
+static searchpath_t *FS_FindFile( const char *name, int* index, bool quiet, bool gamedironly )
 {
 	searchpath_t	*search;
 	char		*pEnvPath;
@@ -2041,6 +2043,9 @@ static searchpath_t *FS_FindFile( const char *name, int* index, bool quiet )
 	// search through the path, one element at a time
 	for( search = fs_searchpaths; search; search = search->next )
 	{
+		if( gamedironly & !( search->flags & FS_GAMEDIR_PATH ))
+			continue;
+
 		// is the element a pak file?
 		if( search->pack )
 		{
@@ -2145,10 +2150,17 @@ Look for a file in the search paths and open it in read-only mode
 */
 file_t *FS_OpenReadFile( const char *filename, const char *mode, bool quiet )
 {
-	searchpath_t *search;
-	int pack_ind;
+	searchpath_t	*search;
+	bool		gamedironly = false;
+	int		pack_ind;
 
-	search = FS_FindFile( filename, &pack_ind, quiet );
+	if( filename[0] == '$' )
+	{
+		filename++;
+		gamedironly = true;
+	}
+
+	search = FS_FindFile( filename, &pack_ind, quiet, gamedironly );
 
 	// not found?
 	if( search == NULL )
@@ -2798,7 +2810,15 @@ Look for a file in the packages and in the filesystem
 */
 bool FS_FileExists( const char *filename )
 {
-	if( FS_FindFile( filename, NULL, true ))
+	bool	gamedironly = false;
+
+	if( filename[0] == '$' )
+	{
+		filename++;
+		gamedironly = true;
+	}
+
+	if( FS_FindFile( filename, NULL, true, gamedironly ))
 		return true;
 	return false;
 }
@@ -2829,7 +2849,7 @@ dll_user_t *FS_FindLibrary( const char *dllname, bool directpath )
 	else com.strncpy( dllpath, dllname, sizeof( dllpath ));
 	FS_DefaultExtension( dllpath, ".dll" );	// trying to apply if forget
 
-	search = FS_FindFile( dllpath, &index, true );
+	search = FS_FindFile( dllpath, &index, true, false );
 	if( !search )
 	{
 		fs_ext_path = false;
@@ -2837,7 +2857,7 @@ dll_user_t *FS_FindLibrary( const char *dllname, bool directpath )
 
 		// trying check also 'bin' folder for indirect paths
 		com.strncpy( dllpath, dllname, sizeof( dllpath ));
-		search = FS_FindFile( dllpath, &index, true );
+		search = FS_FindFile( dllpath, &index, true, false );
 		if( !search ) return NULL;	// unable to find
 	}
 
@@ -2901,7 +2921,7 @@ fs_offset_t FS_FileTime( const char *filename )
 	searchpath_t	*search;
 	int		pack_ind;
 	
-	search = FS_FindFile( filename, &pack_ind, true );
+	search = FS_FindFile( filename, &pack_ind, true, false );
 	if( !search ) return -1; // doesn't exist
 
 	if( search->pack ) // grab pack filetime
@@ -2976,6 +2996,7 @@ static search_t *_FS_Search( const char *pattern, int caseinsensitive, int quiet
 	searchpath_t	*searchpath;
 	pack_t		*pak;
 	wfile_t		*wad;
+	bool		gamedironly = false;
 	int		i, basepathlength, numfiles, numchars;
 	int		resultlistindex, dirlistindex;
 	const char	*slash, *backslash, *colon, *separator;
@@ -2992,8 +3013,14 @@ static search_t *_FS_Search( const char *pattern, int caseinsensitive, int quiet
 		return NULL;
 	}
 
-	stringlistinit(&resultlist);
-	stringlistinit(&dirlist);
+	if( pattern[0] == '$' )
+	{
+		gamedironly = true;
+		pattern++; // ignore this symbol
+	}
+
+	stringlistinit( &resultlist );
+	stringlistinit( &dirlist );
 	slash = com.strrchr( pattern, '/' );
 	backslash = com.strrchr( pattern, '\\' );
 	colon = com.strrchr( pattern, ':' );
@@ -3007,6 +3034,9 @@ static search_t *_FS_Search( const char *pattern, int caseinsensitive, int quiet
 	// search through the path, one element at a time
 	for( searchpath = fs_searchpaths; searchpath; searchpath = searchpath->next )
 	{
+		if( gamedironly && !( searchpath->flags & FS_GAMEDIR_PATH ))
+			continue;
+
 		// is the element a pak file?
 		if( searchpath->pack )
 		{
@@ -4209,7 +4239,7 @@ static byte *W_LoadFile( const char *path, fs_offset_t *lumpsizeptr )
 	searchpath_t	*search;
 	int		index;
 
-	search = FS_FindFile( path, &index, true );
+	search = FS_FindFile( path, &index, true, false );
 	if( search && search->wad )
 		return W_ReadLump( search->wad, &search->wad->lumps[index], lumpsizeptr ); 
 	return NULL;

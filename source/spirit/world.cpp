@@ -653,10 +653,14 @@ void CWorld :: Precache( void )
 	else
 		CVAR_SET_FLOAT( "v_dark", 0.0 );
 
+	pev->spawnflags &= ~SF_WORLD_DARK;		// don't apply fade after save\restore
+
 	if ( pev->spawnflags & SF_WORLD_TITLE )
 		gDisplayTitle = TRUE;		// display the game title if this key is set
 	else
 		gDisplayTitle = FALSE;
+
+	pev->spawnflags &= ~SF_WORLD_TITLE;		// don't show logo after save\restore
 
 	if ( pev->spawnflags & SF_WORLD_FORCETEAM )
 	{

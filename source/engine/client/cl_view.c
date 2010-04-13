@@ -149,7 +149,8 @@ V_PreRender
 */
 bool V_PreRender( void )
 {
-	bool	clearScene = true;
+	bool		clearScene = true;
+	static bool	oldState;
 
 	// too early
 	if( !re ) return false;
@@ -163,6 +164,15 @@ bool V_PreRender( void )
 		clearScene = false;
 
 	re->BeginFrame( clearScene );
+
+	if( oldState && !cls.drawplaque )
+	{
+		// fire once
+		CL_DrawHUD( CL_CHANGELEVEL );
+		re->EndFrame();
+	}
+	oldState = cls.drawplaque;
+
 	return cls.drawplaque;
 }
 

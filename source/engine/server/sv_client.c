@@ -675,16 +675,17 @@ void SV_PutClientInServer( edict_t *ent )
 	}
 	else
 	{
-		// needs to setup angles on restore
-		if( ent->v.fixangle )
+		// NOTE: we needs to setup angles on restore here
+		if( ent->v.fixangle == 1 )
 		{
 			MSG_WriteByte( &sv.multicast, svc_setangle );
 			MSG_WriteAngle32( &sv.multicast, ent->v.angles[0] );
 			MSG_WriteAngle32( &sv.multicast, ent->v.angles[1] );
 			MSG_WriteAngle32( &sv.multicast, 0 );
 			MSG_DirectSend( MSG_ONE, vec3_origin, client->edict );
-			ent->v.fixangle = false;
+			ent->v.fixangle = 0;
 		}
+		ent->pvServerData->s.ed_flags |= (ESF_NODELTA|ESF_NO_PREDICTION);
 	}
 
 	client->pViewEntity = NULL; // reset pViewEntity

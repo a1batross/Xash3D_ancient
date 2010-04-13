@@ -111,7 +111,7 @@ void SV_ConfigString( int index, const char *val )
 	}
 }
 
-static bool SV_EntitiesIn( int mode, const vec3_t v1, const vec3_t v2 )
+static bool SV_OriginIn( int mode, const vec3_t v1, const vec3_t v2 )
 {
 	int	leafnum, cluster;
 	int	area1, area2;
@@ -122,13 +122,39 @@ static bool SV_EntitiesIn( int mode, const vec3_t v1, const vec3_t v2 )
 	area1 = CM_LeafArea( leafnum );
 	if( mode == DVIS_PHS ) mask = CM_ClusterPHS( cluster );
 	else if( mode == DVIS_PVS ) mask = CM_ClusterPVS( cluster ); 
-	else Host_Error( "SV_EntitiesIn ?\n" );
+	else Host_Error( "SV_OriginIn ?\n" );
 
 	leafnum = CM_PointLeafnum( v2 );
 	cluster = CM_LeafCluster( leafnum );
 	area2 = CM_LeafArea( leafnum );
 
 	if( mask && (!( mask[cluster>>3] & (1<<( cluster & 7 )))))
+		return false;
+	else if( !CM_AreasConnected( area1, area2 ))
+		return false;
+	return true;
+}
+
+static bool SV_BBoxIn( int mode, const vec3_t org1, const vec3_t absmin, const vec3_t absmax )
+{
+	int	leafnum, cluster;
+	int	area1, area2;
+	byte	*mask;
+	vec3_t	org2;
+
+	leafnum = CM_PointLeafnum( org1 );
+	cluster = CM_LeafCluster( leafnum );
+	area1 = CM_LeafArea( leafnum );
+	if( mode == DVIS_PHS ) mask = CM_ClusterPHS( cluster );
+	else if( mode == DVIS_PVS ) mask = CM_ClusterPVS( cluster ); 
+	else Host_Error( "SV_BBoxIn ?\n" );
+
+	VectorAverage( absmin, absmax, org2 );
+	leafnum = CM_PointLeafnum( org2 );
+	cluster = CM_LeafCluster( leafnum );
+	area2 = CM_LeafArea( leafnum );
+
+	if( pe && mask && !pe->BoxVisible( absmin, absmax, mask ))
 		return false;
 	else if( !CM_AreasConnected( area1, area2 ))
 		return false;
@@ -1065,7 +1091,7 @@ edict_t* pfnFindClientInPVS( edict_t *pEdict )
 			org = cl->pViewEntity->v.origin;
 		else org = pClient->v.origin;
 
-		if( SV_EntitiesIn( DVIS_PVS, pEdict->v.origin, org ))
+		if( SV_OriginIn( DVIS_PVS, pEdict->v.origin, org ))
 			return pClient;
 	}
 	return NULL;
@@ -1099,7 +1125,7 @@ edict_t* pfnFindClientInPHS( edict_t *pEdict )
 			org = cl->pViewEntity->v.origin;
 		else org = pClient->v.origin;
 
-		if( SV_EntitiesIn( DVIS_PHS, pEdict->v.origin, org ))
+		if( SV_OriginIn( DVIS_PHS, pEdict->v.origin, org ))
 			return pClient;
 	}
 	return NULL;
@@ -1111,28 +1137,25 @@ pfnEntitiesInPVS
 
 =================
 */
-edict_t* pfnEntitiesInPVS( edict_t *pplayer )
+edict_t *pfnEntitiesInPVS( edict_t *pplayer )
 {
 	edict_t	*pEdict, *chain;
-	vec3_t	checkPos;
-	int	i;
+	int	i, result;
 
-	chain = NULL;
+	if( !SV_IsValidEdict( pplayer ))
+		return NULL;
 
-	if( !pplayer || pplayer->free )
-		return chain;
-
-	for( i = svgame.globals->maxClients + 1; i < svgame.globals->numEntities; i++ )
+	for( chain = NULL, i = svgame.globals->maxClients + 1; i < svgame.globals->numEntities; i++ )
 	{
 		pEdict = EDICT_NUM( i );
 
 		if( !SV_IsValidEdict( pEdict )) continue;
 
 		if( CM_GetModelType( pEdict->v.modelindex ) == mod_brush )
-			VectorAverage( pEdict->v.mins, pEdict->v.maxs, checkPos );
-		else VectorCopy( pEdict->v.origin, checkPos );
+			result = SV_BBoxIn( DVIS_PVS, pplayer->v.origin, pEdict->v.absmin, pEdict->v.absmax );
+		else result = SV_OriginIn( DVIS_PVS, pplayer->v.origin, pEdict->v.origin );
 
-		if( SV_EntitiesIn( DVIS_PVS, checkPos, pplayer->v.origin ))
+		if( result )
 		{
 			pEdict->v.chain = chain;
 			chain = pEdict;
@@ -1147,28 +1170,25 @@ pfnEntitiesInPHS
 
 =================
 */
-edict_t* pfnEntitiesInPHS( edict_t *pplayer )
+edict_t *pfnEntitiesInPHS( edict_t *pplayer )
 {
 	edict_t	*pEdict, *chain;
-	vec3_t	checkPos;
-	int	i;
+	int	i, result;
 
-	chain = NULL;
+	if( !SV_IsValidEdict( pplayer ))
+		return NULL;
 
-	if( !pplayer || pplayer->free )
-		return chain;
-
-	for( i = svgame.globals->maxClients + 1; i < svgame.globals->numEntities; i++ )
+	for( chain = NULL, i = svgame.globals->maxClients + 1; i < svgame.globals->numEntities; i++ )
 	{
 		pEdict = EDICT_NUM( i );
 
 		if( !SV_IsValidEdict( pEdict )) continue;
 
 		if( CM_GetModelType( pEdict->v.modelindex ) == mod_brush )
-			VectorAverage( pEdict->v.mins, pEdict->v.maxs, checkPos );
-		else VectorCopy( pEdict->v.origin, checkPos );
+			result = SV_BBoxIn( DVIS_PHS, pplayer->v.origin, pEdict->v.absmin, pEdict->v.absmax );
+		else result = SV_OriginIn( DVIS_PHS, pplayer->v.origin, pEdict->v.origin );
 
-		if( SV_EntitiesIn( DVIS_PHS, checkPos, pplayer->v.origin ))
+		if( result )
 		{
 			pEdict->v.chain = chain;
 			chain = pEdict;
@@ -1280,6 +1300,9 @@ int pfnDropToFloor( edict_t* e )
 {
 	vec3_t	end;
 	trace_t	trace;
+
+	if( sv.loadgame )
+		return 0;
 
 	if( !SV_IsValidEdict( e ))
 	{

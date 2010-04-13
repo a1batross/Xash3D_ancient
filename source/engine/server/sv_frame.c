@@ -51,18 +51,29 @@ void SV_UpdateEntityState( const edict_t *ent, bool baseline )
 	if( !ent->pvServerData->s.classname )
 		ent->pvServerData->s.classname = SV_ClassIndex( STRING( ent->v.classname ));
 
-	if( client )
+	if( client && !sv.paused )
 	{
 		SV_SetIdealPitch( client );
 
-		if( ent->v.fixangle )
+		switch( ent->v.fixangle )
 		{
+		case 1:
 			MSG_WriteByte( &sv.multicast, svc_setangle );
 			MSG_WriteAngle32( &sv.multicast, ent->v.angles[0] );
 			MSG_WriteAngle32( &sv.multicast, ent->v.angles[1] );
 			MSG_WriteAngle32( &sv.multicast, 0 );
 			MSG_DirectSend( MSG_ONE, vec3_origin, client->edict );
+			ent->pvServerData->s.ed_flags |= ESF_NO_PREDICTION;
+			break;
+		case 2:
+			MSG_WriteByte( &sv.multicast, svc_addangle );
+			MSG_WriteAngle32( &sv.multicast, client->anglechangetotal );
+			MSG_WriteAngle32( &sv.multicast, client->anglechangefinal );
+			MSG_DirectSend( MSG_ONE, vec3_origin, client->edict );
+			client->anglechangetotal = client->anglechangefinal = 0;
+			break;
 		}
+		client->edict->v.fixangle = 0; // reset fixangle
 
 		if( client->modelindex )
 		{
@@ -73,10 +84,6 @@ void SV_UpdateEntityState( const edict_t *ent, bool baseline )
 
 	svgame.dllFuncs.pfnUpdateEntityState( &ent->pvServerData->s, (edict_t *)ent, baseline );
 
-	if( client )
-	{
-		client->edict->v.fixangle = false;
-	}
 	// always keep an actual
 	ent->pvServerData->s.number = ent->serialnumber;
 }
@@ -197,7 +204,7 @@ static void SV_AddEntitiesToPacket( edict_t *pViewEnt, edict_t *pClient, client_
 	if( pClient && !portal )
 	{
 		// portals can't change hostflags
-		sv.hostflags = 0;
+		sv.hostflags &= ~SVF_SKIPLOCALHOST;
 
 		cl = SV_ClientFromEdict( pClient, true );
 		Com_Assert( cl == NULL );

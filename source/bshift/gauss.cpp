@@ -136,8 +136,8 @@ void CGauss::Precache( void )
 	m_iBalls = PRECACHE_MODEL( "sprites/hotglow.spr" );
 	m_iBeam = PRECACHE_MODEL( "sprites/smoke.spr" );
 
-	m_usGaussFire = PRECACHE_EVENT( 1, "events/gauss.sc" );
-	m_usGaussSpin = PRECACHE_EVENT( 1, "events/gaussspin.sc" );
+	m_usGaussFire = PRECACHE_EVENT( 1, "evGauss" );
+	m_usGaussSpin = PRECACHE_EVENT( 1, "evGaussSpin" );
 }
 
 int CGauss::AddToPlayer( CBasePlayer *pPlayer )
@@ -415,7 +415,7 @@ void CGauss::Fire( Vector vecOrigSrc, Vector vecDir, float flDamage )
 	// This reliable event is used to stop the spinning sound
 	// It's delayed by a fraction of second to make sure it is delayed by 1 frame on the client
 	// It's sent reliably anyway, which could lead to other delays
-	PLAYBACK_EVENT_FULL( FEV_RELIABLE, m_pPlayer->edict(), m_usGaussFire, 0.01, (float *)&g_vecZero, (float *)&g_vecZero, 0.0, 0.0, 0, 0, 0, 1 );
+	PLAYBACK_EVENT_FULL( FEV_RELIABLE, m_pPlayer->edict(), m_usGaussFire, 0.01, (float *)&m_pPlayer->pev->origin, (float *)&m_pPlayer->pev->angles, 0.0, 0.0, pev->body, 0, 0, 1 );
 
 	/*
 	ALERT( at_console, "%f %f %f\n%f %f %f\n", 

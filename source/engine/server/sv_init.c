@@ -175,16 +175,11 @@ void SV_ActivateServer( void )
 
 	// Activate the DLL server code
 	svgame.dllFuncs.pfnServerActivate( svgame.edicts, svgame.globals->numEntities, svgame.globals->maxClients );
-
-	// all precaches are complete
-	sv.state = ss_active;
-	Host_SetServerState( sv.state );
 	
 	// create a baseline for more efficient communications
 	SV_CreateBaseline();
 
-	if( !sv.loadgame )
-		sv.frametime = 0;
+	if( sv.loadgame ) SV_CalcFrametime ();
 
 	// run two frames to allow everything to settle
 	SV_Physics();
@@ -211,8 +206,12 @@ void SV_ActivateServer( void )
 	Cvar_FullSet( "mapname", sv.name, CVAR_SERVERINFO|CVAR_INIT );
 
 	CM_EndRegistration (); // free unused models
+
+	sv.state = ss_active;
 	sv.cphys_prepped = true;
 	physinfo->modified = true;
+
+	Host_SetServerState( sv.state );
 }
 
 /*

@@ -4148,7 +4148,6 @@ void CBasePlayer :: UpdateClientData( void )
 	if (gDisplayTitle)
 	{
 		MESSAGE_BEGIN( MSG_ONE, gmsgShowGameTitle, NULL, pev );
-		WRITE_BYTE( 0 );
 		MESSAGE_END();
 		gDisplayTitle = 0;
 	}

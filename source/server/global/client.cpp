@@ -1169,11 +1169,6 @@ void UpdateEntityState( entity_state_t *to, edict_t *from, int baseline )
 	}
 	if( to->ed_type == ED_CLIENT )
 	{
-		if( pNet->pev->fixangle )
-		{
-			to->ed_flags |= ESF_NO_PREDICTION;
-		}
-
 		if( pNet->pev->teleport_time )
 		{
 			to->ed_flags |= ESF_NO_PREDICTION;

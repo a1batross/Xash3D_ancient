@@ -518,7 +518,7 @@ void CL_Reconnect_f( void )
 
 	// disable plaque draw on change map
 	cls.drawplaque = false;
-	Cmd_ExecuteString( "plaque\n" );
+	Cmd_ExecuteString( "hud_changelevel\n" );
 
 	if( cls.demoplayback ) return;
 
@@ -1075,6 +1075,48 @@ void CL_InitLocal( void )
 }
 
 //============================================================================
+/*
+==================
+CL_ApplyAddAngle
+
+==================
+*/
+void CL_ApplyAddAngle( void )
+{
+	float	frametime = (cl.serverframetime * 0.001f);
+	float	amove = 0.0f;
+	int	i;
+
+	for( i = 0; i < CMD_MASK; i++ )
+	{
+		add_angle_t	*add = &cl.addangle[i];
+		float		f, remainder = fabs( add->yawdelta - add->accum );
+		float		amount_to_add;
+
+		if( remainder <= 0.0001f )
+			continue;	// this angle expired
+
+		// apply some of the delta
+		f = frametime;
+		f = bound( 0.0f, f, 1.0f );
+
+		amount_to_add = f * add->yawdelta;
+
+		if( add->yawdelta > 0.0f )
+		{
+			amount_to_add = min( amount_to_add, remainder );
+		}
+		else
+		{
+			amount_to_add = max( amount_to_add, -remainder );
+		}
+
+		add->accum += amount_to_add;
+		amove += amount_to_add;
+	}
+
+	cl.refdef.cl_viewangles[1] += amove;
+}
 
 /*
 ==================
@@ -1120,6 +1162,9 @@ void CL_Frame( int time )
 	// predict all unacknowledged movements
 	CL_PredictMovement();
 
+	// apply accumulated angles
+	CL_ApplyAddAngle();
+
 	Host_CheckChanges();
 
 	// allow sound and video DLL change
@@ -1130,7 +1175,7 @@ void CL_Frame( int time )
 	}
 
 	// update the screen
-	SCR_UpdateScreen();
+	SCR_UpdateScreen ();
 
 	// update audio
 	S_Update( &cl.refdef );

@@ -66,6 +66,7 @@ enum svc_ops_e
 	svc_frame,		// server frame
 	svc_sound,		// <see code>
 	svc_setangle,		// [short short short] set the view angle to this absolute value
+	svc_addangle,		// [short short] add angles when client turn on mover
 	svc_setview,		// [short] entity number
 	svc_print,		// [byte] id [string] null terminated string
 	svc_centerprint,		// [string] to put in center of the screen

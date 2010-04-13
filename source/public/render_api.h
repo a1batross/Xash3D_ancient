@@ -64,7 +64,9 @@ typedef struct
 {
 	float		animtime;		// curstate.animtime	
 	int		sequence;		// curstate.sequence
+	int		gaitsequence;	// curstate.gaitsequence
 	float		frame;		// curstate.frame
+	float		gaitframe;	// client->frame + yaw
 	vec3_t		origin;		// curstate.origin
 	vec3_t		angles;		// curstate.angles
 	byte		blending[16];	// curstate.blending
@@ -75,11 +77,14 @@ typedef struct
 {
 	float		animtime;		// latched.prevanimtime 
 	float		sequencetime;	// latechd.prevsequencetime
+	float		gaitsequencetime;	// latehed.prevgaitsequencetime
 	byte		seqblending[16];	// blending between sequence when it's changed
 	vec3_t		origin;		// latched.prevorigin
 	vec3_t		angles;		// latched.prevangles
 	int		sequence;		// latched.prevsequence
+	int		gaitsequence;	// latched.gaitsequence
 	float		frame;		// latched.prevframe
+	float		gaitframe;	// latched.gaitprevframe
 	byte		controller[16];	// latched.prevcontroller
 	byte		blending[16];	// latched.prevblending
 } latchedvars_t;
@@ -92,7 +97,6 @@ typedef struct
 
 	// CLIENT SPECIFIC
 	vec3_t		gaitorigin;	// client oldorigin used to calc velocity
-	float		gaitframe;	// client->frame + yaw
 	float		gaityaw;		// local value
 
 	// EVENT SPECIFIC

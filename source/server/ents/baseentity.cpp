@@ -293,14 +293,12 @@ void CBaseEntity :: ResetParent( void )
 void CBaseEntity :: SetupPhysics( void )
 {
 	// rebuild all parents
-	if( pFlags & PF_LINKCHILD ) LinkChild( this );
+	if ( pFlags & PF_LINKCHILD ) LinkChild( this );
 
 	if ( gpGlobals->changelevel )
-	{
-		ALERT( at_console, "rebuild Phys()\n" );
 		m_physinit = FALSE;	// rebuild parents on next level
-	}
-	if( m_physinit ) return;
+
+	if ( m_physinit ) return;
 	SetParent(); //set all parents
 	m_physinit = true;
 

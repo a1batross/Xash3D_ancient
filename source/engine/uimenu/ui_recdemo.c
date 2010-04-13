@@ -131,7 +131,7 @@ static void UI_RecDemo_GetDemoList( void )
 	search_t	*t;
 	int	i = 0, j;
 
-	t = FS_Search( "demos/*.dem", true );
+	t = FS_Search( "$demos/*.dem", true );
 
 	if( cls.state == ca_active && !cls.demorecording && !cls.demoplayback )
 	{

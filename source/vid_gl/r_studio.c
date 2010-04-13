@@ -139,7 +139,8 @@ void R_StudioUpdateVars( edict_t *in, ref_entity_t *out )
 {
 	int	i;
 
-	out->lerp->latched.sequencetime = 0.0f;	// no lerping between sequences
+	out->lerp->latched.sequencetime = 0.0f;		// no lerping between sequences
+	out->lerp->latched.gaitsequencetime = 0.0f;	// no lerping between gaitsequences
 	out->lerp->latched.sequence = out->lerp->curstate.sequence = in->v.sequence; // keep an actual
 	out->lerp->latched.animtime = out->lerp->curstate.animtime = in->v.animtime;
 
@@ -181,6 +182,13 @@ void R_StudioUpdateVarsInterpolant( edict_t *in, ref_entity_t *out )
 		out->lerp->latched.sequence = out->lerp->curstate.sequence;	// save old sequence
 	}
 	out->lerp->curstate.sequence = in->v.sequence; // keep an actual
+
+	if( in->v.gaitsequence != out->lerp->curstate.gaitsequence && out->lerp->latched.sequencetime == 0.0f )
+	{
+		out->lerp->latched.gaitsequencetime = out->lerp->curstate.animtime + 0.01f;
+		out->lerp->latched.gaitsequence = out->lerp->curstate.gaitsequence;	// save old gaitsequence
+	}
+	out->lerp->curstate.gaitsequence = in->v.gaitsequence; // keep an actual
 
 	if( in->v.animtime != out->lerp->curstate.animtime )
 	{
@@ -286,6 +294,7 @@ void R_StudioAllocTentExtradata( TEMPENTITY *in, ref_entity_t *e )
 	Com_Assert( studio->lerp == NULL );
 
 	e->lerp->latched.sequencetime = 0.0f;					// no lerping between sequences
+	e->lerp->latched.gaitsequencetime = 0.0f;				// no lerping between gaitsequences
 	e->lerp->latched.sequence = e->lerp->curstate.sequence = in->m_iSequence;	// keep an actual
 	e->lerp->latched.animtime = e->lerp->curstate.animtime = in->m_flFrameMax;	// HACKHACK: used m_flFrameMax as animtime
 
@@ -1435,7 +1444,7 @@ void R_StudioSetupBones( ref_entity_t *e )
 		pseqdesc = (dstudioseqdesc_t *)((byte *)m_pStudioHeader + m_pStudioHeader->seqindex) + e->gaitsequence;
 
 		panim = R_StudioGetAnim( e->model, pseqdesc );
-		R_StudioCalcRotations( pos2, q2, pseqdesc, panim, pstudio->lerp->gaitframe );
+		R_StudioCalcRotations( pos2, q2, pseqdesc, panim, pstudio->lerp->curstate.gaitframe );
 
 		for( i = 0; i < m_pStudioHeader->numbones; i++ )
 		{
@@ -1445,6 +1454,29 @@ void R_StudioSetupBones( ref_entity_t *e )
 			Mem_Copy( pos[i], pos2[i], sizeof( pos[i] ));
 			Mem_Copy( q[i], q2[i], sizeof( q[i] ));
 		}
+	}
+
+	if( m_fDoInterp && pstudio->lerp->latched.gaitsequencetime && ( pstudio->lerp->latched.gaitsequencetime + 0.2 > RI.refdef.time) && ( pstudio->lerp->latched.gaitsequence < m_pStudioHeader->numseq ))
+	{
+		// blend from last sequence
+		static float  pos1b[MAXSTUDIOBONES][3];
+		static vec4_t q1b[MAXSTUDIOBONES];
+		float s;
+
+		pseqdesc = (dstudioseqdesc_t *)((byte *)m_pStudioHeader + m_pStudioHeader->seqindex) + pstudio->lerp->latched.gaitsequence;
+		panim = R_StudioGetAnim( e->model, pseqdesc );
+
+		// clip prevframe
+		R_StudioCalcRotations( pos1b, q1b, pseqdesc, panim, pstudio->lerp->latched.gaitframe );
+
+		s = 1.0f - ( RI.refdef.time - pstudio->lerp->latched.gaitsequencetime ) / 0.2f;
+		R_StudioSlerpBones( q, pos, q1b, pos1b, s );
+	}
+	else
+	{
+		// store prevframe otherwise
+		//Msg( "prevgaitframe = %4.2f\n", pstudio->lerp->curstate.gaitframe );
+		pstudio->lerp->latched.gaitframe = pstudio->lerp->curstate.gaitframe;
 	}
           
 	for( i = 0; i < m_pStudioHeader->numbones; i++ ) 
@@ -2159,16 +2191,16 @@ void R_StudioProcessGait( ref_entity_t *e, edict_t *pplayer, studiovars_t *pstud
 	// calc gait frame
 	if( pseqdesc->linearmovement[0] > 0 )
 	{
-		pstudio->lerp->gaitframe += (m_flGaitMovement / pseqdesc->linearmovement[0]) * pseqdesc->numframes;
+		pstudio->lerp->curstate.gaitframe += (m_flGaitMovement / pseqdesc->linearmovement[0]) * pseqdesc->numframes;
 	}
 	else
 	{
-		pstudio->lerp->gaitframe += pseqdesc->fps * dt;
+		pstudio->lerp->curstate.gaitframe += pseqdesc->fps * dt;
 	}
 
 	// do modulo
-	pstudio->lerp->gaitframe = pstudio->lerp->gaitframe - (int)(pstudio->lerp->gaitframe / pseqdesc->numframes) * pseqdesc->numframes;
-	if( pstudio->lerp->gaitframe < 0 ) pstudio->lerp->gaitframe += pseqdesc->numframes;
+	pstudio->lerp->curstate.gaitframe = pstudio->lerp->curstate.gaitframe - (int)(pstudio->lerp->curstate.gaitframe / pseqdesc->numframes) * pseqdesc->numframes;
+	if( pstudio->lerp->curstate.gaitframe < 0 ) pstudio->lerp->curstate.gaitframe += pseqdesc->numframes;
 }
 
 static bool R_StudioSetupModel( ref_entity_t *e, ref_model_t *mod )

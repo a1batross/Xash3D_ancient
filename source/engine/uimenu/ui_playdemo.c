@@ -131,7 +131,7 @@ static void UI_PlayDemo_GetDemoList( void )
 	search_t	*t;
 	int	i;
 
-	t = FS_Search( "demos/*.dem", true );
+	t = FS_Search( "$demos/*.dem", true );
 
 	for( i = 0; t && i < t->numfilenames; i++ )
 	{

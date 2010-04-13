@@ -368,6 +368,7 @@ typedef enum
 #define CL_LOADING			1	// draw loading progress-bar
 #define CL_ACTIVE			2	// draw normal hud
 #define CL_PAUSED			3	// pause when active
+#define CL_CHANGELEVEL		4	// draw 'loading' during changelevel
 
 // built-in dlight flags
 #define DLIGHT_FADE			(1<<0)	// fade dlight at end of lifetime
