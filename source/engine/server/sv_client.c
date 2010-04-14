@@ -1159,11 +1159,11 @@ MULTICAST_PVS	send to clients potentially visible from org
 MULTICAST_PHS	send to clients potentially hearable from org
 =================
 */
-void _MSG_Send( int dest, const vec3_t origin, const edict_t *ent, bool direct, const char *filename, int fileline )
+bool _MSG_Send( int dest, const vec3_t origin, const edict_t *ent, bool direct, const char *filename, int fileline )
 {
 	byte		*mask = NULL;
 	int		leafnum = 0, cluster = 0;
-	int		area1 = 0, area2 = 0;
+	int		numsends = 0, area1 = 0, area2 = 0;
 	int		j, numclients = sv_maxclients->integer;
 	sv_client_t	*cl, *current = svs.clients;
 	bool		reliable = false;
@@ -1177,7 +1177,7 @@ void _MSG_Send( int dest, const vec3_t origin, const edict_t *ent, bool direct, 
 			// copy signon buffer
 			MSG_WriteData( &sv.signon, sv.multicast.data, sv.multicast.cursize );
 			MSG_Clear( &sv.multicast );
-			return;
+			return true;
 		}
 		// intentional fallthrough (in-game MSG_INIT it's a MSG_ALL reliable)
 	case MSG_ALL:
@@ -1190,7 +1190,7 @@ void _MSG_Send( int dest, const vec3_t origin, const edict_t *ent, bool direct, 
 		reliable = true;
 		// intentional fallthrough
 	case MSG_PAS:
-		if( origin == NULL ) return;
+		if( origin == NULL ) return false;
 		leafnum = CM_PointLeafnum( origin );
 		cluster = CM_LeafCluster( leafnum );
 		mask = CM_ClusterPHS( cluster );
@@ -1200,7 +1200,7 @@ void _MSG_Send( int dest, const vec3_t origin, const edict_t *ent, bool direct, 
 		reliable = true;
 		// intentional fallthrough
 	case MSG_PVS:
-		if( origin == NULL ) return;
+		if( origin == NULL ) return false;
 		leafnum = CM_PointLeafnum( origin );
 		cluster = CM_LeafCluster( leafnum );
 		mask = CM_ClusterPVS( cluster );
@@ -1210,9 +1210,9 @@ void _MSG_Send( int dest, const vec3_t origin, const edict_t *ent, bool direct, 
 		reliable = true;
 		// intentional fallthrough
 	case MSG_ONE_UNRELIABLE:
-		if( ent == NULL ) return;
+		if( ent == NULL ) return false;
 		j = NUM_FOR_EDICT( ent );
-		if( j < 1 || j > numclients ) return;
+		if( j < 1 || j > numclients ) return false;
 		current = svs.clients + (j - 1);
 		numclients = 1; // send to one
 		break;
@@ -1221,7 +1221,7 @@ void _MSG_Send( int dest, const vec3_t origin, const edict_t *ent, bool direct, 
 		break;
 	default:
 		Host_Error( "MSG_Send: bad dest: %i (called at %s:%i)\n", dest, filename, fileline );
-		return;
+		return false;
 	}
 
 	// send the data to all relevent clients (or once only)
@@ -1243,8 +1243,8 @@ void _MSG_Send( int dest, const vec3_t origin, const edict_t *ent, bool direct, 
 			leafnum = CM_PointLeafnum( cl->edict->v.origin );
 			cluster = CM_LeafCluster( leafnum );
 			area2 = CM_LeafArea( leafnum );
-			if(!CM_AreasConnected( area1, area2 )) continue;
-			if( mask && (!(mask[cluster>>3] & (1<<(cluster & 7)))))
+			if( !CM_AreasConnected( area1, area2 )) continue;
+			if( mask && (!(mask[cluster>>3] & (1<<( cluster & 7 )))))
 				continue;
 		}
 
@@ -1254,6 +1254,7 @@ void _MSG_Send( int dest, const vec3_t origin, const edict_t *ent, bool direct, 
 			else MSG_WriteData( &cl->reliable, sv.multicast.data, sv.multicast.cursize );
 		}
 		else MSG_WriteData( &cl->datagram, sv.multicast.data, sv.multicast.cursize );
+		numsends++;
 	}
 	MSG_Clear( &sv.multicast );
 
@@ -1267,6 +1268,7 @@ void _MSG_Send( int dest, const vec3_t origin, const edict_t *ent, bool direct, 
 		MSG_Send( MSG_ALL, vec3_origin, NULL );
 		sv.write_bad_message = false;
 	}
+	return numsends;	// debug
 }
 
 /*

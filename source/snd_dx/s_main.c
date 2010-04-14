@@ -220,7 +220,6 @@ int S_AlterChannel( int entnum, int chan, sfx_t *sfx, int vol, int pitch, int fl
 	{
 		if( ch->entnum == entnum && ch->entchannel == chan && ch->sfx )
 		{
-         			Msg( "S_StartSound: vol %i, pitch %i\n", vol, pitch );
 			if( flags & SND_CHANGE_PITCH )
 				ch->basePitch = pitch;
 				
@@ -438,10 +437,7 @@ void S_StartSound( const vec3_t pos, int ent, int chan, sound_t handle, float fv
 	if( flags & (SND_STOP|SND_CHANGE_VOL|SND_CHANGE_PITCH))
 	{
 		if( S_AlterChannel( ent, chan, sfx, vol, pitch, flags ))
-		{
-			Msg( "S_AlterChannel( %s, %i, %i )\n", sfx->name, ent, chan );
 			return;
-		}
 
 		if( flags & SND_STOP ) return;
 		// fall through - if we're not trying to stop the sound, 

@@ -19,8 +19,14 @@ void SV_SetMinMaxSize( edict_t *e, const float *min, const float *max )
 		return;
 
 	for( i = 0; i < 3; i++ )
+	{
 		if( min[i] > max[i] )
-			Host_Error( "SV_SetMinMaxSize: backwards mins/maxs\n" );
+		{
+			MsgDev( D_ERROR, "SV_SetMinMaxSize: %s backwards mins/maxs\n", SV_ClassName( e ));
+			SV_LinkEdict( e, false ); // just relink edict and exit
+			return;
+		}
+	}
 
 	VectorCopy( min, e->v.mins );
 	VectorCopy( max, e->v.maxs );
@@ -120,9 +126,19 @@ static bool SV_OriginIn( int mode, const vec3_t v1, const vec3_t v2 )
 	leafnum = CM_PointLeafnum( v1 );
 	cluster = CM_LeafCluster( leafnum );
 	area1 = CM_LeafArea( leafnum );
-	if( mode == DVIS_PHS ) mask = CM_ClusterPHS( cluster );
-	else if( mode == DVIS_PVS ) mask = CM_ClusterPVS( cluster ); 
-	else Host_Error( "SV_OriginIn ?\n" );
+
+	switch( mode )
+	{
+	case DVIS_PVS:
+		mask = CM_ClusterPVS( cluster );
+		break;
+	case DVIS_PHS:
+		mask = CM_ClusterPHS( cluster );
+		break;
+	default:
+		mask = NULL; // force to check areas only
+		break;
+	}
 
 	leafnum = CM_PointLeafnum( v2 );
 	cluster = CM_LeafCluster( leafnum );
@@ -135,28 +151,16 @@ static bool SV_OriginIn( int mode, const vec3_t v1, const vec3_t v2 )
 	return true;
 }
 
-static bool SV_BBoxIn( int mode, const vec3_t org1, const vec3_t absmin, const vec3_t absmax )
+/*
+==============
+SV_BoxInPVS
+
+check brush boxes in fat pvs
+==============
+*/
+static bool SV_BoxInPVS( const vec3_t org1, const vec3_t absmin, const vec3_t absmax )
 {
-	int	leafnum, cluster;
-	int	area1, area2;
-	byte	*mask;
-	vec3_t	org2;
-
-	leafnum = CM_PointLeafnum( org1 );
-	cluster = CM_LeafCluster( leafnum );
-	area1 = CM_LeafArea( leafnum );
-	if( mode == DVIS_PHS ) mask = CM_ClusterPHS( cluster );
-	else if( mode == DVIS_PVS ) mask = CM_ClusterPVS( cluster ); 
-	else Host_Error( "SV_BBoxIn ?\n" );
-
-	VectorAverage( absmin, absmax, org2 );
-	leafnum = CM_PointLeafnum( org2 );
-	cluster = CM_LeafCluster( leafnum );
-	area2 = CM_LeafArea( leafnum );
-
-	if( pe && mask && !pe->BoxVisible( absmin, absmax, mask ))
-		return false;
-	else if( !CM_AreasConnected( area1, area2 ))
+	if( pe && !pe->BoxVisible( absmin, absmax, CM_FatPVS( org1, false )))
 		return false;
 	return true;
 }
@@ -392,8 +396,8 @@ edict_t *SV_AllocEdict( void )
 		}
 	}
 
-	if( i == svgame.globals->maxEntities )
-		Host_Error( "SV_AllocEdict: no free edicts\n" );
+	if( i >= svgame.globals->maxEntities )
+		Host_Error( "ED_AllocEdict: no free edicts\n" );
 
 	svgame.globals->numEntities++;
 	pEdict = EDICT_NUM( i );
@@ -416,7 +420,7 @@ edict_t *SV_CopyEdict( const edict_t *in )
 	out = SV_AllocPrivateData( NULL, in->v.classname );
 	entnum = out->serialnumber; // keep serialnumber an actual
 
-	if( out == NULL ) Host_Error( "SV_CopyEdict: no free edicts\n" );
+	if( out == NULL ) Host_Error( "ED_CopyEdict: no free edicts\n" );
 
 	if( in->pvServerData )
 	{
@@ -1152,7 +1156,7 @@ edict_t *pfnEntitiesInPVS( edict_t *pplayer )
 		if( !SV_IsValidEdict( pEdict )) continue;
 
 		if( CM_GetModelType( pEdict->v.modelindex ) == mod_brush )
-			result = SV_BBoxIn( DVIS_PVS, pplayer->v.origin, pEdict->v.absmin, pEdict->v.absmax );
+			result = SV_BoxInPVS( pplayer->v.origin, pEdict->v.absmin, pEdict->v.absmax );
 		else result = SV_OriginIn( DVIS_PVS, pplayer->v.origin, pEdict->v.origin );
 
 		if( result )
@@ -1173,7 +1177,8 @@ pfnEntitiesInPHS
 edict_t *pfnEntitiesInPHS( edict_t *pplayer )
 {
 	edict_t	*pEdict, *chain;
-	int	i, result;
+	vec3_t	checkPos;
+	int	i;
 
 	if( !SV_IsValidEdict( pplayer ))
 		return NULL;
@@ -1185,10 +1190,10 @@ edict_t *pfnEntitiesInPHS( edict_t *pplayer )
 		if( !SV_IsValidEdict( pEdict )) continue;
 
 		if( CM_GetModelType( pEdict->v.modelindex ) == mod_brush )
-			result = SV_BBoxIn( DVIS_PHS, pplayer->v.origin, pEdict->v.absmin, pEdict->v.absmax );
-		else result = SV_OriginIn( DVIS_PHS, pplayer->v.origin, pEdict->v.origin );
+			VectorAverage( pEdict->v.absmin, pEdict->v.absmax, checkPos );
+		else VectorCopy( pEdict->v.origin, checkPos );
 
-		if( result )
+		if( SV_OriginIn( DVIS_PHS, pplayer->v.origin, checkPos ))
 		{
 			pEdict->v.chain = chain;
 			chain = pEdict;
@@ -1417,7 +1422,7 @@ SV_StartSound
 */
 void SV_StartSound( edict_t *ent, int chan, const char *sample, float vol, float attn, int flags, int pitch )
 {
-	int 	i, sound_idx;
+	int 	sound_idx;
 	int	msg_dest = MSG_PAS_R;
 	vec3_t	origin;
 
@@ -1447,8 +1452,7 @@ void SV_StartSound( edict_t *ent, int chan, const char *sample, float vol, float
 	// ultimate method for detect bsp models with invalid solidity (e.g. func_pushable)
 	if( CM_GetModelType( ent->v.modelindex ) == mod_brush )
 	{
-		for( i = 0; i < 3; i++ )
-			origin[i] = ent->v.origin[i] + 0.5f * ( ent->v.mins[i] + ent->v.maxs[i] );
+		VectorAverage( ent->v.absmin, ent->v.absmax, origin );
 
 		if( flags & SND_SPAWNING )
 			msg_dest = MSG_INIT;
@@ -1456,12 +1460,12 @@ void SV_StartSound( edict_t *ent, int chan, const char *sample, float vol, float
 	}
 	else
 	{
-		for( i = 0; i < 3; i++ )
-			origin[i] = ent->v.origin[i];
+		VectorAverage( ent->v.mins, ent->v.maxs, origin );
+		VectorAdd( origin, ent->v.origin, origin );
 
 		if( flags & SND_SPAWNING )
 			msg_dest = MSG_INIT;
-		else msg_dest = MSG_PAS;
+		else msg_dest = MSG_PAS_R;
 	}
 
 	// always sending stop sound command
@@ -1496,7 +1500,7 @@ pfnEmitAmbientSound
 */
 void pfnEmitAmbientSound( edict_t *ent, float *pos, const char *samp, float vol, float attn, int flags, int pitch )
 {
-	int 	i, number, sound_idx;
+	int 	number, sound_idx;
 	int	msg_dest = MSG_PAS_R;
 	vec3_t	origin;
 
@@ -1520,8 +1524,7 @@ void pfnEmitAmbientSound( edict_t *ent, float *pos, const char *samp, float vol,
 	// ultimate method for detect bsp models with invalid solidity (e.g. func_pushable)
 	if( SV_IsValidEdict( ent ) && CM_GetModelType( ent->v.modelindex ) == mod_brush )
 	{
-		for( i = 0; i < 3; i++ )
-			origin[i] = ent->v.origin[i] + 0.5f * ( ent->v.mins[i] + ent->v.maxs[i] );
+		VectorAverage( ent->v.absmin, ent->v.absmax, origin );
 
 		if( flags & SND_SPAWNING )
 			msg_dest = MSG_INIT;
@@ -1530,8 +1533,8 @@ void pfnEmitAmbientSound( edict_t *ent, float *pos, const char *samp, float vol,
 	}
 	else
 	{
-		for( i = 0; i < 3; i++ )
-			origin[i] = pos[i];
+		VectorAverage( ent->v.mins, ent->v.maxs, origin );
+		VectorAdd( origin, ent->v.origin, origin );
 
 		if( flags & SND_SPAWNING )
 			msg_dest = MSG_INIT;
@@ -1979,8 +1982,7 @@ void pfnMessageEnd( void )
 	float		*org = NULL;
 
 	if( svgame.msg_name ) name = svgame.msg_name;
-	if( !svgame.msg_started )
-		Host_Error( "MessageEnd: called with no active message\n" );
+	if( !svgame.msg_started ) Host_Error( "MessageEnd: called with no active message\n" );
 	svgame.msg_started = false;
 
 	if( svgame.msg_sizes[svgame.msg_index] != -1 )
@@ -2128,9 +2130,8 @@ pfnWriteEntity
 */
 void pfnWriteEntity( int iValue )
 {
-	// edict -1 it's a viewmodel entity
-	if( iValue < -1 || iValue > svgame.globals->numEntities )
-		Host_Error( "MSG_WriteEntity: invalid entnumber %d\n", iValue );
+	if( iValue <= NULLENT_INDEX || iValue >= svgame.globals->numEntities )
+		Host_Error( "MSG_WriteEntity: invalid entnumber %i\n", iValue );
 	MSG_WriteShort( &sv.multicast, iValue );
 	svgame.msg_realsize += 2;
 }
@@ -3502,7 +3503,7 @@ bool SV_ParseEdict( script_t *script, edict_t *ent )
 
 		// parse key
 		if( !Com_ReadToken( script, SC_ALLOW_NEWLINES, &token ))
-			Host_Error( "SV_ParseEdict: EOF without closing brace\n" );
+			Host_Error( "ED_ParseEdict: EOF without closing brace\n" );
 		if( token.string[0] == '}' ) break; // end of desc
 
 		// anglehack is to allow QuakeEd to write single scalar angles
@@ -3518,10 +3519,10 @@ bool SV_ParseEdict( script_t *script, edict_t *ent )
 
 		// parse value	
 		if( !Com_ReadToken( script, SC_ALLOW_PATHNAMES2, &token ))
-			Host_Error( "SV_ParseEdict: EOF without closing brace\n" );
+			Host_Error( "ED_ParseEdict: EOF without closing brace\n" );
 
 		if( token.string[0] == '}' )
-			Host_Error( "SV_ParseEdict: closing brace without data\n" );
+			Host_Error( "ED_ParseEdict: closing brace without data\n" );
 
 		// ignore attempts to set key ""
 		if( !keyname[0] ) continue;
@@ -3601,7 +3602,7 @@ void SV_LoadFromFile( script_t *entities )
 	while( Com_ReadToken( entities, SC_ALLOW_NEWLINES, &token ))
 	{
 		if( token.string[0] != '{' )
-			Host_Error( "SV_LoadFromFile: found %s when expecting {\n", token.string );
+			Host_Error( "ED_LoadFromFile: found %s when expecting {\n", token.string );
 
 		if( create_world )
 		{

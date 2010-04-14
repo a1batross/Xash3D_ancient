@@ -1168,7 +1168,7 @@ void CM_TraceThroughSphere( traceWork_t *tw, vec3_t origin, float radius, vec3_t
 			VectorSubtract( end, start, dir );
 			VectorMA( start, fraction, dir, intersection );
 			VectorSubtract( intersection, origin, dir );
-			scale = 1 / ( radius + RADIUS_EPSILON );
+			scale = 1.0f / ( radius + RADIUS_EPSILON );
 			VectorScale( dir, scale, dir );
 			VectorCopy( dir, tw->trace.vecPlaneNormal );
 			VectorAdd( tw->modelOrigin, intersection, intersection );
@@ -1759,7 +1759,7 @@ void CM_TransformedBoxTrace( trace_t *tr, const vec3_t start, const vec3_t end, 
 	// bmodels
 	for( i = 0; i < 3; i++ )
 	{
-		offset[i] = (mins[i] + maxs[i]) * 0.5;
+		offset[i] = (mins[i] + maxs[i]) * 0.5f;
 		symetricSize[0][i] = mins[i] - offset[i];
 		symetricSize[1][i] = maxs[i] - offset[i];
 		start_l[i] = start[i] + offset[i];
@@ -1786,16 +1786,15 @@ void CM_TransformedBoxTrace( trace_t *tr, const vec3_t start, const vec3_t end, 
 		//       the bounding box or the bmodel because that would make all the brush
 		//       bevels invalid.
 		//       However this is correct for capsules since a capsule itself is rotated too.
+
 		Matrix4x4_CreateFromEntity( rotation, 0.0f, 0.0f, 0.0f, angles[PITCH], angles[YAW], angles[ROLL], 1.0f );
 		Matrix4x4_Copy( transform, rotation );
 		Matrix4x4_SetOrigin( transform, origin[0], origin[1], origin[2] );
-		Matrix4x4_Invert_Simple( inverse, rotation );
+		Matrix4x4_Invert_Simple( inverse, transform );
 
 		// transform trace line into the clipModel's space
-		VectorCopy( start_l, startRotated );
-		VectorCopy( end_l, endRotated );
-		Matrix4x4_TransformPoint( inverse, startRotated );
-		Matrix4x4_TransformPoint( inverse, endRotated );
+		Matrix4x4_VectorTransform( inverse, start_l, startRotated );
+		Matrix4x4_VectorTransform( inverse, end_l, endRotated );
 
 		// extract up vector from the rotation matrix as rotated sphere offset for capsule
 #ifdef OPENGL_STYLE
@@ -1821,9 +1820,13 @@ void CM_TransformedBoxTrace( trace_t *tr, const vec3_t start, const vec3_t end, 
 	// if the bmodel was rotated and there was a collision
 	if( rotated && trace.flFraction != 1.0f )
 	{
+		vec3_t	normal;	// untransformed normal
+
+		VectorCopy( trace.vecPlaneNormal, normal );
+
 		// Tr3B: we rotated our trace into the space of the clipModel
 		// so we have to rotate the trace plane normal back to world space
-		Matrix4x4_TransformNormal( rotation, trace.vecPlaneNormal );
+		Matrix4x4_VectorRotate( rotation, normal, trace.vecPlaneNormal );
 	}
 
 	// re-calculate the end position of the trace because the trace.vecEndPos

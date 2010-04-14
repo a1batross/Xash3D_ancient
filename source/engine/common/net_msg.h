@@ -177,7 +177,7 @@ void _MSG_WriteDeltaUsercmd( sizebuf_t *sb, usercmd_t *from, usercmd_t *cmd, con
 bool _MSG_WriteDeltaMovevars( sizebuf_t *sb, movevars_t *from, movevars_t *cmd, const char *filename, const int fileline );
 void _MSG_WriteDeltaEvent( sizebuf_t *msg, event_args_t *from, event_args_t *to, const char *filename, const int fileline );
 void _MSG_WriteDeltaEntity( entity_state_t *from, entity_state_t *to, sizebuf_t *msg, bool force, bool newentity, const char *file, int line );
-void _MSG_Send( int dest, const vec3_t origin, const edict_t *ent, bool direct, const char *filename, int fileline );
+bool _MSG_Send( int dest, const vec3_t origin, const edict_t *ent, bool direct, const char *filename, int fileline );
 
 #define MSG_Begin( x ) _MSG_Begin( x, __FILE__, __LINE__)
 #define MSG_WriteChar(x,y) _MSG_WriteBits (x, y, NWDesc[NET_CHAR].name, NET_CHAR, __FILE__, __LINE__)

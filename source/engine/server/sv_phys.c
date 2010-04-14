@@ -49,7 +49,7 @@ bool SV_TestEntityPosition( edict_t *ent, const vec3_t offset )
 
 	VectorAdd( ent->v.origin, offset, org );
 
-	if( ent->v.flags & FL_CLIENT )
+	if( ent->v.flags & ( FL_CLIENT|FL_FAKECLIENT ))
 	{
 		// player can crouch, noclip etc
 		if( SV_TestPlayerPosition( org, ent, NULL ))
@@ -82,6 +82,7 @@ void SV_CheckAllEnts( void )
 	for( i = svgame.globals->maxClients + 1; i < svgame.globals->numEntities; i++ )
 	{
 		e = EDICT_NUM( i );
+
 		if( !SV_IsValidEdict( e )) continue;
 
 		switch( e->v.movetype )
@@ -91,11 +92,12 @@ void SV_CheckAllEnts( void )
 		case MOVETYPE_FOLLOW:
 		case MOVETYPE_NOCLIP:
 			continue;
-		default: break;
+		default:
+			if( e->pvServerData->stuck ) 
+				break;
+			else continue;
 		}
-
-		if( e->pvServerData->stuck )                    
-			SV_UnstickEntity( e );
+		SV_UnstickEntity( e );
 	}
 }
 
@@ -171,7 +173,6 @@ Returns false if the entity removed itself.
 */
 bool SV_RunThink( edict_t *ent )
 {
-#if 1
 	float	thinktime;
 
 	thinktime = ent->v.nextthink;
@@ -185,33 +186,7 @@ bool SV_RunThink( edict_t *ent )
 	ent->v.nextthink = 0;
 	svgame.globals->time = thinktime;
 	svgame.dllFuncs.pfnThink( ent );
-#else
-	int	i;
-	float	newtime;
 
-	newtime = (sv.time * 0.001f) + (sv.frametime * 0.001f);
-		
-	// don't let things stay in the past.
-	// it is possible to start that way by a trigger with a local time.
-	if( ent->v.nextthink <= 0.0f || ent->v.nextthink > newtime )
-		return true;
-
-	for( i = 0; i < SV_UPDATE_BACKUP && !ent->free; i++ )
-	{
-		svgame.globals->time = max(( sv.time * 0.001f ), ent->v.nextthink );
-		ent->v.nextthink = 0.0f;
-
-		svgame.dllFuncs.pfnThink( ent );
-
-		newtime = (sv.time * 0.001f) + (sv.frametime * 0.001f);
-
-		// mods often set nextthink to time to cause a think every frame,
-		// we don't want to loop in that case, so exit if the new nextthink is
-		// <= the time the qc was told, also exit if it is past the end of the frame
-		if( ent->v.nextthink <= svgame.globals->time || ent->v.nextthink > newtime || !sv_synchthink->integer )
-			break;
-	}
-#endif
 	return !ent->free;
 }
 
@@ -227,6 +202,10 @@ bool SV_Impact( edict_t *e1, trace_t *trace )
 	edict_t	*e2 = trace->pHit;
 	vec3_t	org;
 
+	// custom user filter
+	if( !svgame.dllFuncs.pfnShouldCollide( e1, e2 ))
+		return false;
+
 	SV_CopyTraceToGlobal( trace );
 	VectorCopy( e1->v.origin, org );
 	svgame.globals->time = (sv.time * 0.001f);
@@ -238,10 +217,12 @@ bool SV_Impact( edict_t *e1, trace_t *trace )
 
 	if( !e1->free && !e2->free && e2->v.solid != SOLID_NOT )
 	{
+		// inverse plane and normal for second contacted edict
 		VectorCopy( e2->v.origin, svgame.globals->trace_endpos );
 		VectorNegate( trace->vecPlaneNormal, svgame.globals->trace_plane_normal );
 		svgame.globals->trace_plane_dist = -trace->flPlaneDist;
 		svgame.globals->trace_ent = e1;
+
 		svgame.dllFuncs.pfnTouch( e2, e1 );
 	}
 	return VectorCompare( e1->v.origin, org );
@@ -336,14 +317,12 @@ void SV_AngularMove( edict_t *ent, float frametime, float friction )
 		if( ent->v.avelocity[i] > 0.0f )
 		{
 			ent->v.avelocity[i] -= adjustment;
-			if( ent->v.avelocity[i] < 0.0f )
-				ent->v.avelocity[i] = 0.0f;
+			if( ent->v.avelocity[i] < 0.0f ) ent->v.avelocity[i] = 0.0f;
 		}
 		else
 		{
 			ent->v.avelocity[i] += adjustment;
-			if( ent->v.avelocity[i] > 0.0f )
-				ent->v.avelocity[i] = 0.0f;
+			if( ent->v.avelocity[i] > 0.0f ) ent->v.avelocity[i] = 0.0f;
 		}
 	}
 }
@@ -369,14 +348,12 @@ void SV_LinearMove( edict_t *ent, float frametime, float friction )
 		if( ent->v.velocity[i] > 0.0f )
 		{
 			ent->v.velocity[i] -= adjustment;
-			if( ent->v.velocity[i] < 0.0f )
-				ent->v.velocity[i] = 0.0f;
+			if( ent->v.velocity[i] < 0.0f ) ent->v.velocity[i] = 0.0f;
 		}
 		else
 		{
 			ent->v.velocity[i] += adjustment;
-			if( ent->v.velocity[i] > 0.0f )
-				ent->v.velocity[i] = 0.0f;
+			if( ent->v.velocity[i] > 0.0f ) ent->v.velocity[i] = 0.0f;
 		}
 	}
 }
@@ -457,9 +434,9 @@ be accurate for client side prediction
 */
 void SV_ClampOrigin( vec3_t origin )
 {
-	origin[0] -= 32.0f * floor( origin[0] * (1.0f / 32.0f));
-	origin[1] -= 32.0f * floor( origin[1] * (1.0f / 32.0f));
-	origin[2] -= 32.0f * floor( origin[2] * (1.0f / 32.0f));
+	origin[0] -= 32.0f * floor( origin[0] * ( 1.0f / 32.0f ));
+	origin[1] -= 32.0f * floor( origin[1] * ( 1.0f / 32.0f ));
+	origin[2] -= 32.0f * floor( origin[2] * ( 1.0f / 32.0f ));
 }
 
 /*
@@ -1397,44 +1374,52 @@ void _SV_Physics_Pusher( edict_t *ent )
 SV_Physics_Follow
 
 Entities that are "stuck" to another entity
+assume oldorigin as originoffset and oldangles as angle difference
 =============
 */
 void SV_Physics_Follow( edict_t *ent )
 {
 	vec3_t		vf, vr, vu, angles, v;
-	edict_t		*e;
+	edict_t		*parent;
 
 	// regular thinking
-	if( !SV_RunThink( ent ))
-		return;
+	if( !SV_RunThink( ent )) return;
 
-	e = ent->v.aiment;
-	if( !e || e->free ) return;
+	// force to hold current values as offsets
+	if( ent->v.flags & EF_NOINTERP )
+	{
+		VectorCopy( ent->v.origin, ent->v.oldorigin );
+		VectorCopy( ent->v.angles, ent->v.oldangles );
+	}
 
-	if( VectorCompare( e->v.angles, ent->v.punchangle ))
+	parent = ent->v.aiment;
+	if( !SV_IsValidEdict( parent )) return;
+
+	if( VectorCompare( parent->v.angles, ent->v.oldangles ))
 	{
 		// quick case for no rotation
-		VectorAdd( e->v.origin, ent->v.view_ofs, ent->v.origin );
+		VectorAdd( parent->v.origin, ent->v.oldorigin, ent->v.origin );
 	}
 	else
 	{
-		angles[0] = -ent->v.punchangle[0];
-		angles[1] =  ent->v.punchangle[1];
-		angles[2] =  ent->v.punchangle[2];
+		angles[0] = -ent->v.oldangles[0];
+		angles[1] =  ent->v.oldangles[1];
+		angles[2] =  ent->v.oldangles[2];
 		AngleVectors( angles, vf, vr, vu );
-		v[0] = ent->v.view_ofs[0] * vf[0] + ent->v.view_ofs[1] * vr[0] + ent->v.view_ofs[2] * vu[0];
-		v[1] = ent->v.view_ofs[0] * vf[1] + ent->v.view_ofs[1] * vr[1] + ent->v.view_ofs[2] * vu[1];
-		v[2] = ent->v.view_ofs[0] * vf[2] + ent->v.view_ofs[1] * vr[2] + ent->v.view_ofs[2] * vu[2];
-		angles[0] = -e->v.angles[0];
-		angles[1] =  e->v.angles[1];
-		angles[2] =  e->v.angles[2];
+		v[0] = ent->v.oldorigin[0] * vf[0] + ent->v.oldorigin[1] * vr[0] + ent->v.oldorigin[2] * vu[0];
+		v[1] = ent->v.oldorigin[0] * vf[1] + ent->v.oldorigin[1] * vr[1] + ent->v.oldorigin[2] * vu[1];
+		v[2] = ent->v.oldorigin[0] * vf[2] + ent->v.oldorigin[1] * vr[2] + ent->v.oldorigin[2] * vu[2];
+
+		angles[0] = -parent->v.angles[0];
+		angles[1] =  parent->v.angles[1];
+		angles[2] =  parent->v.angles[2];
 		AngleVectors( angles, vf, vr, vu );
-		ent->v.origin[0] = v[0] * vf[0] + v[1] * vf[1] + v[2] * vf[2] + e->v.origin[0];
-		ent->v.origin[1] = v[0] * vr[0] + v[1] * vr[1] + v[2] * vr[2] + e->v.origin[1];
-		ent->v.origin[2] = v[0] * vu[0] + v[1] * vu[1] + v[2] * vu[2] + e->v.origin[2];
+		ent->v.origin[0] = v[0] * vf[0] + v[1] * vf[1] + v[2] * vf[2] + parent->v.origin[0];
+		ent->v.origin[1] = v[0] * vr[0] + v[1] * vr[1] + v[2] * vr[2] + parent->v.origin[1];
+		ent->v.origin[2] = v[0] * vu[0] + v[1] * vu[1] + v[2] * vu[2] + parent->v.origin[2];
 	}
 
-	VectorAdd( e->v.angles, ent->v.viewangles, ent->v.angles );
+	VectorAdd( parent->v.angles, ent->v.oldangles, ent->v.angles );
 	SV_LinkEdict( ent, false );
 }
 
@@ -1451,9 +1436,15 @@ void SV_Physics_Noclip( edict_t *ent )
 	if( !SV_RunThink( ent )) return;
 
 	SV_CheckWater( ent );	
-	VectorMA( ent->v.angles, svgame.globals->frametime, ent->v.avelocity, ent->v.angles );
-	VectorMA( ent->v.origin, svgame.globals->frametime, ent->v.velocity, ent->v.origin );
 
+	// let apply friction for noclip objects
+#ifdef IGNORE_FRICTION
+	VectorMA( pusher->v.origin, movetime, pusher->v.velocity, pusher->v.origin );
+	VectorMA( pusher->v.angles, movetime, pusher->v.avelocity, pusher->v.angles );
+#else
+	SV_LinearMove( ent, svgame.globals->frametime, ent->v.friction );
+	SV_AngularMove( ent, svgame.globals->frametime, ent->v.friction );
+#endif
 	SV_LinkEdict( ent, false );	// nocip ents never touch triggers
 }
 
@@ -2035,11 +2026,7 @@ Non moving objects can only think
 */
 void SV_Physics_None( edict_t *ent )
 {
-	float	newtime;
-
-	newtime = (sv.time * 0.001f) + svgame.globals->frametime;
-	if( ent->v.nextthink > 0.0f && ent->v.nextthink <= newtime )
-		SV_RunThink( ent );
+	SV_RunThink( ent );
 }
 
 
@@ -2057,23 +2044,20 @@ static void SV_Physics_Entity( edict_t *ent )
 	}
 	ent->v.flags &= ~FL_BASEVELOCITY;
 
-	// user dll has override movement type
+	// user dll can override movement type
 	if( svgame.dllFuncs.pfnPhysicsEntity( ent ))
 		return;
 
 	switch( ent->v.movetype )
 	{
-	case MOVETYPE_PUSH:
-		SV_Physics_Pusher( ent );
-		break;
 	case MOVETYPE_NONE:
 		SV_Physics_None( ent );
 		break;
-	case MOVETYPE_FOLLOW:
-		SV_Physics_Follow( ent );
-		break;
 	case MOVETYPE_NOCLIP:
 		SV_Physics_Noclip( ent );
+		break;
+	case MOVETYPE_FOLLOW:
+		SV_Physics_Follow( ent );
 		break;
 	case MOVETYPE_STEP:
 	case MOVETYPE_PUSHSTEP:
@@ -2085,6 +2069,9 @@ static void SV_Physics_Entity( edict_t *ent )
 	case MOVETYPE_FLYMISSILE:
 	case MOVETYPE_BOUNCEMISSILE:
 		SV_Physics_Toss( ent );
+		break;
+	case MOVETYPE_PUSH:
+		SV_Physics_Pusher( ent );
 		break;
 	case MOVETYPE_CONVEYOR:
 		SV_Physics_Conveyor( ent );
@@ -2137,9 +2124,10 @@ void SV_Physics( void )
 	for( i = 1; ( svgame.globals->force_retouch > 0 ) && i < svgame.globals->numEntities; i++ )
 	{
 		ent = EDICT_NUM( i );
-		if( ent->free ) continue;
+		if( !SV_IsValidEdict( ent )) continue;
 
-		SV_LinkEdict( ent, true ); // force retouch even for stationary
+		// force retouch even for stationary
+		SV_LinkEdict( ent, true );
 	}
 
 	// treat each object in turn
@@ -2148,7 +2136,8 @@ void SV_Physics( void )
 		for( i = svgame.globals->maxClients + 1; i < svgame.globals->numEntities; i++ )
 		{
 			ent = EDICT_NUM( i );
-			if( ent->free ) continue;
+			if( !SV_IsValidEdict( ent )) continue;
+
 			SV_Physics_Entity( ent );
 		}
 	}
