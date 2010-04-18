@@ -161,7 +161,9 @@ void CGlock::PrimaryAttack( void )
 		Vector vecDir;
 		vecDir = m_pPlayer->FireBulletsPlayer( 1, vecSrc, vecAiming, Vector( 0.02, 0.02, 0.02 ), 8192, BULLET_PLAYER_9MM, 0, 0, m_pPlayer->pev, m_pPlayer->random_seed );
 
-		PLAYBACK_EVENT_FULL( 0, m_pPlayer->edict(), m_usFireGlock, 0.0, (float *)&g_vecZero, (float *)&g_vecZero, vecDir.x, vecDir.y, pev->body, 0, ( m_iClip == 0 ) ? 1 : 0, m_iBody );
+		int iAnim = ( m_iClip == 0 ) ? GLOCK_SHOOT_EMPTY : GLOCK_SHOOT;
+
+		PLAYBACK_EVENT_FULL( 0, m_pPlayer->edict(), m_usFireGlock, 0.0, (float *)&g_vecZero, (float *)&g_vecZero, vecDir.x, vecDir.y, pev->body, iAnim, 0, m_iBody );
 
 		m_flNextPrimaryAttack = m_flNextSecondaryAttack = UTIL_WeaponTimeBase() + 0.35;
 		m_flTimeWeaponIdle = UTIL_WeaponTimeBase() + RANDOM_FLOAT ( 10, 15 );

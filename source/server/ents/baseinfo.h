@@ -8,7 +8,7 @@
 class CPointEntity : public CBaseEntity
 {
 public:
-	void Spawn( void ){ SetBits( pev->flags, FL_POINTENTITY ); pev->solid = SOLID_NOT; }
+	void Spawn( void ){ SetBits( pFlags, PF_POINTENTITY ); pev->solid = SOLID_NOT; }
 	virtual int ObjectCaps( void ) { return CBaseEntity :: ObjectCaps() & ~FCAP_ACROSS_TRANSITION; }
 };
 

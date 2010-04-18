@@ -26,7 +26,7 @@ public:
 		pev->soundindex = pev->impulse;
 		UTIL_SetModel( ENT( pev ), "models/props/torch1.mdl" );
 		UTIL_SetSize(pev, g_vecZero, g_vecZero);
-		SetBits( pev->flags, FL_POINTENTITY );
+		SetBits( pFlags, PF_POINTENTITY );
 		pev->animtime = gpGlobals->time + 0.2;	// enable animation
 		pev->framerate = 0.5f;
 	}

@@ -159,22 +159,14 @@ struct sv_priv_s
 	link_t		area;		// linked to a division node or leaf
 	sv_client_t	*client;		// filled for player ents
 	int		lastcluster;	// unused if num_clusters != -1
-	int		linkcount;
 	int		num_clusters;	// if -1, use headnode instead
 	int		clusternums[MAX_ENT_CLUSTERS];
 	int		framenum;		// update framenumber
 	int		areanum, areanum2;
 	bool		linked;		// passed through SV_LinkEdict
 
-	bool		stuck;		// entity stucked in brush
-
-	// cached position to avoid redundant SV_CheckWaterTransition calls on monsters
-	bool		forceupdate;	// force an update on this entity
-					// (set by SV_PushMove code for moving water entities)
-	vec3_t		water_origin;	// updates whenever this changes
-
-	vec3_t		moved_origin;	// used by PushMove to keep track of where objects were before
-	vec3_t		moved_angles;	// they were moved, in case they need to be moved back
+	vec3_t		moved_origin;
+	vec3_t		moved_angles;
 
 	size_t		pvdata_size;	// member size of alloceed pvPrivateData
 					// (used by SV_CopyEdict)
@@ -338,7 +330,6 @@ void SV_Physics( void );
 void SV_CheckVelocity( edict_t *ent );
 bool SV_CheckWater( edict_t *ent );
 bool SV_RunThink( edict_t *ent );
-bool SV_UnstickEntity( edict_t *ent );
 void SV_FreeOldEntities( void );
 bool SV_TestEntityPosition( edict_t *ent, const vec3_t offset );	// for EntityInSolid checks
 

@@ -591,9 +591,8 @@ SV_RunCmd
 void SV_RunCmd( sv_client_t *cl, usercmd_t *ucmd )
 {
 	edict_t		*clent;
-	int		i, oldmsec;
-	static usercmd_t	cmd;
 	vec3_t		oldvel;
+	int		i;
 
 	cl->commandMsec -= ucmd->msec;
 
@@ -604,20 +603,7 @@ void SV_RunCmd( sv_client_t *cl, usercmd_t *ucmd )
 	}
 
 	clent = cl->edict;
-	cmd = *ucmd;
-	if( !clent || clent->free ) return;
-
-	// chop up very long commands
-	if( cmd.msec > 50 )
-	{
-		oldmsec = ucmd->msec;
-		cmd.msec = oldmsec / 2;
-		SV_RunCmd( cl, &cmd );
-		cmd.msec = oldmsec / 2;
-		cmd.impulse = 0;
-		SV_RunCmd( cl, &cmd );
-		return;
-	}
+	if( !SV_IsValidEdict( clent )) return;
 
 	PM_CheckMovingGround( clent, ucmd->msec * 0.001f );
 
@@ -631,7 +617,7 @@ void SV_RunCmd( sv_client_t *cl, usercmd_t *ucmd )
 
 	// angles
 	// show 1/3 the pitch angle and all the roll angle	
-	if( clent->v.health > 0.0f )
+	if( clent->v.deadflag != DEAD_DEAD )
 	{
 		if( !clent->v.fixangle )
 		{
@@ -640,12 +626,12 @@ void SV_RunCmd( sv_client_t *cl, usercmd_t *ucmd )
 		}
 	}
 
+	svgame.globals->time = (sv.time * 0.001f);
+	svgame.globals->frametime = (sv.frametime * 0.001f);
+
 	if(!( clent->v.flags & FL_SPECTATOR ))
 	{
-		svgame.globals->time = sv.time * 0.001f;
-		svgame.globals->frametime = ucmd->msec * 0.001f;
 		svgame.dllFuncs.pfnPlayerPreThink( clent );
-
 		SV_RunThink( clent ); // clients cannot be deleted from map
 
 		// If conveyor, or think, set basevelocity, then send to client asap too.
@@ -653,8 +639,11 @@ void SV_RunCmd( sv_client_t *cl, usercmd_t *ucmd )
 			VectorCopy( clent->v.basevelocity, clent->v.clbasevelocity );
 	}
 
-	if(( sv_maxclients->integer <= 1 ) && !CL_IsInGame( ))
+	if(( sv_maxclients->integer <= 1 ) && !CL_IsInGame( ) || ( clent->v.flags & FL_FROZEN ))
 		ucmd->msec = 0; // pause
+
+	svgame.globals->time = (sv.time * 0.001f);
+	svgame.globals->frametime = (ucmd->msec * 0.001f);
 
 	// setup playermove state
 	PM_SetupMove( svgame.pmove, clent, ucmd, cl->physinfo );
@@ -708,8 +697,6 @@ void SV_PostRunCmd( sv_client_t *cl )
 	if( !clent || clent->free ) return;
 
 	svgame.pmove->runfuncs = false;	// all next calls ignore footstep sounds
-	svgame.globals->frametime = 0.0f;	// PlayerPostThink uses it
-	svgame.globals->time = sv.time * 0.001f;
 		
 	// run post-think
 	if( clent->v.flags & FL_SPECTATOR )

@@ -122,9 +122,9 @@
 #define FL_DUCKING			(1<<14)	// monster (or player) is ducked
 #define FL_FLOAT			(1<<15)	// Apply floating force to this entity when in water
 #define FL_GRAPHED			(1<<16)	// worldgraph has this ent listed as something that blocks a connection
-#define FL_PROJECTILE		(1<<17)	// this is rocket entity    (was FL_IMMUNE_WATER)
-#define FL_TANK			(1<<18)	// this is func tank entity (was FL_IMMUNE_SLIME)
-#define FL_POINTENTITY		(1<<19)	// this is point entity     (was FL_IMMUNE_LAVA)
+#define FL_IMMUNE_WATER		(1<<17)	// not used
+#define FL_IMMUNE_SLIME		(1<<18)	// not used
+#define FL_IMMUNE_LAVA		(1<<19)	// not used
 #define FL_PROXY			(1<<20)   // This is a spectator proxy
 #define FL_ALWAYSTHINK		(1<<21)	// Brush model flag -- call think every frame regardless of nextthink - ltime (for constantly changing velocity/path)
 #define FL_BASEVELOCITY		(1<<22)	// Base velocity has been applied this frame (used to convert base velocity into momentum)
@@ -133,7 +133,8 @@
 #define FL_WORLDBRUSH		(1<<25)	// Not moveable/removeable brush entity (really part of the world, but represented as an entity for transparency or something)
 #define FL_SPECTATOR            	(1<<26)	// This client is a spectator, don't run touch functions, etc.
 #define FL_PHS_FILTER		(1<<27)	// This entity requested phs bitvector in AddToFullPack calls
-#define FL_CUSTOMENTITY		(1<<29)	// This is a custom entity
+#define FL_PROJECTILE		(1<<28)	// This is a projectile entity
+#define FL_TEAMSLAVE		(1<<29)	// Not first on the team ( engine 'moves with' spec)
 #define FL_KILLME			(1<<30)	// This entity is marked for death -- This allows the engine to kill ents at the appropriate time
 #define FL_DORMANT			(1<<31)	// Entity is dormant, no updates to client
 
@@ -141,6 +142,7 @@
 #define SF_START_ON			(1<<0)
 
 // classic quake flags (must be not collide with any dll spawnflags - engine uses this)
+// please include string "allow_inhibited_entities" into your gameinfo.txt if you want to enable this feature
 #define SF_NOT_EASY			(1<<8)
 #define SF_NOT_MEDIUM		(1<<9)
 #define SF_NOT_HARD			(1<<10)
@@ -236,8 +238,8 @@ typedef enum
 typedef enum
 {
 	MOVETYPE_NONE = 0,	// never moves
-	MOVETYPE_CONVEYOR,	// simulate conveyor belt, push all stuff
-	MOVETYPE_STOP,	// toggled between PUSHSTEP and STOP
+	MOVETYPE_CONVEYOR,	// Xash3D: simulate conveyor belt, push all stuff
+	MOVETYPE_COMPOUND,	// Xash3D: compound two entities
 	MOVETYPE_WALK,	// Player only - moving on the ground
 	MOVETYPE_STEP,	// gravity, special edge handling
 	MOVETYPE_FLY,       // No gravity, but still collides with stuff
@@ -247,7 +249,7 @@ typedef enum
 	MOVETYPE_FLYMISSILE,// extra size to monsters
 	MOVETYPE_BOUNCE,	// Just like Toss, but reflect velocity when contacting surfaces
 	MOVETYPE_BOUNCEMISSILE,// bounce w/o gravity
-	MOVETYPE_FOLLOW,	// attached models
+	MOVETYPE_FOLLOW,	// studio attached models
 	MOVETYPE_PUSHSTEP,  // BSP model that needs physics/world collisions
 	MOVETYPE_PHYSIC,	// phys simulation
 } movetype_t;

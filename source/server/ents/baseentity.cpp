@@ -167,7 +167,7 @@ void CBaseEntity :: SetParent( CBaseEntity* pParent, int m_iAttachment )
 
           	if( m_iAttachment )
           	{
-			if( pev->flags & FL_POINTENTITY || pev->flags & FL_MONSTER )
+			if( pFlags & PF_POINTENTITY || pev->flags & FL_MONSTER )
 			{         
 				pev->colormap = ((pev->colormap & 0xFF00)>>8) | m_iAttachment;
 				pev->aiment = m_pParent->edict();
@@ -209,7 +209,7 @@ void CBaseEntity :: SetParent( CBaseEntity* pParent, int m_iAttachment )
 		OffsetOrigin = pev->origin - pParentOrigin;
 		OffsetAngles = pev->angles - pParentAngles;
 
-		if((m_pParent->pFlags & PF_ANGULAR && OffsetOrigin != g_vecZero) || m_pParent->pev->flags & FL_POINTENTITY)
+		if((m_pParent->pFlags & PF_ANGULAR && OffsetOrigin != g_vecZero) || m_pParent->pFlags & PF_POINTENTITY)
 		{
 			SetBits (pFlags, PF_POSTORG);//magic stuff
 			//GetPInfo( this );

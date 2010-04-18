@@ -215,7 +215,6 @@ void SV_LinkEdict( edict_t *ent, bool touch_triggers )
 		}
 	}
 
-	ent->pvServerData->linkcount++;
 	ent->pvServerData->s.ed_flags |= ESF_LINKEDICT;	// change edict state on a client too...
 	sv_ent->linked = true;
 		

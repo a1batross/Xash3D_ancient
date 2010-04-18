@@ -9,7 +9,8 @@
 #include "beam_def.h"
 #include "te_shared.h"
 
-#define NOISE_DIVISIONS		128
+#define NOISE_DIVISIONS		64	// don't touch - many tripmines cause the crash when it equal 128
+#define NOISE_MASK			(NOISE_DIVISIONS-1)
 #define MAX_BEAM_ENTS		2	// start & end entity
 #define MAX_BEAMS			128	// Max simultaneous beams
 #define MAX_BEAMTRAILS		2048	// default max # of particles at one time

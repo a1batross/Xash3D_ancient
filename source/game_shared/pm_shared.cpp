@@ -1593,7 +1593,7 @@ int PM_CheckStuck( void )
 	if ( !pmove->server )
 	{
 		// World or BSP model
-		if ( hitent == ENTINDEX( 0 ) || ( hitent && Mod_GetType( hitent->v.modelindex ) == mod_brush ))
+		if ( hitent == ENTINDEX( 0 ) || ( hitent && Mod_GetType( hitent->v.modelindex ) == mod_world ))
 		{
 			int	nReps = 0;
 
@@ -1644,6 +1644,7 @@ int PM_CheckStuck( void )
 		return 0;
 	}
 
+	/*
 	// If player is flailing while stuck in another player ( should never happen ), then see
 	// if we can't "unstick" them forceably.
 	if( pmove->cmd.buttons & (IN_JUMP|IN_DUCK|IN_ATTACK) && ( hitent && hitent->v.flags & FL_CLIENT ))
@@ -1674,9 +1675,7 @@ int PM_CheckStuck( void )
 			}
 		}
 	}
-
-	// pmove->origin = base;
-
+	*/
 	return 1;
 }
 

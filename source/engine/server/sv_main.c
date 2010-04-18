@@ -371,7 +371,7 @@ void SV_PrepWorldFrame( void )
 		ent->v.effects &= ~EF_MUZZLEFLASH;
 
 		// clear NOINTERP flag automatically only for alive creatures			
-		if( ent->v.flags & ( FL_MONSTER|FL_CLIENT|FL_FAKECLIENT ) && ent->v.health > 0.0f )
+		if( ent->v.flags & ( FL_MONSTER|FL_CLIENT|FL_FAKECLIENT ) && ent->v.deadflag != DEAD_DEAD )
 			ent->v.effects &= ~EF_NOINTERP;
 	}
 }

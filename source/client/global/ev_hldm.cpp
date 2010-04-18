@@ -672,7 +672,6 @@ void EV_FireGlock1( event_args_t *args )
 	Vector origin = args->origin;
 	Vector angles = args->angles;
 	Vector velocity = args->velocity;
-	int empty;
 
 	Vector ShellVelocity;
 	Vector ShellOrigin;
@@ -682,7 +681,6 @@ void EV_FireGlock1( event_args_t *args )
 	
 	idx = args->entindex;
 
-	empty = args->bparam1;
 	AngleVectors( angles, forward, right, up );
 
 	shell = g_engfuncs.pEventAPI->EV_FindModelIndex ( "models/shell.mdl" ); // brass shell
@@ -690,7 +688,7 @@ void EV_FireGlock1( event_args_t *args )
 	if ( EV_IsLocal( idx ) )
 	{
 		edict_t *view = GetViewModel();
-		g_engfuncs.pEventAPI->EV_WeaponAnim( empty ? GLOCK_SHOOT_EMPTY : GLOCK_SHOOT, args->iparam1, 1.0f );
+		g_engfuncs.pEventAPI->EV_WeaponAnim( args->iparam2, args->iparam1, 1.0f );
 
 		EV_MuzzleFlash();							
 
@@ -1641,7 +1639,7 @@ void EV_SnarkFire( event_args_t *args )
 		vecSrc = vecSrc - ( VEC_HULL_MIN - VEC_DUCK_HULL_MIN );
 	
 	// store off the old count
-	UTIL_TraceLine( vecSrc + forward * 20, vecSrc + forward * 64, dont_ignore_monsters, GetEntityByIndex( idx ), &tr );
+	UTIL_TraceLine( vecSrc + forward * 20, vecSrc + forward * 64, dont_ignore_monsters, NULL, &tr );
 
 	// find space to drop the thing.
 	if ( tr.fAllSolid == 0 && tr.fStartSolid == 0 && tr.flFraction > 0.25f )

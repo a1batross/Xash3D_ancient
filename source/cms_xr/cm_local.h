@@ -358,7 +358,7 @@ void CM_ModelFrames( model_t handle, int *numFrames );
 modtype_t CM_ModelType( model_t handle );
 cmodel_t *CM_ClipHandleToModel( model_t handle );
 model_t CM_TempBoxModel( const vec3_t mins, const vec3_t maxs, bool capsule );
-void CM_BeginRegistration ( const char *name, bool clientload, uint *checksum );
+void CM_BeginRegistration( const char *name, bool clientload, uint *checksum );
 bool CM_RegisterModel( const char *name, int sv_index );
 void *CM_Extradata( model_t handle );
 void CM_EndRegistration ( void );

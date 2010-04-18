@@ -34,5 +34,5 @@ Xash 0.71 Beta 05.05.10
 10.revision MOVETYPE_PUSH physic
 11.rewrite EntitiesInPVS check		OK
 12.reworking snd_dx.dll
-13. revision MOVETYPE_BOUNCE physic
-14. revision MOVETYPE_FOLLOW physic
+13. revision MOVETYPE_BOUNCE physic		OK
+14. revision MOVETYPE_COMPOUND physic

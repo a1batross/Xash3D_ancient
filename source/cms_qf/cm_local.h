@@ -84,7 +84,7 @@ typedef struct
 
 	// shared modelinfo
 	modtype_t		type;		// model type
-	vec3_t		mins, maxs;	// model boundbox
+	vec3_t		mins, maxs;	// bounding box at angles '0 0 0'
 	byte		*extradata;	// studiomodels extradata
 	void		*submodels;	// animations ptr
 	int		numframes;	// sprite framecount

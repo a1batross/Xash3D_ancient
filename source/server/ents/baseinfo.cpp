@@ -22,7 +22,7 @@ public:
 		pev->solid = SOLID_NOT;
 		UTIL_SetModel(ENT(pev),"models/common/null.mdl");
 		UTIL_SetSize(pev, g_vecZero, g_vecZero);
-		SetBits( pev->flags, FL_POINTENTITY );
+		SetBits( pFlags, PF_POINTENTITY );
 	}
 };
 
@@ -72,7 +72,7 @@ public:
 		pev->soundindex = pev->impulse;
 		UTIL_SetModel( ENT( pev ), "models/props/torch1.mdl" );
 		UTIL_SetSize(pev, g_vecZero, g_vecZero);
-		SetBits( pev->flags, FL_POINTENTITY );
+		SetBits( pFlags, PF_POINTENTITY );
 		pev->animtime = gpGlobals->time + 0.2;	// enable animation
 		pev->framerate = 0.5f;
 	}
@@ -327,7 +327,7 @@ void CInfoPath :: Spawn( void )
  
 	m_iState = STATE_ON;
           m_index = 0;
-	SetBits( pev->flags, FL_POINTENTITY );
+	SetBits( pFlags, PF_POINTENTITY );
 	UTIL_SetModel( ENT( pev ), "blabla.mdl");
 	pev->scale = 0.1f;
 }

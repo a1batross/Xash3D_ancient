@@ -865,6 +865,12 @@ void Host_Init( const int argc, const char **argv )
 	s = va( "^1Xash %g ^3%s", GI->version, buildstring );
 	Cvar_Get( "version", s, CVAR_INIT, "engine current version" );
 
+	// content control
+	Cvar_Get( "violence_hgibs", "1", CVAR_SYSTEMINFO, "content control disables human gibs" );
+	Cvar_Get( "violence_agibs", "1", CVAR_SYSTEMINFO, "content control disables alien gibs" );
+	Cvar_Get( "violence_hblood", "1", CVAR_SYSTEMINFO, "content control disables human blood" );
+	Cvar_Get( "violence_ablood", "1", CVAR_SYSTEMINFO, "content control disables alien blood" );
+
 	NET_Init();
 	Netchan_Init();
 

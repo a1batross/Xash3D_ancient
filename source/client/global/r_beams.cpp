@@ -2221,11 +2221,11 @@ void DrawRing( int noise_divisions, float *prgNoise, void (*pfnNoise)( float *no
 		point[2] = xaxis[2] * x + yaxis[2] * y + center[2];
 
 		// Distort using noise
-		factor = prgNoise[(noiseIndex>>16) & 0x7F] * scale;
+		factor = prgNoise[(noiseIndex>>16) & NOISE_MASK] * scale;
 		point = point + (gpViewParams->up * factor);
 
 		// Rotate the noise along the perpendicluar axis a bit to keep the bolt from looking diagonal
-		factor = prgNoise[(noiseIndex>>16) & 0x7F] * scale * cos(fraction * M_PI * 3 * 8 + freq);
+		factor = prgNoise[(noiseIndex>>16) & NOISE_MASK] * scale * cos(fraction * M_PI * 3 * 8 + freq);
 		point = point + (gpViewParams->right * factor);
 		
 		// Transform point into screen space

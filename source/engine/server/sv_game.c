@@ -1315,7 +1315,6 @@ int pfnDropToFloor( edict_t* e )
 		return false;
 	}
 
-	SV_UnstickEntity( e );
 	VectorCopy( e->v.origin, end );
 	end[2] -= 256;
 
@@ -1333,7 +1332,6 @@ int pfnDropToFloor( edict_t* e )
 		if( trace.fStartSolid )
 		{
 			MsgDev( D_NOTE, "SV_DropToFloor: startsolid at %g %g %g\n", e->v.origin[0], e->v.origin[1], e->v.origin[2] );
-			SV_UnstickEntity( e );
 			SV_LinkEdict( e, true );
 			e->v.flags |= FL_ONGROUND;
 			e->v.groundentity = NULL;
@@ -1343,7 +1341,6 @@ int pfnDropToFloor( edict_t* e )
 		{
 			MsgDev( D_NOTE, "SV_DropToFloor: moved to %g %g %g\n", e->v.origin[0], e->v.origin[1], e->v.origin[2] );
 			VectorCopy( trace.vecEndPos, e->v.origin );
-			SV_UnstickEntity( e );
 			SV_LinkEdict( e, true );
 			e->v.flags |= FL_ONGROUND;
 			e->v.groundentity = trace.pHit;

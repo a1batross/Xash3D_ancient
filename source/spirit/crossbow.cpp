@@ -147,7 +147,12 @@ void CCrossbowBolt::BoltTouch( CBaseEntity *pOther )
 
 		if( pOther->IsBSPModel())
                     {
-                    	SetParent( pOther );//glue bolt with parent system
+			// TEST compound
+			pev->movetype = MOVETYPE_COMPOUND;
+			pev->aiment = pOther->edict();
+			pev->effects |= EF_NOINTERP;
+
+//			SetParent( pOther );//glue bolt with parent system
                     }
 
 		if (UTIL_PointContents(pev->origin) != CONTENTS_WATER)

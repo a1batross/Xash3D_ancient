@@ -778,6 +778,7 @@ void COM_FreeFile (char *buffer);
 #define PF_PARENTMOVE	(1<<10)		//parent give me velocity or avelocity
 #define PF_ANGULAR		(1<<11)		//parent has angular moving
 #define PF_POSTORG		(1<<12)		//this entity MUST changed origin only
+#define PF_POINTENTITY	(1<<13)
 #define PF_LINKCHILD	(PF_AFFECT|PF_DESIRED|PF_MERGEPOS|PF_POSTORG)
 
 BOOL FClassnameIs(CBaseEntity *pEnt, const char* szClassname);

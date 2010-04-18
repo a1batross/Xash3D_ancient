@@ -32,7 +32,11 @@ _inline void CM_BeginRegistration( const char *name, bool clientload, uint *chec
 _inline void Mod_GetBounds( model_t handle, vec3_t mins, vec3_t maxs )
 {
 	if( pe ) pe->Mod_GetBounds( handle, mins, maxs );
-	else mins[0] = mins[1] = mins[2] = maxs[0] = maxs[1] = maxs[2] = 0.0f;
+	else
+	{
+		if( mins ) mins[0] = mins[1] = mins[2] = 0.0f;
+		if( maxs ) maxs[0] = maxs[1] = maxs[2] = 0.0f;
+	}
 }
 
 _inline void Mod_GetFrames( model_t handle, int *numFrames )

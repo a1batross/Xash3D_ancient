@@ -2022,15 +2022,7 @@ pfnGetModBounds
 */
 void pfnGetModBounds( model_t modelIndex, float *mins, float *maxs )
 {
-	if( pe )
-	{
-		pe->Mod_GetBounds( modelIndex, mins, maxs );
-	}
-	else
-	{
-		if( mins ) VectorClear( mins );
-		if( maxs ) VectorClear( maxs );
-	}
+	Mod_GetBounds( modelIndex, mins, maxs );
 }
 	
 /*

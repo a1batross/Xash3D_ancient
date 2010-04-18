@@ -875,7 +875,6 @@ void CLightning::BeamUpdateVars( void )
 	pev->skin = 0;
 	pev->sequence = 0;
 	pev->rendermode = 0;
-	pev->flags |= FL_CUSTOMENTITY;
 	pev->model = m_iszSpriteName;
 	SetTexture( m_spriteTexture );
 
@@ -949,7 +948,6 @@ void CLaser::Spawn( void )
 	Precache( );
 
 	SetThink( StrikeThink );
-	pev->flags |= FL_CUSTOMENTITY;
 
 	PointsInit( pev->origin, pev->origin );
 

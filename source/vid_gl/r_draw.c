@@ -249,7 +249,7 @@ static void Tri_DrawPolygon( void )
 	tri_mesh.colorsArray[0] = tri_colors;
 	tri_mesh.elems = tri_elems;
 
-	if( tri_mbuffer.shaderkey != (int)shader->sortkey || -tri_mbuffer.infokey-1+4 > MAX_ARRAY_VERTS )
+	if( tri_mbuffer.shaderkey != (int)shader->sortkey || -tri_mbuffer.infokey-1+32 > MAX_ARRAY_VERTS )
 	{
 		if( tri_mbuffer.shaderkey )
 		{

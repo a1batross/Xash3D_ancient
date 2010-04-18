@@ -688,7 +688,7 @@ void CSprite::Spawn( void )
 	pev->solid	= SOLID_NOT;
 	pev->movetype	= MOVETYPE_NOCLIP;
 	pev->frame	= 0;
-	SetBits( pev->flags, FL_POINTENTITY );
+	SetBits( pFlags, PF_POINTENTITY );
 	
 	pev->angles.x	=  -pev->angles.x;
 	pev->angles.y	=  180 - pev->angles.y;

@@ -2108,8 +2108,14 @@ int R_ComputeFxBlend( ref_entity_t *e )
 	}
 
 	// store value back into client entity, some effects requires this
-	if( m_pEntity ) m_pEntity->v.renderamt = renderAmt;
+	if( m_pEntity )
+	{
+		m_pEntity->v.renderamt = renderAmt;
 
+		// NOTE: never pass sprites with rendercolor '0 0 0' it's a stupid Valve Hammer Editor bug
+		if(( !e->rendercolor[0] && !e->rendercolor[1] && !e->rendercolor[2] ))
+			VectorSet( e->rendercolor, 255, 255, 255 );
+	}
 	blend = bound( 0, blend, 255 );
 
 	return blend;

@@ -225,10 +225,11 @@ void SV_DeactivateServer( void )
 {
 	int	i;
 
-	if( !svs.initialized || sv.state == ss_dead )
-		return;
+	if( !svs.initialized ) return;
 
 	SV_FreeEdicts ();
+
+	if( sv.state == ss_dead ) return;
 	sv.state = ss_dead;
 
 	if( sys_sharedstrings->integer )

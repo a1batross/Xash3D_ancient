@@ -172,7 +172,6 @@ void CFuncTank :: Spawn( void )
 	if ( m_spread > MAX_FIRING_SPREADS ) m_spread = 0;
 
 	pev->oldorigin = pev->origin;
-          pev->flags |= FL_TANK;//this is tank entity
 }
 
 void CFuncTank::PostSpawn( void )
@@ -1072,18 +1071,18 @@ BOOL CFuncTankControls :: OnControls( entvars_t *pevTest )
 	return FALSE;
 }
 
-void CFuncTankControls :: HandleTank ( CBaseEntity *pActivator, CBaseEntity *m_pTank, BOOL activate )
+void CFuncTankControls :: HandleTank ( CBaseEntity *pActivator, CBaseEntity *pTank, BOOL activate )
 {
-	if(m_pTank->pev->flags & FL_TANK)//it's tank entity
+	if( !strncmp( STRING( pTank->pev->classname ), "func_tank", 9 ))
 	{
-		if(activate)
+		if( activate )
 		{
-			if (((CFuncTank*)m_pTank)->StartControl((CBasePlayer*)pActivator, this))
+			if( (( CFuncTank *)pTank)->StartControl(( CBasePlayer *)pActivator, this ))
 			{
 				m_iState = STATE_ON; //we have active tank!
 			}
 		}
-		else ((CFuncTank*)m_pTank)->StopControl(this);
+		else (( CFuncTank *)pTank)->StopControl( this );
 	}
 }
 

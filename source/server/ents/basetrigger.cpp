@@ -314,7 +314,7 @@ class CTriggerPush : public CBaseTrigger
 		pOwner = UTIL_FindEntityByTargetname( NULL, STRING( pev->target ));
 		if( !pOwner ) return; // dir set with angles
 
-		if( pOwner->pev->flags & FL_POINTENTITY )
+		if( pOwner->pFlags & PF_POINTENTITY )
 		{
 			// xash allows to precache from random place
 			UTIL_PrecacheSound( "world/jumppad.wav" );
@@ -795,7 +795,7 @@ void CTriggerCamera :: Spawn (void )
 	
 	UTIL_SetModel( ENT( pev ), "models/common/null.mdl" );
 	UTIL_SetSize( pev, g_vecZero, g_vecZero );
-	SetBits( pev->flags, FL_POINTENTITY );
+	SetBits( pFlags, PF_POINTENTITY );
 }
 
 void CTriggerCamera::PostSpawn( void )
