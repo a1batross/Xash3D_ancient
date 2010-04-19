@@ -1497,7 +1497,7 @@ pfnEmitAmbientSound
 */
 void pfnEmitAmbientSound( edict_t *ent, float *pos, const char *samp, float vol, float attn, int flags, int pitch )
 {
-	int 	number, sound_idx;
+	int 	number = 0, sound_idx;
 	int	msg_dest = MSG_PAS_R;
 	vec3_t	origin;
 
@@ -1518,25 +1518,27 @@ void pfnEmitAmbientSound( edict_t *ent, float *pos, const char *samp, float vol,
 	if( attn != ATTN_NONE ) flags |= SND_SOUNDLEVEL;
 	if( pitch != PITCH_NORM ) flags |= SND_PITCH;
 
-	// ultimate method for detect bsp models with invalid solidity (e.g. func_pushable)
-	if( SV_IsValidEdict( ent ) && CM_GetModelType( ent->v.modelindex ) == mod_brush )
-	{
-		VectorAverage( ent->v.absmin, ent->v.absmax, origin );
+	if( flags & SND_SPAWNING )
+		msg_dest = MSG_INIT;
+	else msg_dest = MSG_PAS;
 
-		if( flags & SND_SPAWNING )
-			msg_dest = MSG_INIT;
-		else msg_dest = MSG_PAS;
-		number = ent->serialnumber;
+	// ultimate method for detect bsp models with invalid solidity (e.g. func_pushable)
+	if( SV_IsValidEdict( ent ))
+	{
+		if( CM_GetModelType( ent->v.modelindex ) == mod_brush )
+		{
+			VectorAverage( ent->v.absmin, ent->v.absmax, origin );
+			number = ent->serialnumber;
+		}
+		else
+		{
+			VectorAverage( ent->v.mins, ent->v.maxs, origin );
+			VectorAdd( origin, ent->v.origin, origin );
+		}
 	}
 	else
 	{
-		VectorAverage( ent->v.mins, ent->v.maxs, origin );
-		VectorAdd( origin, ent->v.origin, origin );
-
-		if( flags & SND_SPAWNING )
-			msg_dest = MSG_INIT;
-		else msg_dest = MSG_PAS;
-		number = 0;
+		VectorCopy( pos, origin );
 	}
 
 	// always sending stop sound command

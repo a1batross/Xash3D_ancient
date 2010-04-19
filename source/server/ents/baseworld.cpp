@@ -73,7 +73,7 @@ void CWorld :: PostActivate( void )
 	else
 	{
 		// tell engine there is no skybox set
-		SET_SKYBOX( "desert" );
+		SET_SKYBOX( "" );
 	}
 }
 LINK_ENTITY_TO_CLASS( worldspawn, CWorld );

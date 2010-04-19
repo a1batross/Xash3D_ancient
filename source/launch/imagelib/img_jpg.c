@@ -355,7 +355,8 @@ extern struct jpeg_error_mgr* jpeg_std_error( struct jpeg_error_mgr *err );
 extern JDIMENSION jpeg_write_scanlines( j_compress_ptr cinfo, byte** scanlines, JDIMENSION num_lines );
 
 static byte	jpeg_eoi_marker [2] = {0xFF, JPEG_EOI};
-static jmp_buf	error_in_jpeg;
+static jmp_buf	error_load_jpeg;
+static jmp_buf	error_save_jpeg;
 static bool	jpeg_toolarge;
 
 // our own output manager for JPEG compression
@@ -415,11 +416,16 @@ static void JPEG_MemSrc( j_decompress_ptr cinfo, const byte *buffer, size_t file
 	cinfo->src->term_source = JPEG_Noop;
 }
 
-static void JPEG_ErrorExit( j_common_ptr cinfo )
+static void JPEG_ErrorLoad( j_common_ptr cinfo )
 {
-	MsgDev( D_ERROR, "Image_SaveJpeg: internal error\n" );
-//	((struct jpeg_decompress_struct*)cinfo)->err->output_message( cinfo );
-	longjmp( error_in_jpeg, 1 );
+	MsgDev( D_ERROR, "Image_LoadJPG: internal error\n" );
+	longjmp( error_load_jpeg, 1 );
+}
+
+static void JPEG_ErrorSave( j_common_ptr cinfo )
+{
+	MsgDev( D_ERROR, "Image_SaveJPG: internal error\n" );
+	longjmp( error_save_jpeg, 1 );
 }
 
 /*
@@ -437,9 +443,9 @@ bool Image_LoadJPG( const char *name, const byte *buffer, size_t filesize )
 
 	cinfo.err = jpeg_std_error( &jerr );
 	jpeg_create_decompress( &cinfo );
-	if( setjmp( error_in_jpeg )) goto error_caught;
+	if( setjmp( error_load_jpeg )) goto error_caught;
 	cinfo.err = jpeg_std_error( &jerr );
-	cinfo.err->error_exit = JPEG_ErrorExit;
+	cinfo.err->error_exit = JPEG_ErrorLoad;
 	JPEG_MemSrc( &cinfo, buffer, filesize );
 	jpeg_read_header( &cinfo, TRUE );
 	jpeg_start_decompress( &cinfo );
@@ -529,7 +535,7 @@ static jboolean JPEG_EmptyOutputBuffer( j_compress_ptr cinfo )
 	dest_ptr	dest = (dest_ptr)cinfo->dest;
 
 	if( FS_Write( dest->outfile, dest->buffer, JPEG_OUTPUT_BUF_SIZE ) != (size_t)JPEG_OUTPUT_BUF_SIZE )
-		longjmp( error_in_jpeg, 1 );
+		longjmp( error_save_jpeg, 1 );
 
 	dest->pub.next_output_byte = dest->buffer;
 	dest->pub.free_in_buffer = JPEG_OUTPUT_BUF_SIZE;
@@ -544,7 +550,7 @@ static void JPEG_TermDestination( j_compress_ptr cinfo )
 	// write any data remaining in the buffer
 	if( datacount > 0 )
 		if( FS_Write( dest->outfile, dest->buffer, datacount ) != (fs_offset_t)datacount )
-			longjmp( error_in_jpeg, 1 );
+			longjmp( error_save_jpeg, 1 );
 }
 
 static void JPEG_FileDest( j_compress_ptr cinfo, file_t *outfile )
@@ -582,10 +588,10 @@ bool Image_SaveJPG( const char *name, rgbdata_t *pix )
 	file = FS_Open( name, "wb" );
 	if( !file ) return false;
 
-	if( setjmp( error_in_jpeg ))
+	if( setjmp( error_save_jpeg ))
 		goto error_caught;
 	cinfo.err = jpeg_std_error( &jerr );
-	cinfo.err->error_exit = JPEG_ErrorExit;
+	cinfo.err->error_exit = JPEG_ErrorSave;
 
 	jpeg_create_compress( &cinfo );
 	JPEG_FileDest( &cinfo, file );

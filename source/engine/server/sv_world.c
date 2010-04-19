@@ -376,7 +376,6 @@ trace_t SV_ClipMoveToEntity( edict_t *ent, const vec3_t start, vec3_t mins, vec3
 			trace.pHit = NULL;	// clear entity when hitbox not intersected
 		}
 	}
-
 	return trace;
 }
 
@@ -440,7 +439,7 @@ static void SV_ClipToLinks( areanode_t *node, moveclip_t *clip )
 			continue;
 
 		// don't clip points against points (they can't collide)
-		if( VectorCompare( touch->v.mins, touch->v.maxs ) && (clip->type != MOVE_MISSILE || !(touch->v.flags & FL_MONSTER)))
+		if( VectorCompare( touch->v.mins, touch->v.maxs ) && (clip->type != MOVE_MISSILE || !( touch->v.flags & FL_MONSTER )))
 			continue;
 
 		if( clip->type == MOVE_WORLDONLY )
@@ -493,7 +492,7 @@ static void SV_ClipToLinks( areanode_t *node, moveclip_t *clip )
 				continue;	// don't clip against owner
 		}
 
-		if( touch->v.flags & FL_MONSTER )
+		if( touch->v.solid == SOLID_SLIDEBOX || touch->v.solid == SOLID_BBOX )
 			trace = SV_ClipMoveToEntity( touch, clip->start, clip->mins2, clip->maxs2, clip->end, clip->umask, clip->flags );
 		else trace = SV_ClipMoveToEntity( touch, clip->start, clip->mins, clip->maxs, clip->end, clip->umask, clip->flags );
 		clip->trace = SV_CombineTraces( &clip->trace, &trace, touch, touch->v.solid == SOLID_BSP );

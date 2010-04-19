@@ -22,7 +22,7 @@ fopen завешивает приложение, даже если перепутать местами + и a, при установке р
 
 Xash 0.71 Beta 05.05.10
 
-1. revision of all resources
+1. revision of all resources			OK
 2. fix sky changelevel bug
 3. complete lights.shader
 4. implement original half-life dll		OK
@@ -31,8 +31,8 @@ Xash 0.71 Beta 05.05.10
 7. rewrite WalkMove				OK
 8. tune UPDATE_BACKUP value for singleplayer	OK
 9. fix monsters interpolation			OK
-10.revision MOVETYPE_PUSH physic
+10.revision MOVETYPE_PUSH physic                  OK
 11.rewrite EntitiesInPVS check		OK
-12.reworking snd_dx.dll
-13. revision MOVETYPE_BOUNCE physic		OK
-14. revision MOVETYPE_COMPOUND physic
+12.revision MOVETYPE_BOUNCE physic		OK
+13.revision MOVETYPE_COMPOUND physic		OK
+14.re-design sound library

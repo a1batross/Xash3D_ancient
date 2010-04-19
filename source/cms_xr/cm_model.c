@@ -269,6 +269,7 @@ void BSP_LoadShaders( lump_t *l )
 		FS_FileBase( in->name, out->name );
 		out->contentFlags = LittleLong( in->contentFlags );
 		out->surfaceFlags = LittleLong( in->surfaceFlags );
+		out->contentFlags &= ~BASECONT_LADDER;
 	}
 }
 

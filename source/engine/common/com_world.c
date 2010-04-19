@@ -115,13 +115,13 @@ uint World_MaskForEdict( const edict_t *e )
 	{
 		if( e->v.flags & FL_MONSTER )
 		{
-			if( e->v.health > 0.0f )
+			if( e->v.deadflag != DEAD_DEAD )
 				return MASK_MONSTERSOLID;
 			return MASK_DEADSOLID;
 		}
 		else if( e->v.flags & ( FL_CLIENT|FL_FAKECLIENT ))
 		{
-			if( e->v.health > 0.0f )
+			if( e->v.deadflag != DEAD_DEAD )
 				return (MASK_PLAYERSOLID|BASECONT_LADDER);	// FIXME
 			return MASK_DEADSOLID;
 		}
@@ -140,7 +140,7 @@ uint World_ContentsForEdict( const edict_t *e )
 	{
 		if( e->v.flags & (FL_MONSTER|FL_CLIENT|FL_FAKECLIENT))
 		{
-			if( e->v.health > 0.0f )
+			if( e->v.deadflag != DEAD_DEAD )
 				return BASECONT_BODY;
 			return BASECONT_CORPSE;
 		}
@@ -203,7 +203,7 @@ model_t World_HullForEntity( const edict_t *ent )
 		// explicit hulls in the BSP model
 		return ent->v.modelindex;
 	}
-	if( ent->v.flags & (FL_MONSTER|FL_CLIENT|FL_FAKECLIENT))
+	if( ent->v.solid == SOLID_SLIDEBOX )
 	{
 		// create a temp capsule from bounding box sizes
 		return CM_TempModel( ent->v.mins, ent->v.maxs, true );

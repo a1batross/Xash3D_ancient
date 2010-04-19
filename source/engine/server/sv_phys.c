@@ -530,6 +530,7 @@ int SV_TryMove( edict_t *ent, float time, trace_t *steptrace )
 
 		allFraction += trace.flFraction;
 
+
 		if( trace.fAllSolid )
 		{	
 			// entity is trapped in another solid
@@ -1035,7 +1036,7 @@ void SV_PushMove( edict_t *pusher, float movetime )
 			check->v.flags |= FL_ONGROUND;
 		}		
 
-		if( rotated )
+		if( rotated && !blocked )
 		{
 			// figure movement due to the pusher's amove
 			VectorSubtract( check->v.origin, pusher->v.origin, org );
@@ -1077,7 +1078,14 @@ void SV_PushMove( edict_t *pusher, float movetime )
 			// move back any entities we already moved
 			for( i = 0; i < num_moved; i++ )
 			{
-				edict_t	*ed = moved_edict[i];
+				edict_t *ed = moved_edict[i];
+				sv_client_t *cl;
+	
+				if( ed->v.flags & FL_CLIENT && ( cl = SV_ClientFromEdict( ed, true )) != NULL )
+				{
+					cl->anglechangetotal = cl->anglechangefinal = 0.0f;
+					ed->v.fixangle = 0;	
+				}
 
 				VectorCopy( ed->pvServerData->moved_origin, ed->v.origin );
 				VectorCopy( ed->pvServerData->moved_angles, ed->v.angles );
