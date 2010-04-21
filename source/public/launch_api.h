@@ -224,7 +224,7 @@ typedef struct gameinfo_s
 	string		startmap;		// map to start singleplayer game
 	string		trainmap;		// map to start hazard course (if specified)
 	string		title;		// Game Main Title
-	string		texmode;		// configure ImageLib to use various texture formats
+	string		gameHint;		// hint to configure ImageLib and SoundLib
 	float		version;		// game version (optional)
 
 	// about mod info
@@ -306,7 +306,6 @@ typically expanded to rgba buffer
 NOTE: number at end of pixelformat name it's a total bitscount e.g. PF_RGB_24 == PF_RGB_888
 ========================================================================
 */
-
 typedef enum
 {
 	PF_UNKNOWN = 0,
@@ -407,6 +406,55 @@ typedef struct rgbdata_s
 	byte	*buffer;		// image buffer
 	size_t	size;		// for bounds checking
 } rgbdata_t;
+
+/*
+========================================================================
+
+internal sound format
+
+typically expanded to wav buffer
+========================================================================
+*/
+typedef enum
+{
+	WF_UNKNOWN = 0,
+	WF_PCMDATA,
+	WF_OGGDATA,
+	WF_TOTALCOUNT,	// must be last
+} sndformat_t;
+
+// imagelib global settings
+typedef enum
+{
+	SL_USE_LERPING	= BIT(3),	// lerping sounds during resample
+	SL_KEEP_8BIT	= BIT(4),	// don't expand 8bit sounds automatically up to 16 bit
+	SL_ALLOW_OVERWRITE	= BIT(5),	// allow to overwrite stored sounds
+} slFlags_t;
+
+// wavdata output flags
+typedef enum
+{
+	// wavdata->flags
+	SOUND_LOOPED	= BIT( 0 ),	// this is looped sound (contain cue markers)
+
+	// Sound_Process manipulation flags
+	SOUND_RESAMPLE	= BIT(12),	// resample sound to specified rate
+	SOUND_CONVERT16BIT	= BIT(13),	// change sound resolution from 8 bit to 16
+} sndFlags_t;
+
+typedef struct
+{
+	word	rate;		// num samples per second (e.g. 11025 - 11 khz)
+	byte	width;		// resolution - bum bits divided by 8 (8 bit is 1, 16 bit is 2)
+	byte	channels;		// num channels (1 - mono, 2 - stereo)
+	int	loopStart;	// offset (in samples) at this point sound will be looping while playing more than only once
+	int	samples;		// total samplecount in wav
+	uint	type;		// compression type
+	uint	flags;		// misc sound flags
+	byte	*buffer;		// sound buffer
+	size_t	size;		// for bounds checking
+} wavdata_t;
+
 
 // filesystem flags
 #define FS_STATIC_PATH	1	// FS_ClearSearchPath will be ignore this path
@@ -619,6 +667,13 @@ typedef struct stdilib_api_s
 	bpc_desc_t *(*ImagePFDesc)( pixformat_t imagetype );		// get const info about specified fmt
  	void (*ImageFree)( rgbdata_t *pack );				// release image buffer
 
+	// built-in soundlib functions
+	void (*SndlibSetup)( const char *formats, const uint flags );	// set main attributes
+	wavdata_t *(*SoundLoad)( const char *, const byte *, size_t );	// load sound from disk or buffer
+	bool (*SoundSave)( const char *name, wavdata_t *image );		// save sound into specified format
+	bool (*SoundConvert)( wavdata_t **pix, int rt, int wdth, uint flags );// sound manipulations
+ 	void (*SoundFree)( wavdata_t *pack );				// release sound buffer
+ 
 	// random generator
 	long (*Com_RandomLong)( long lMin, long lMax );			// returns random integer
 	float (*Com_RandomFloat)( float fMin, float fMax );		// returns random float
@@ -916,6 +971,17 @@ imglib manager
 #define Image_Init			com.ImglibSetup
 #define PFDesc( x )			com.ImagePFDesc( x )
 #define Image_Process		com.ImageConvert
+
+/*
+===========================================
+sndlib manager
+===========================================
+*/
+#define FS_LoadSound		com.SoundLoad
+#define FS_SaveSound		com.SoundSave
+#define FS_FreeSound		com.SoundFree
+#define Sound_Init			com.SndlibSetup
+#define Sound_Process		com.SoundConvert
 
 /*
 ===========================================

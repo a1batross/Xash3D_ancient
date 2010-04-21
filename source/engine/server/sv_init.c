@@ -528,17 +528,10 @@ void SV_ForceError( void )
 
 bool SV_NewGame( const char *mapName, bool loadGame )
 {
-	if( !loadGame )
-	{
-		// in case we unload game dll and flush memory
-		Host_EndGame( "start a new game" );
-	}
-	else
-	{
-		SV_InactivateClients ();
-		SV_DeactivateServer ();
-		sv.loadgame = true;
-	}
+	SV_InactivateClients ();
+	SV_DeactivateServer ();
+
+	sv.loadgame = loadGame;
 
 	if( !SV_SpawnServer( mapName, NULL ))
 		return false;

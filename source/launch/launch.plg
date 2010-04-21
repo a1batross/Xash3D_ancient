@@ -1,0 +1,61 @@
+<html>
+<body>
+<pre>
+<h1>Build Log</h1>
+<h3>
+--------------------Configuration: launch - Win32 Release--------------------
+</h3>
+<h3>Command Lines</h3>
+Creating temporary file "C:\DOCUME~1\ָּ״ְ\LOCALS~1\Temp\RSP59B0.tmp" with contents
+[
+/nologo /MD /W3 /GX /O2 /I "./" /I "imagelib" /I "../public" /I "../common" /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /Fo"..\temp\launch\!release/" /Fd"..\temp\launch\!release/" /FD /c 
+"D:\Xash3D\src_main\launch\soundlib\snd_utils.c"
+]
+Creating command line "cl.exe @"C:\DOCUME~1\ָּ״ְ\LOCALS~1\Temp\RSP59B0.tmp"" 
+Creating temporary file "C:\DOCUME~1\ָּ״ְ\LOCALS~1\Temp\RSP59B1.tmp" with contents
+[
+zlib.lib png.lib jpg.lib ogg.lib vorbis.lib user32.lib gdi32.lib shell32.lib advapi32.lib winmm.lib /nologo /dll /pdb:none /machine:I386 /nodefaultlib:"libc" /nodefaultlib:"libcmt" /out:"..\temp\launch\!release/launch.dll" /implib:"..\temp\launch\!release/launch.lib" /libpath:"./imagelib" /libpath:"./soundlib" /opt:nowin98 
+"\Xash3D\src_main\temp\launch\!release\cmd.obj"
+"\Xash3D\src_main\temp\launch\!release\console.obj"
+"\Xash3D\src_main\temp\launch\!release\cpuinfo.obj"
+"\Xash3D\src_main\temp\launch\!release\crclib.obj"
+"\Xash3D\src_main\temp\launch\!release\cvar.obj"
+"\Xash3D\src_main\temp\launch\!release\export.obj"
+"\Xash3D\src_main\temp\launch\!release\filesystem.obj"
+"\Xash3D\src_main\temp\launch\!release\img_bmp.obj"
+"\Xash3D\src_main\temp\launch\!release\img_dds.obj"
+"\Xash3D\src_main\temp\launch\!release\img_jpg.obj"
+"\Xash3D\src_main\temp\launch\!release\img_main.obj"
+"\Xash3D\src_main\temp\launch\!release\img_pcx.obj"
+"\Xash3D\src_main\temp\launch\!release\img_png.obj"
+"\Xash3D\src_main\temp\launch\!release\img_tga.obj"
+"\Xash3D\src_main\temp\launch\!release\img_utils.obj"
+"\Xash3D\src_main\temp\launch\!release\img_vtf.obj"
+"\Xash3D\src_main\temp\launch\!release\img_wad.obj"
+"\Xash3D\src_main\temp\launch\!release\library.obj"
+"\Xash3D\src_main\temp\launch\!release\memlib.obj"
+"\Xash3D\src_main\temp\launch\!release\network.obj"
+"\Xash3D\src_main\temp\launch\!release\parselib.obj"
+"\Xash3D\src_main\temp\launch\!release\patch.obj"
+"\Xash3D\src_main\temp\launch\!release\snd_main.obj"
+"\Xash3D\src_main\temp\launch\!release\snd_ogg.obj"
+"\Xash3D\src_main\temp\launch\!release\snd_raw.obj"
+"\Xash3D\src_main\temp\launch\!release\snd_utils.obj"
+"\Xash3D\src_main\temp\launch\!release\snd_wav.obj"
+"\Xash3D\src_main\temp\launch\!release\stdlib.obj"
+"\Xash3D\src_main\temp\launch\!release\system.obj"
+"\Xash3D\src_main\temp\launch\!release\utils.obj"
+]
+Creating command line "link.exe @"C:\DOCUME~1\ָּ״ְ\LOCALS~1\Temp\RSP59B1.tmp""
+Creating temporary file "C:\DOCUME~1\ָּ״ְ\LOCALS~1\Temp\RSP59B2.bat" with contents
+[
+@echo off
+copy \Xash3D\src_main\temp\launch\!release\launch.dll "D:\Xash3D\bin\launch.dll"
+]
+Creating command line ""C:\DOCUME~1\ָּ״ְ\LOCALS~1\Temp\RSP59B2.bat""
+Compiling...
+cl.exe terminated at user request.
+
+</pre>
+</body>
+</html>

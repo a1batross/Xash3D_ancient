@@ -700,7 +700,7 @@ void CL_UpdateUserinfo( sizebuf_t *msg )
 	slot = MSG_ReadByte( msg );
 
 	if( slot >= MAX_CLIENTS )
-		Host_EndGame( "CL_ParseServerMessage: svc_updateuserinfo > MAX_CLIENTS\n" );
+		Host_Error( "CL_ParseServerMessage: svc_updateuserinfo > MAX_CLIENTS\n" );
 
 	player = &cl.players[slot];
 	active = MSG_ReadByte( msg ) ? true : false;

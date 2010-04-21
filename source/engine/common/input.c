@@ -321,6 +321,9 @@ void IN_Frame( void )
 {
 	bool	shutdownMouse = false;
 
+	if( host.state == HOST_RESTART )
+		host.state = HOST_FRAME; // restart is finished
+
 	if( host.type == HOST_DEDICATED )
 	{
 		// let the dedicated server some sleep

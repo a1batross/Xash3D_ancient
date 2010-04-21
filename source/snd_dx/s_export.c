@@ -7,7 +7,6 @@
 
 vsound_imp_t	si;
 stdlib_api_t	com;
-byte 		*sndpool;
 
 vsound_exp_t DLLEXPORT *CreateAPI( stdlib_api_t *input, vsound_imp_t *engfuncs )
 {
@@ -17,7 +16,7 @@ vsound_exp_t DLLEXPORT *CreateAPI( stdlib_api_t *input, vsound_imp_t *engfuncs )
 
 	// Sys_LoadLibrary can create fake instance, to check
 	// api version and api size, but second argument will be 0
-	// and always make exception, run simply check for avoid it
+	// and always make exception, run simply check to avoid it
 	if( engfuncs ) si = *engfuncs;
 
 	// generic functions

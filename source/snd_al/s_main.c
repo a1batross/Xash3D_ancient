@@ -62,7 +62,6 @@ const dsproom_t eax_preset[CSXROOM] =
 { EAX_ENVIRONMENT_DIZZY,		0.4F,	17.234F,	0.666F	},
 };
 
-cvar_t	*host_sound;
 cvar_t	*s_alDevice;
 cvar_t	*s_allowEAX;
 cvar_t	*s_allowA3D;
@@ -852,17 +851,6 @@ void S_StopSound_f( void )
 
 /*
 =================
-S_ClearFade_f
-=================
-*/
-void S_ClearFade_f( void )
-{
-	// clear any remaining soundfade
-	Mem_Set( &soundfade, 0, sizeof( soundfade ));
-}
-
-/*
-=================
 S_SoundInfo_f
 =================
 */
@@ -897,7 +885,6 @@ bool S_Init( void *hInst )
 
 	Cmd_ExecuteString( "sndlatch\n" );
 
-	host_sound = Cvar_Get("host_sound", "1", CVAR_SYSTEMINFO, "enable sound system" );
 	s_alDevice = Cvar_Get("s_device", "Generic Software", CVAR_LATCH_AUDIO|CVAR_ARCHIVE, "OpenAL current device name" );
 	s_allowEAX = Cvar_Get("s_allowEAX", "1", CVAR_LATCH_AUDIO|CVAR_ARCHIVE, "allow EAX 2.0 extension" );
 	s_allowA3D = Cvar_Get("s_allowA3D", "1", CVAR_LATCH_AUDIO|CVAR_ARCHIVE, "allow A3D 2.0 extension" );
@@ -914,15 +901,8 @@ bool S_Init( void *hInst )
 	Cmd_AddCommand( "playsound", S_PlaySound_f, "playing a specified sound file" );
 	Cmd_AddCommand( "stopsound", S_StopSound_f, "stop all sounds" );
 	Cmd_AddCommand( "music", S_Music_f, "starting a background track" );
-	Cmd_AddCommand( "s_clearfade", S_ClearFade_f, "clear any sound fade" );
 	Cmd_AddCommand( "s_info", S_SoundInfo_f, "print sound system information" );
 	Cmd_AddCommand( "soundlist", S_SoundList_f, "display loaded sounds" );
-
-	if( !host_sound->integer )
-	{
-		MsgDev( D_INFO, "Audio: disabled\n" );
-		return false;
-	}
 
 	if(!S_Init_OpenAL())
 	{
@@ -961,7 +941,6 @@ void S_Shutdown( void )
 	Cmd_RemoveCommand( "stopsound" );
 	Cmd_RemoveCommand( "music" );
 	Cmd_RemoveCommand( "s_info" );
-	Cmd_RemoveCommand( "s_clearfade" );
 	Cmd_RemoveCommand( "soundlist" );
 
 	if( !al_state.initialized )

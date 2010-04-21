@@ -122,9 +122,6 @@ int CHud :: MsgFunc_ResetHUD(const char *pszName, int iSize, void *pbuf )
 	// needs to clear any remaining screenfade
 	ClearAllFades ();
 
-	// needs to clear any remaining soundfade
-	CLIENT_COMMAND( "s_clearfade\n" );
-
 	// reset sensitivity
 	m_flMouseSensitivity = 0;
 

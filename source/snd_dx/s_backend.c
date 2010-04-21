@@ -36,11 +36,12 @@ cvar_t		*s_wavonly;
 static HWND	snd_hwnd;
 static bool	dsound_init;
 static bool	wav_init;
-static bool	snd_firsttime = true, snd_isdirect, snd_iswave;
+static bool	snd_firsttime = true;
+static bool	snd_isdirect, snd_iswave;
 static bool	primary_format_set;
 static int	snd_buffer_count = 0;
-static int	sample16;
 static int	snd_sent, snd_completed;
+static int	sample16;
 
 /* 
 =======================================================================
@@ -129,15 +130,18 @@ static bool DS_CreateBuffers( void *hInst )
 		pformat = format;
 
 		MsgDev( D_NOTE, "- ok\n" );
+		if( snd_firsttime )
+			MsgDev( D_NOTE, "DS_CreateBuffers: setting primary sound format " );
+
 		if( pDSPBuf->lpVtbl->SetFormat( pDSPBuf, &pformat ) != DS_OK )
 		{
 			if( snd_firsttime )
-				MsgDev( D_NOTE, "DS_CreateBuffers: setting primary sound format - failed\n" );
+				MsgDev( D_NOTE, "- failed\n" );
 		}
 		else
 		{
 			if( snd_firsttime )
-				MsgDev( D_NOTE, "DS_CreateBuffers: setting primary sound format - ok\n" );
+				MsgDev( D_NOTE, "- ok\n" );
 			primary_format_set = true;
 		}
 	}
@@ -343,7 +347,7 @@ si_state_t SNDDMA_InitDirect( void *hInst )
 
 	MsgDev( D_NOTE, "SNDDMA_InitDirect: initializing DirectSound ");
 
-	if ( !dsound_dll.link )
+	if( !dsound_dll.link )
 	{
 		if( !Sys_LoadLibrary( NULL, &dsound_dll ))
 		{
@@ -425,7 +429,7 @@ si_state_t SNDDMA_InitWav( void )
 
 	// open a waveform device for output using window callback. 
 	MsgDev( D_NOTE, "SNDDMA_InitWav: initializing wave sound " );
-	if((hr = waveOutOpen((LPHWAVEOUT)&hWaveOut, WAVE_MAPPER, &format, 0, 0, CALLBACK_NULL)) != MMSYSERR_NOERROR )
+	if(( hr = waveOutOpen((LPHWAVEOUT)&hWaveOut, WAVE_MAPPER, &format, 0, 0, CALLBACK_NULL)) != MMSYSERR_NOERROR )
 	{
 		if( hr != MMSYSERR_ALLOCATED )
 		{
@@ -447,7 +451,7 @@ si_state_t SNDDMA_InitWav( void )
 	hData = GlobalAlloc( GMEM_MOVEABLE|GMEM_SHARE, gSndBufSize ); 
 	if( !hData ) 
 	{ 
-		SNDDMA_FreeSound ();
+		SNDDMA_FreeSound();
 		return SIS_FAILURE; 
 	}
 
@@ -558,6 +562,7 @@ int SNDDMA_Init( void *hInst )
 			else snd_iswave = false;
 		}
 	}
+
 	snd_buffer_count = 1;
 
 	if( !dsound_init && !wav_init )
@@ -640,7 +645,7 @@ void SNDDMA_BeginPainting( void )
 	{
 		if( hr != DSERR_BUFFERLOST )
 		{
-			MsgDev( D_ERROR, "S_TransferStereo16: lock failed with error '%s'\n", DSoundError( hr ));
+			MsgDev( D_ERROR, "SNDDMA_BeginPainting: lock error '%s'\n", DSoundError( hr ));
 			S_Shutdown ();
 			return;
 		}
@@ -662,7 +667,7 @@ Also unlocks the dsound buffer
 void SNDDMA_Submit( void )
 {
 	LPWAVEHDR	h;
-	int	wResult;
+	int wResult;
 
 	if( !dma.buffer )
 		return;
@@ -684,7 +689,7 @@ void SNDDMA_Submit( void )
 	}
 
 	// submit a few new sound blocks
-	while(((snd_sent - snd_completed) >> sample16 ) < 8 )
+	while((( snd_sent - snd_completed ) >> sample16 ) < 8 )
 	{
 		h = lpWaveHdr + ( snd_sent & WAV_MASK );
 
@@ -699,7 +704,7 @@ void SNDDMA_Submit( void )
 
 		if( wResult != MMSYSERR_NOERROR )
 		{ 
-			MsgDev( D_ERROR, "S_TransferStereo16: failed to write block to device\n" );
+			MsgDev( D_ERROR, "SNDDMA_Submit: failed to write block to device\n" );
 			SNDDMA_FreeSound ();
 			return; 
 		} 
@@ -739,5 +744,7 @@ void S_Activate( bool active )
 	{
 		if( pDS && snd_hwnd && snd_isdirect )
 			DS_DestroyBuffers();
+		else if( snd_iswave )
+			waveOutReset( hWaveOut );
 	}
 }

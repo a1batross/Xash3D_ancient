@@ -71,6 +71,7 @@ typedef struct system_s
 	bool			con_silentmode;
 	byte			*basepool;
 	byte			*imagepool;
+	byte			*soundpool;
 	byte			*scriptpool;
 	byte			*stringpool;
 	bool			shutdown_issued;
@@ -351,11 +352,18 @@ void W_Close( wfile_t *wad );
 byte *FS_LoadFile (const char *path, fs_offset_t *filesizeptr );
 bool FS_WriteFile (const char *filename, const void *data, fs_offset_t len);
 
+// imagelib exports
 rgbdata_t *FS_LoadImage( const char *name, const byte *buffer, size_t size );
 bool Image_Process( rgbdata_t **pix, int w, int h, uint flags );
 bool FS_SaveImage( const char *name, rgbdata_t *image );
 bpc_desc_t *Image_GetPixelFormat( pixformat_t type );
 void FS_FreeImage( rgbdata_t *pack );
+
+// soundlib exports
+wavdata_t *FS_LoadSound( const char *name, const byte *buffer, size_t size );
+bool Sound_Process( wavdata_t **wav, int rate, int width, uint flags );
+bool FS_SaveSound( const char *name, wavdata_t *sound );
+void FS_FreeSound( wavdata_t *pack );
 
 search_t *FS_Search(const char *pattern, int caseinsensitive );
 search_t *FS_SearchDirs(const char *pattern, int caseinsensitive );
@@ -524,6 +532,13 @@ void Patch_GetFlatness( float maxflat, const float *points, int comp, const int 
 void Image_Init( void );
 void Image_Setup( const char *formats, const uint flags );
 void Image_Shutdown( void );
+
+//
+// sndlib.c
+//
+void Sound_Init( void );
+void Sound_Setup( const char *formats, const uint flags );
+void Sound_Shutdown( void );
 
 //
 // stringtable.c

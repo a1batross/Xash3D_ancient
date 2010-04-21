@@ -158,64 +158,55 @@ CHANNEL MIXING
 
 ===============================================================================
 */
-void S_PaintChannelFrom8( channel_t *ch, sfxcache_t *sc, int count, int offset )
+void S_PaintChannelFrom8( channel_t *ch, wavdata_t *sc, int count )
 {
-	int 			data;
-	int			*lscale, *rscale;
-	byte			*sfx;
-	portable_samplepair_t	*samp;
-	int			i;
+	int	i, data;
+	int	*lscale, *rscale;
+	byte	*sfx;
 
-	if( ch->leftvol > 255 ) ch->leftvol = 255;
-	if( ch->rightvol > 255 ) ch->rightvol = 255;
+	ch->leftvol = bound( 0, ch->leftvol, 255 );
+	ch->rightvol = bound( 0, ch->rightvol, 255 );
 		
 	lscale = snd_scaletable[ch->leftvol>>3];
 	rscale = snd_scaletable[ch->rightvol>>3];
-	sfx = (signed char *)sc->data + ch->pos;
+	sfx = (signed char *)sc->buffer + ch->pos;
 
-	samp = &paintbuffer[offset];
-
-	for( i = 0; i < count; i++, samp++ )
+	for( i = 0; i < count; i++ )
 	{
 		data = sfx[i];
-		samp->left += lscale[data];
-		samp->right += rscale[data];
+		paintbuffer[i].left += lscale[data];
+		paintbuffer[i].right += rscale[data];
 	}
 	ch->pos += count;
 }
 
-void S_PaintChannelFrom16( channel_t *ch, sfxcache_t *sc, int count, int offset )
+void S_PaintChannelFrom16( channel_t *ch, wavdata_t *sc, int count )
 {
-	int			data;
-	int			left, right;
-	int			leftvol, rightvol;
-	signed short		*sfx;
-	portable_samplepair_t	*samp;
-	int			i;
+	int		i, data;
+	int		left, right;
+	signed short	*sfx;
 
-	leftvol = ch->leftvol * snd_vol;
-	rightvol = ch->rightvol * snd_vol;
-	sfx = (signed short *)sc->data + ch->pos;
+	ch->leftvol = bound( 0, ch->leftvol, 255 );
+	ch->rightvol = bound( 0, ch->rightvol, 255 );
+	sfx = (signed short *)sc->buffer + ch->pos;
 
-	samp = &paintbuffer[offset];
-
-	for( i = 0; i < count; i++, samp++ )
+	for( i = 0; i < count; i++ )
 	{
 		data = sfx[i];
-		left = ( data * leftvol ) >> 8;
-		right = (data * rightvol) >> 8;
-		samp->left += left;
-		samp->right += right;
+		left = ( data * ch->leftvol ) >> 8;
+		right = (data * ch->rightvol) >> 8;
+		paintbuffer[i].left += left;
+		paintbuffer[i].right += right;
 	}
 	ch->pos += count;
 }
 
 void S_MixAllChannels( int endtime, int end )
 {
-	channel_t 	*ch;
-	sfxcache_t	*sc;
-	int		i, count = 0;	
-	int		ltime;
+	channel_t *ch;
+	wavdata_t	*sc;
+	int	i, count = 0;	
+	int	ltime;
 
 	// paint in the channels.
 	for( i = 0, ch = channels; i < total_channels; i++, ch++ )
@@ -239,8 +230,8 @@ void S_MixAllChannels( int endtime, int end )
 			if( count > 0 && ch->sfx )
 			{	
 				if( sc->width == 1 )
-					S_PaintChannelFrom8( ch, sc, count, ltime - paintedtime );
-				else S_PaintChannelFrom16( ch, sc, count, ltime - paintedtime );
+					S_PaintChannelFrom8( ch, sc, count );
+				else S_PaintChannelFrom16( ch, sc, count );
 	
 				ltime += count;
 			}
@@ -249,14 +240,15 @@ void S_MixAllChannels( int endtime, int end )
 			if( ltime >= ch->end )
 			{
 				if( ch->autosound && ch->use_loop )
-				{	// autolooping sounds always go back to start
+				{	
+					// autolooping sounds always go back to start
 					ch->pos = 0;
-					ch->end = ltime + sc->length;
+					ch->end = ltime + sc->samples;
 				}
-				else if( sc->loopstart >= 0 && ch->use_loop )
+				else if( sc->loopStart >= 0 && ch->use_loop )
 				{
-					ch->pos = sc->loopstart;
-					ch->end = ltime + sc->length - ch->pos;
+					ch->pos = sc->loopStart;
+					ch->end = ltime + sc->samples - ch->pos;
 				}
 				else ch->sfx = NULL; // channel just stopped
 			}

@@ -40,7 +40,6 @@ typedef enum
 	IL_HINT_Q1,	// palette choosing
 	IL_HINT_Q2,
 	IL_HINT_HL,
-	IL_HINT_FORCE_RGBA,	// force to unpack any image
 } image_hint_t;
 
 typedef struct loadformat_s
@@ -49,20 +48,20 @@ typedef struct loadformat_s
 	const char *ext;
 	bool (*loadfunc)( const char *name, const byte *buffer, size_t filesize );
 	image_hint_t hint;
-} loadformat_t;
+} loadpixformat_t;
 
 typedef struct saveformat_s
 {
 	const char *formatstring;
 	const char *ext;
 	bool (*savefunc)( const char *name, rgbdata_t *pix );
-} saveformat_t;
+} savepixformat_t;
 
 typedef struct imglib_s
 {
-	const loadformat_t	*baseformats;	// used for loading internal images
-	const loadformat_t	*loadformats;
-	const saveformat_t	*saveformats;
+	const loadpixformat_t	*baseformats;	// used for loading internal images
+	const loadpixformat_t	*loadformats;
+	const savepixformat_t	*saveformats;
 
 	// current 2d image state
 	word		width;
@@ -481,7 +480,6 @@ enum
 };
 
 extern imglib_t image;
-extern cvar_t *img_oldformats;
 extern cvar_t *fs_wadsupport;
 extern cvar_t *png_compression;
 extern cvar_t *jpg_quality;

@@ -6,9 +6,7 @@
 #include "imagelib.h"
 #include "mathlib.h"
 
-cvar_t *image_profile;
 cvar_t *gl_round_down;
-cvar_t *fs_textures;
 cvar_t *png_compression;
 cvar_t *jpg_quality;
 
@@ -109,20 +107,20 @@ static byte palette_q2[768] =
 =============================================================================
 */
 // stub
-static const loadformat_t load_null[] =
+static const loadpixformat_t load_null[] =
 {
 { NULL, NULL, NULL, IL_HINT_NO }
 };
 
 // version0 - using only dds images
-static const loadformat_t load_stalker[] =
+static const loadpixformat_t load_stalker[] =
 {
 { "%s%s.%s", "dds", Image_LoadDDS, IL_HINT_NO },
 { NULL, NULL, NULL, IL_HINT_NO }
 };
 
 // version1 - using only Doom1 images
-static const loadformat_t load_doom1[] =
+static const loadpixformat_t load_doom1[] =
 {
 { "%s%s.%s", "flt", Image_LoadFLT, IL_HINT_NO },	// flat textures, sprites
 { NULL, NULL, NULL, IL_HINT_NO }
@@ -130,7 +128,7 @@ static const loadformat_t load_doom1[] =
 
 // version2 - using only Quake1 images
 // wad files not requires path
-static const loadformat_t load_quake1[] =
+static const loadpixformat_t load_quake1[] =
 {
 { "%s%s.%s", "mip", Image_LoadMIP, IL_HINT_Q1 },	// q1 textures from wad or buffer
 { "%s%s.%s", "mdl", Image_LoadMDL, IL_HINT_Q1 },	// q1 alias model skins
@@ -140,7 +138,7 @@ static const loadformat_t load_quake1[] =
 };
 
 // version3 - using only Quake2 images
-static const loadformat_t load_quake2[] =
+static const loadpixformat_t load_quake2[] =
 {
 { "textures/%s%s.%s", "wal", Image_LoadWAL, IL_HINT_Q2 },	// map textures
 { "%s%s.%s", "wal", Image_LoadWAL, IL_HINT_Q2 },	// map textures
@@ -151,7 +149,7 @@ static const loadformat_t load_quake2[] =
 
 // version4 - using only Quake3 images
 // g-cont: probably q3 used only explicit paths
-static const loadformat_t load_quake3[] =
+static const loadpixformat_t load_quake3[] =
 {
 { "%s%s.%s", "jpg", Image_LoadJPG, IL_HINT_NO },	// textures or gfx
 { "%s%s.%s", "tga", Image_LoadTGA, IL_HINT_NO },	// textures or gfx
@@ -160,7 +158,7 @@ static const loadformat_t load_quake3[] =
 
 // version5 - using only Quake4(Doom3) images
 // g-cont: probably q4 used only explicit paths
-static const loadformat_t load_quake4[] =
+static const loadpixformat_t load_quake4[] =
 {
 { "%s%s.%s", "dds", Image_LoadDDS, IL_HINT_NO },	// textures or gfx
 { "%s%s.%s", "tga", Image_LoadTGA, IL_HINT_NO },	// textures or gfx
@@ -169,7 +167,7 @@ static const loadformat_t load_quake4[] =
 
 // version6 - using only Half-Life images
 // wad files not requires path
-static const loadformat_t load_hl1[] =
+static const loadpixformat_t load_hl1[] =
 {
 { "%s%s.%s", "tga", Image_LoadTGA, IL_HINT_NO },	// hl vgui menus
 { "%s%s.%s", "bmp", Image_LoadBMP, IL_HINT_NO },	// hl skyboxes
@@ -183,7 +181,7 @@ static const loadformat_t load_hl1[] =
 };
 
 // version7 - using only Half-Life 2 images
-static const loadformat_t load_hl2[] =
+static const loadpixformat_t load_hl2[] =
 {
 { "%s%s.%s", "vtf", Image_LoadVTF, IL_HINT_NO },	// hl2 dds wrapper
 { "%s%s.%s", "tga", Image_LoadTGA, IL_HINT_NO },	// for Vgui, saveshots etc
@@ -191,7 +189,7 @@ static const loadformat_t load_hl2[] =
 };
 
 // version8 - studiomdl profile
-static const loadformat_t load_studiomdl[] =
+static const loadpixformat_t load_studiomdl[] =
 {
 { "%s%s.%s", "bmp", Image_LoadBMP, IL_HINT_NO },	// classic studio textures
 { "%s%s.%s", "pcx", Image_LoadPCX, IL_HINT_NO },	// q2 skins or somewhat
@@ -200,7 +198,7 @@ static const loadformat_t load_studiomdl[] =
 };
 
 // version9 - spritegen profile
-static const loadformat_t load_spritegen[] =
+static const loadpixformat_t load_spritegen[] =
 {
 { "%s%s.%s", "bmp", Image_LoadBMP, IL_HINT_NO },	// classic sprite frames
 { "%s%s.%s", "pcx", Image_LoadPCX, IL_HINT_NO },	// q2 sprite frames
@@ -208,7 +206,7 @@ static const loadformat_t load_spritegen[] =
 };
 
 // version10 - xwad profile
-static const loadformat_t load_wadlib[] =
+static const loadpixformat_t load_wadlib[] =
 {
 { "%s%s.%s", "bmp", Image_LoadBMP, IL_HINT_NO },	// there all wad package types
 { "%s%s.%s", "pcx", Image_LoadPCX, IL_HINT_NO }, 
@@ -220,7 +218,7 @@ static const loadformat_t load_wadlib[] =
 };
 
 // version11 - Xash3D default image profile
-static const loadformat_t load_xash[] =
+static const loadpixformat_t load_xash[] =
 {
 { "%s%s.%s", "dds", Image_LoadDDS, IL_HINT_NO },	// cubemaps, depthmaps, 2d textures
 { "%s%s.%s", "png", Image_LoadPNG, IL_HINT_NO },	// levelshot save as .png
@@ -235,7 +233,7 @@ static const loadformat_t load_xash[] =
 { NULL, NULL, NULL, IL_HINT_NO }
 };
 
-static const loadformat_t load_ximage[] =
+static const loadpixformat_t load_ximage[] =
 {
 { "%s%s.%s", "dds", Image_LoadDDS, IL_HINT_NO },	// cubemaps, depthmaps, 2d textures
 { "%s%s.%s", "png", Image_LoadPNG, IL_HINT_NO },	// levelshot save as .png
@@ -254,13 +252,13 @@ static const loadformat_t load_ximage[] =
 =============================================================================
 */
 // stub
-static const saveformat_t save_null[] =
+static const savepixformat_t save_null[] =
 {
 { NULL, NULL, NULL }
 };
 
 // version0 - extragen save formats
-static const saveformat_t save_extragen[] =
+static const savepixformat_t save_extragen[] =
 {
 { "%s%s.%s", "tga", Image_SaveTGA },		// tga screenshots
 { "%s%s.%s", "jpg", Image_SaveJPG },		// jpg screenshots
@@ -272,7 +270,7 @@ static const saveformat_t save_extragen[] =
 };
 
 // Xash3D normal instance
-static const saveformat_t save_xash[] =
+static const savepixformat_t save_xash[] =
 {
 { "%s%s.%s", "tga", Image_SaveTGA },		// tga screenshots
 { "%s%s.%s", "jpg", Image_SaveJPG },		// tga levelshots or screenshots
@@ -281,7 +279,7 @@ static const saveformat_t save_xash[] =
 { NULL, NULL, NULL }
 };
 
-static const saveformat_t save_ximage[] =
+static const savepixformat_t save_ximage[] =
 {
 { "%s%s.%s", "tga", Image_SaveTGA },
 { "%s%s.%s", "jpg", Image_SaveJPG },
@@ -297,7 +295,6 @@ void Image_Init( void )
 	// init pools
 	Sys.imagepool = Mem_AllocPool( "ImageLib Pool" );
 	gl_round_down = Cvar_Get( "gl_round_down", "0", CVAR_SYSTEMINFO, "down size non-power of two textures" );
-	fs_textures = Cvar_Get( "fs_textures_path", "textures", CVAR_SYSTEMINFO, "textures default folder" );
 	png_compression = Cvar_Get( "png_compression", "9", CVAR_SYSTEMINFO, "pnglib compression level" );
 	jpg_quality = Cvar_Get( "jpg_quality", "7", CVAR_SYSTEMINFO, "jpglib quality level" );
 	Cvar_SetValue( "png_compression", bound( 0, png_compression->integer, 9 ));

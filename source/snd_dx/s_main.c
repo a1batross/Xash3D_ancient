@@ -34,12 +34,10 @@ playsound_t	s_freeplays;
 playsound_t	s_pendingplays;
 int		s_beginofs;
 
-cvar_t		*host_sound;
 cvar_t		*s_check_errors;
 cvar_t		*s_volume;
 cvar_t		*s_musicvolume;
 cvar_t		*s_testsound;
-cvar_t		*s_loadas8bit;
 cvar_t		*s_khz;
 cvar_t		*s_show;
 cvar_t		*s_mixahead;
@@ -364,8 +362,8 @@ by the update loop.
 */
 void S_IssuePlaysound( playsound_t *ps )
 {
-	channel_t		*ch;
-	sfxcache_t	*sc;
+	channel_t	*ch;
+	wavdata_t	*sc;
 
 	if( s_show->value ) MsgDev( D_INFO, "Issue %i\n", ps->begin );
 
@@ -396,7 +394,7 @@ void S_IssuePlaysound( playsound_t *ps )
 
 	ch->pos = 0;
 	sc = S_LoadSound( ch->sfx );
-	ch->end = paintedtime + sc->length;
+	ch->end = paintedtime + sc->samples;
 
 	// free the playsound
 	S_FreePlaysound( ps );
@@ -416,7 +414,7 @@ Entchannel 0 will never override a playing sound
 */
 void S_StartSound( const vec3_t pos, int ent, int chan, sound_t handle, float fvol, float attn, float pitch, int flags )
 {
-	sfxcache_t	*sc;
+	wavdata_t		*sc;
 	int		vol, start;
 	playsound_t	*ps, *sort;
 	sfx_t		*sfx = NULL;
@@ -632,8 +630,8 @@ bool S_AddLoopingSound( int entnum, sound_t handle, float volume, float attn )
 	ch->loopframe = s_framecount;
 	ch->fixed_origin = false;
 	ch->dist_mult = ATTN_NORM * 0.001;
-	ch->pos = paintedtime % sfx->cache->length;
-	ch->end = paintedtime + sfx->cache->length - ch->pos;
+	ch->pos = paintedtime % sfx->cache->samples;
+	ch->end = paintedtime + sfx->cache->samples - ch->pos;
 
 	// now we can spatialize channel
 	S_SpatializeChannel( ch );
@@ -819,17 +817,6 @@ void S_StopSound_f( void )
 
 /*
 =================
-S_ClearFade_f
-=================
-*/
-void S_ClearFade_f( void )
-{
-	// clear any remaining soundfade
-	Mem_Set( &soundfade, 0, sizeof( soundfade ));
-}
-
-/*
-=================
 S_SoundInfo_f
 =================
 */
@@ -860,11 +847,9 @@ bool S_Init( void *hInst )
 {
 	Cmd_ExecuteString( "sndlatch\n" );
 
-	host_sound = Cvar_Get( "host_sound", "1", CVAR_SYSTEMINFO, "enable sound system" );
 	s_volume = Cvar_Get( "s_volume", "0.7", CVAR_ARCHIVE, "sound volume" );
 	s_musicvolume = Cvar_Get("s_musicvolume", "1.0", CVAR_ARCHIVE, "background music volume" );
-	s_khz = Cvar_Get( "s_khz", "11", CVAR_LATCH_AUDIO|CVAR_ARCHIVE, "output sound frequency" );
-	s_loadas8bit = Cvar_Get( "s_loadas8bit", "1", CVAR_LATCH_AUDIO|CVAR_ARCHIVE, "resample all sounds to 8-bit" );
+	s_khz = Cvar_Get( "s_khz", "22", CVAR_LATCH_AUDIO|CVAR_ARCHIVE, "output sound frequency" );
 	s_mixahead = Cvar_Get( "s_mixahead", "0.2", CVAR_ARCHIVE, "how much sound to mix ahead of time" );
 	s_show = Cvar_Get( "s_show", "0", 0, "show playing sounds" );
 	s_testsound = Cvar_Get( "s_testsound", "0", 0, "generate sine 1 khz wave to testing audio subsystem" );
@@ -876,14 +861,7 @@ bool S_Init( void *hInst )
 	Cmd_AddCommand( "playsound", S_Play_f, "playing a specified sound file" );
 	Cmd_AddCommand( "stopsound", S_StopSound_f, "stop all sounds" );
 	Cmd_AddCommand( "soundlist", S_SoundList_f, "display loaded sounds" );
-	Cmd_AddCommand( "s_clearfade", S_ClearFade_f, "clear any sound fade" );
 	Cmd_AddCommand( "s_info", S_SoundInfo_f, "print sound system information" );
-
-	if( !host_sound->integer )
-	{
-		MsgDev( D_INFO, "Audio: disabled\n" );
-		return false;
-	}
 
 	if( !SNDDMA_Init( hInst ))
 	{
@@ -911,7 +889,6 @@ void S_Shutdown( void )
 	Cmd_RemoveCommand( "playsound" );
 	Cmd_RemoveCommand( "stopsound" );
 	Cmd_RemoveCommand( "soundlist" );
-	Cmd_RemoveCommand( "s_clearfade" );
 	Cmd_RemoveCommand( "s_info" );
 
 	if( !sound_started ) return;

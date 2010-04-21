@@ -23,20 +23,10 @@ typedef struct
 	int		right;
 } portable_samplepair_t;
 
-typedef struct
-{
-	int 		length;
-	int 		loopstart;
-	int 		speed;		// not needed, because converted on load?
-	int 		width;
-	int 		stereo;
-	byte		data[1];		// variable sized
-} sfxcache_t;
-
 typedef struct sfx_s
 {
 	string 		name;
-	sfxcache_t	*cache;
+	wavdata_t		*cache;
 
 	int		touchFrame;
 	bool		default_sound;
@@ -178,7 +168,7 @@ extern cvar_t	*s_primary;
 extern portable_samplepair_t		s_rawsamples[MAX_RAW_SAMPLES];
 
 void S_InitScaletable( void );
-sfxcache_t *S_LoadSound( sfx_t *sfx );
+wavdata_t *S_LoadSound( sfx_t *sfx );
 void S_IssuePlaysound( playsound_t *ps );
 void S_PaintChannels( int endtime );
 float S_GetMasterVolume( void );

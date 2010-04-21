@@ -1411,7 +1411,7 @@ void FS_CreateGameInfo( const char *filename )
 	com.strncat( buffer, va("title\t\t\"New Game\"\rversion\t\t\"%g\"\rviewmode\t\t\"firstperson\"\r", XASH_VERSION ), MAX_SYSPATH );
 	com.strncat( buffer, "gamemode\t\t\"default\"\r", MAX_SYSPATH );
 	com.strncat( buffer, "\nstartmap\t\t\"newmap\"\n\n", MAX_SYSPATH );
-	com.strncat( buffer, "\ntexmode\t\t\"Xash3D\"", MAX_SYSPATH );
+	com.strncat( buffer, "\ngameHint\t\t\"Xash3D\"", MAX_SYSPATH );
 	com.strncat( buffer, "\nsp_spawn\t\t\"info_player_start\"", MAX_SYSPATH );
 	com.strncat( buffer, "\ndm_spawn\t\t\"info_player_deathmatch\"", MAX_SYSPATH );
 	com.strncat( buffer, "\nctf_spawn\t\t\"info_player_ctf\"", MAX_SYSPATH );
@@ -1462,7 +1462,7 @@ static bool FS_ParseGameInfo( const char *filename, gameinfo_t *GameInfo )
 	GameInfo->viewheight[1] = 12.0f;
 	GameInfo->sp_inhibite_ents = false;
 	
-	com.strncpy( GameInfo->texmode, "Xash3D", MAX_STRING );
+	com.strncpy( GameInfo->gameHint, "Xash3D", MAX_STRING );
 	com.strncpy( GameInfo->sp_entity, "info_player_start", MAX_STRING );
 	com.strncpy( GameInfo->dm_entity, "info_player_deathmatch", MAX_STRING );
 	com.strncpy( GameInfo->ctf_entity, "info_player_ctf", MAX_STRING );
@@ -1500,9 +1500,9 @@ static bool FS_ParseGameInfo( const char *filename, gameinfo_t *GameInfo )
 		{
 			PS_GetString( script, false, GameInfo->title, sizeof( GameInfo->title ));
 		}
-		else if( !com.stricmp( token.string, "texmode" ))
+		else if( !com.stricmp( token.string, "gameHint" ))
 		{
-			PS_GetString( script, false, GameInfo->texmode, sizeof( GameInfo->texmode ));
+			PS_GetString( script, false, GameInfo->gameHint, sizeof( GameInfo->gameHint ));
 		}
 		else if( !com.stricmp( token.string, "sp_spawn" ))
 		{

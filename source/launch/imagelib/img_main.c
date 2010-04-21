@@ -1,6 +1,6 @@
 //=======================================================================
 //			Copyright XashXT Group 2007 ©
-//			img_load.c - load various image formats
+//		img_main.c - load & save various image formats
 //=======================================================================
 
 #include "imagelib.h"
@@ -256,7 +256,7 @@ rgbdata_t *FS_LoadImage( const char *filename, const byte *buffer, size_t size )
 	bool		dds_installed = false; // current loadformats list supported dds
 	bool		anyformat = true;
 	int		i, filesize = 0;
-	const loadformat_t	*format;
+	const loadpixformat_t *format;
 	const cubepack_t	*cmap;
 	byte		*f;
 
@@ -438,7 +438,7 @@ bool FS_SaveImage( const char *filename, rgbdata_t *pix )
           const char	*ext = FS_FileExtension( filename );
 	bool		anyformat = !com_stricmp( ext, "" ) ? true : false;
 	string		path, savename;
-	const saveformat_t	*format;
+	const savepixformat_t *format;
 
 	if( !pix || !pix->buffer || anyformat ) return false;
 	com.strncpy( savename, filename, sizeof( savename ));

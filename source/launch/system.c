@@ -226,6 +226,13 @@ void Sys_GetStdAPI( void )
 	com.ImagePFDesc = Image_GetPixelFormat;		// get some info about current fmt
 	com.ImageConvert = Image_Process;		// flip, rotate, resample etc
 
+	// built-in soundlib functions
+	com.SoundLoad = FS_LoadSound;			// load sound from disk or wad-file
+	com.SoundSave = FS_SaveSound;			// save sound into specified format 
+	com.SoundFree = FS_FreeSound;			// release sound buffer
+	com.SndlibSetup = Sound_Setup;		// set soundlib global features
+	com.SoundConvert = Sound_Process;		// resample, change resolution etc
+
 	com.Com_RandomLong = Com_RandomLong;
 	com.Com_RandomFloat = Com_RandomFloat;
 
@@ -1003,6 +1010,8 @@ void Sys_Init( void )
 	Cvar_Init();
 	FS_Init();
 	Image_Init();
+	Sound_Init();
+
 	Sys_CreateInstance();
 }
 
@@ -1016,6 +1025,7 @@ void Sys_Shutdown( void )
 
 	FS_Shutdown();
 	Image_Shutdown();
+	Sound_Shutdown();
 	Memory_Shutdown();
 	Con_DestroyConsole();
 

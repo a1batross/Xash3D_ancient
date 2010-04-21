@@ -32,6 +32,7 @@ cvar_t	*host_serverstate;
 cvar_t	*host_cheats;
 cvar_t	*host_maxfps;
 cvar_t	*host_minfps;
+cvar_t	*host_nosound;
 cvar_t	*host_framerate;
 cvar_t	*host_registered;
 cvar_t	*host_video;
@@ -216,6 +217,9 @@ bool Host_InitSound( void )
 	launch_t		CreateSound;  
 	bool		result = false;
 
+	if( host_nosound->integer )
+		return result;
+
 	// phys callback
 	si.api_size = sizeof( vsound_imp_t );
 	si.GetSoundSpatialization = CL_GetEntitySoundSpatialization;
@@ -246,8 +250,7 @@ void Host_CheckRestart( void )
 
 	if( host_cphys->modified )
 	{
-		// host.state = HOST_RESTART;
-		S_StopAllSounds();		// don't let them loop during the restart
+		S_StopAllSounds();	// don't let them loop during the restart
 
 		SV_ForceMod();
 		CL_ForceVid();
@@ -280,6 +283,14 @@ void Host_CheckRestart( void )
 void Host_CheckChanges( void )
 {
 	int	num_changes;
+	bool	audio_disabled = false;
+
+	if( host_nosound->integer )
+	{
+		if( host.state == HOST_INIT )
+			audio_disabled = true;
+		host_audio->modified = false;
+	}
 
 	if( host_video->modified || host_audio->modified )
 	{
@@ -312,6 +323,8 @@ void Host_CheckChanges( void )
 		}
 		else SCR_Init ();
 	}
+
+	if( audio_disabled ) MsgDev( D_INFO, "Audio: Disabled\n" );
 
 	num_changes = 0;
 
@@ -748,7 +761,8 @@ void Host_InitCommon( const int argc, const char **argv )
 	Host_InitEvents();
 
 	FS_LoadGameInfo( NULL );
-	Image_Init( GI->texmode, -1 );
+	Image_Init( GI->gameHint, -1 );
+	Sound_Init( GI->gameHint, -1 );
 
 	host.mempool = Mem_AllocPool( "Zone Engine" );
 
@@ -860,6 +874,7 @@ void Host_Init( const int argc, const char **argv )
 	host_framerate = Cvar_Get( "host_framerate", "0", 0, "locks frame timing to this value in seconds" );  
 	host_serverstate = Cvar_Get( "host_serverstate", "0", CVAR_SERVERINFO, "displays current server state" );
 	host_registered = Cvar_Get( "registered", "1", CVAR_SYSTEMINFO, "indicate shareware version of game" );
+	host_nosound = Cvar_Get( "host_nosound", "0", CVAR_SYSTEMINFO, "disable sound system" );
 	timescale = Cvar_Get( "timescale", "1.0", 0, "slow-mo timescale" );
 
 	s = va( "^1Xash %g ^3%s", GI->version, buildstring );
@@ -877,6 +892,7 @@ void Host_Init( const int argc, const char **argv )
 	SV_Init();
 	CL_Init();
 
+	Host_CheckRestart ();	// loading physic library
 	Host_WriteDefaultConfig ();
 
 	if( host.type == HOST_DEDICATED )

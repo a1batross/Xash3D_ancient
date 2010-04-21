@@ -632,7 +632,6 @@ void SV_Init( void )
 
 	SV_ClearSaveDir ();	// delete all temporary *.hl files
 	MSG_Init( &net_message, net_message_buffer, sizeof( net_message_buffer ));
-	Host_CheckRestart ();
 }
 
 /*
