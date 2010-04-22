@@ -135,6 +135,25 @@ _inline float rsqrt( float number )
 	return y;
 }
 
+// remap a value in the range [A,B] to [C,D].
+_inline float RemapVal( float val, float A, float B, float C, float D )
+{
+	return C + (D - C) * (val - A) / (B - A);
+}
+
+_inline float ApproachVal( float target, float value, float speed )
+{
+	float	delta = target - value;
+
+	if( delta > speed )
+		value += speed;
+	else if( delta < -speed )
+		value -= speed;
+	else value = target;
+
+	return value;
+}
+
 _inline static bool VectorCompareEpsilon( const vec3_t v1, const vec3_t v2, const float epsilon )
 {
 	vec3_t	d;
@@ -216,7 +235,7 @@ _inline void AddPointToBounds( const vec3_t v, vec3_t mins, vec3_t maxs )
 	}
 }
 
-_inline void VectorVectors(vec3_t forward, vec3_t right, vec3_t up)
+_inline void VectorVectors( vec3_t forward, vec3_t right, vec3_t up )
 {
 	float d;
 
@@ -228,6 +247,32 @@ _inline void VectorVectors(vec3_t forward, vec3_t right, vec3_t up)
 	VectorMA(right, -d, forward, right);
 	VectorNormalize(right);
 	CrossProduct(right, forward, up);
+}
+
+_inline void VectorAngles( const vec3_t forward, vec3_t angles )
+{
+	float	tmp, yaw, pitch;
+	
+	if( forward[1] == 0 && forward[0] == 0 )
+	{
+		yaw = 0.0f;
+		if( forward[2] > 0 )
+			pitch = 270.0f;
+		else pitch = 90.0f;
+	}
+	else
+	{
+		yaw = ( atan2( forward[1], forward[0] ) * 180 / M_PI );
+		if( yaw < 0 ) yaw += 360;
+
+		tmp = com.sqrt( forward[0] * forward[0] + forward[1] * forward[1] );
+		pitch = ( atan2( -forward[2], tmp ) * 180 / M_PI );
+		if( pitch < 0 ) pitch += 360;
+	}
+
+	angles[0] = pitch;
+	angles[1] = yaw;
+	angles[2] = 0;
 }
 
 // similar to MakeNormalVectors but for rotational matrices

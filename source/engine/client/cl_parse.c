@@ -339,12 +339,14 @@ void CL_ParseSoundPacket( sizebuf_t *msg )
 	if( flags & SND_VOLUME )
 		volume = MSG_ReadByte( msg ) / 255.0f;
 	else volume = VOL_NORM;
+
 	if( flags & SND_SOUNDLEVEL )
 	{
 		int soundlevel = MSG_ReadByte( msg );
 		attenuation = SNDLVL_TO_ATTN( soundlevel );
 	}
 	else attenuation = ATTN_NONE;	
+
 	if( flags & SND_PITCH )
 		pitch = MSG_ReadByte( msg );
 	else pitch = PITCH_NORM;
@@ -358,6 +360,7 @@ void CL_ParseSoundPacket( sizebuf_t *msg )
 		pos = pos_;
 		MSG_ReadPos( msg, pos );
 	}
+
 	S_StartSound( pos, entnum, channel, cl.sound_precache[sound_num], volume, attenuation, pitch, flags );
 }
 

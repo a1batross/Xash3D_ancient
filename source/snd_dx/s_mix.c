@@ -1,23 +1,7 @@
-/*
-Copyright (C) 1997-2001 Id Software, Inc.
-
-This program is free software; you can redistribute it and/or
-modify it under the terms of the GNU General Public License
-as published by the Free Software Foundation; either version 2
-of the License, or (at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  
-
-See the GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with this program; if not, write to the Free Software
-Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
-
-*/
-// snd_mix.c -- portable code to mix sounds for snd_dma.c
+//=======================================================================
+//			Copyright XashXT Group 2009 ©
+//		      s_mix.c - portable code to mix sounds
+//=======================================================================
 
 #include "sound.h"
 
@@ -89,20 +73,6 @@ void S_TransferPaintBuffer( int endtime )
 	dword	*pbuf;
 
 	pbuf = (dword *)dma.buffer;
-
-	if( s_testsound->integer )
-	{
-		int	i, count;
-
-		// write a fixed sine wave
-		count = (endtime - paintedtime);
-		for( i = 0; i < count; i++ )
-		{
-			paintbuffer[i].left = com.sin(( paintedtime + i ) * 0.1f ) * 20000 * 256;
-			paintbuffer[i].right = paintbuffer[i].left;
-		}
-	}
-
 
 	if( dma.samplebits == 16 && dma.channels == 2 )
 	{	
@@ -211,23 +181,23 @@ void S_MixAllChannels( int endtime, int end )
 	// paint in the channels.
 	for( i = 0, ch = channels; i < total_channels; i++, ch++ )
 	{
+		if( !ch->sfx ) continue;
+		if( !ch->leftvol && !ch->rightvol )
+			continue;
+
+		sc = S_LoadSound( ch->sfx );
+		if( !sc ) continue;
+
 		ltime = paintedtime;
 		
 		while( ltime < end )
 		{
-			if( !ch->sfx || ( !ch->leftvol && !ch->rightvol ))
-				break;
+			// paint up to end
+			if( ch->end < end )
+				count = ch->end - ltime;
+			else count = end - ltime;
 
-			// max painting is to the end of the buffer
-			count = end - ltime;
-
-			// might be stopped by running out of data
-			if( ch->end - ltime < count ) count = ch->end - ltime;
-		
-			sc = S_LoadSound( ch->sfx );
-			if( !sc ) break;
-
-			if( count > 0 && ch->sfx )
+			if( count > 0 )
 			{	
 				if( sc->width == 1 )
 					S_PaintChannelFrom8( ch, sc, count );
@@ -241,7 +211,7 @@ void S_MixAllChannels( int endtime, int end )
 			{
 				if( ch->autosound && ch->use_loop )
 				{	
-					// autolooping sounds always go back to start
+					// autolooped sounds always go back to start
 					ch->pos = 0;
 					ch->end = ltime + sc->samples;
 				}
@@ -250,7 +220,12 @@ void S_MixAllChannels( int endtime, int end )
 					ch->pos = sc->loopStart;
 					ch->end = ltime + sc->samples - ch->pos;
 				}
-				else ch->sfx = NULL; // channel just stopped
+				else
+				{
+					// channel just stopped
+					ch->sfx = NULL;
+					break;
+				}
 			}
 		}
 	}
@@ -258,8 +233,7 @@ void S_MixAllChannels( int endtime, int end )
 
 void S_PaintChannels( int endtime )
 {
-	playsound_t	*ps;
-	int		i, end;
+	int	end;
 
 	snd_vol = S_GetMasterVolume () * 256;
 
@@ -270,22 +244,6 @@ void S_PaintChannels( int endtime )
 		if( endtime - paintedtime > PAINTBUFFER_SIZE )
 			end = paintedtime + PAINTBUFFER_SIZE;
 
-		// start any playsounds
-		while( 1 )
-		{
-			ps = s_pendingplays.next;
-			if( ps == &s_pendingplays )
-				break;	// no more pending sounds
-			if( ps->begin <= paintedtime )
-			{
-				S_IssuePlaysound( ps );
-				continue;
-			}
-
-			if( ps->begin < end ) end = ps->begin; // stop here
-			break;
-		}
-
 		// clear the paint buffer
 		if( s_rawend < paintedtime )
 		{
@@ -293,7 +251,7 @@ void S_PaintChannels( int endtime )
 		}
 		else
 		{	
-			int	stop;
+			int	i, stop;
 
 			// copy from the streaming sound source
 			stop = (end < s_rawend) ? end : s_rawend;

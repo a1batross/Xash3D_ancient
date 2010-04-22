@@ -166,13 +166,6 @@ typedef enum
 	scrshot_skyshot	// skybox view
 } e_scrshot;
 
-typedef struct
-{
-	byte		open;		// 0 = mouth closed, 255 = mouth agape
-	byte		sndcount;		// counter for running average
-	int		sndavg;		// running average
-} mouth_t;
-
 // cl_private_edict_t
 struct cl_priv_s
 {
@@ -473,6 +466,7 @@ bool CL_IsValidEdict( const edict_t *e );
 const char *CL_ClassName( const edict_t *e );
 void CL_SetEventIndex( const char *szEvName, int ev_index );
 void CL_TextMessageParse( byte *pMemFile, int fileSize );
+mouth_t *CL_GetEntityMouth( edict_t *ent );
 
 // TriAPI implementation
 void TriRenderMode( kRenderMode_t mode );
@@ -560,7 +554,6 @@ void CL_UpdateBaseVelocity( edict_t *ent );
 // cl_frame.c
 //
 void CL_GetEntitySoundSpatialization( int ent, vec3_t origin, vec3_t velocity );
-void CL_AddLoopingSounds( void );
 
 //
 // cl_effects.c

@@ -124,6 +124,17 @@ bool S_TestSoundChar( const char *pch, char c )
 	return false;
 }
 
+// return pointer to first valid character in file name
+char *S_SkipSoundChar( const char *pch )
+{
+	char *pcht = (char *)pch;
+
+	// check first character
+	if( *pcht == '!' )
+		pcht++;
+	return pcht;
+}
+
 /*
 =================
 S_UploadSound
@@ -356,9 +367,6 @@ S_RegisterSound
 sound_t S_RegisterSound( const char *name )
 {
 	sfx_t	*sfx;
-
-	if( !sound_started )
-		return -1;
 
 	sfx = S_FindSound( name );
 	if( !sfx ) return -1;

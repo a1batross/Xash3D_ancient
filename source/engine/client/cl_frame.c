@@ -357,6 +357,61 @@ void CL_AddEntities( void )
 //
 // sound engine implementation
 //
+bool CL_GetEntitySpatialization( int entnum, soundinfo_t *info )
+{
+	edict_t	*pSound;
+
+	// world is always audible
+	if( entnum == 0 )
+		return true;
+
+	if( entnum < 0 || entnum >= GI->max_edicts )
+	{
+		MsgDev( D_ERROR, "CL_GetEntitySoundSpatialization: invalid entnum %d\n", entnum );
+		return false;
+	}
+
+	// while explosion entity can be died before sound played completely
+	if( entnum >= clgame.globals->numEntities )
+		return false;
+
+	pSound = CL_GetEdictByIndex( entnum );
+
+	// out of PVS, removed etc
+	if( !pSound ) return false;
+	
+	if( !pSound->v.modelindex )
+		return true;
+
+	if( info->pflRadius )
+	{
+		vec3_t	mins, maxs;
+
+		Mod_GetBounds( pSound->v.modelindex, mins, maxs );
+		*info->pflRadius = RadiusFromBounds( mins, maxs );
+	}
+	
+	if( info->pOrigin )
+	{
+		VectorCopy( pSound->v.origin, info->pOrigin );
+
+		if( CM_GetModelType( pSound->v.modelindex ) == mod_brush )
+		{
+			vec3_t	mins, maxs, center;
+
+			Mod_GetBounds( pSound->v.modelindex, mins, maxs );
+			VectorAverage( mins, maxs, center );
+			VectorAdd( info->pOrigin, center, info->pOrigin );
+		}
+	}
+
+	if( info->pAngles )
+	{
+		VectorCopy( pSound->v.angles, info->pAngles );
+	}
+	return true;
+}
+
 void CL_GetEntitySoundSpatialization( int entnum, vec3_t origin, vec3_t velocity )
 {
 	edict_t	*ent;
@@ -386,43 +441,5 @@ void CL_GetEntitySoundSpatialization( int entnum, vec3_t origin, vec3_t velocity
 		Mod_GetBounds( ent->v.modelindex, mins, maxs );
 		VectorAverage( mins, maxs, midPoint );
 		VectorAdd( origin, midPoint, origin );
-	}
-}
-
-/*
-=================
-S_AddLoopingSounds
-
-Entities with a sound field will generate looping sounds that are
-automatically started and stopped as the entities are sent to the
-client
-=================
-*/
-void CL_AddLoopingSounds( void )
-{
-	edict_t	*ent;
-	int	sound, e;
-
-	if( cls.state != ca_active ) return;
-	if( cl.refdef.paused || cls.key_dest == key_menu ) return;
-	if(!cl.audio_prepped ) return;
-
-	for( e = 1; e < clgame.globals->numEntities; e++ )
-	{
-		ent = EDICT_NUM( e );
-		if( ent->free ) continue;
-
-		switch( ent->pvClientData->current.ed_type )
-		{
-		case ED_MOVER:
-		case ED_AMBIENT:
-		case ED_NORMAL: break;
-		default: continue;
-		}
-
-		sound = ent->pvClientData->current.soundindex;
-		if( !sound ) continue;
-
-		S_AddLoopingSound( ent->serialnumber, cl.sound_precache[sound], 1.0f, ATTN_IDLE );
 	}
 }

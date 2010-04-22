@@ -612,6 +612,42 @@ int SNDDMA_GetDMAPos( void )
 
 /*
 ==============
+SNDDMA_GetSoundtime
+
+update global soundtime
+===============
+*/
+int SNDDMA_GetSoundtime( void )
+{
+	static int	buffers, oldsamplepos;
+	int		samplepos, fullsamples;
+	
+	fullsamples = dma.samples / dma.channels;
+
+	// it is possible to miscount buffers
+	// if it has wrapped twice between
+	// calls to S_Update.  Oh well.
+	samplepos = SNDDMA_GetDMAPos();
+
+	if( samplepos < oldsamplepos )
+	{
+		buffers++; // buffer wrapped
+
+		if( paintedtime > 0x40000000 )
+		{	
+			// time to chop things off to avoid 32 bit limits
+			buffers = 0;
+			paintedtime = fullsamples;
+			S_StopAllSounds();
+		}
+	}
+	oldsamplepos = samplepos;
+
+	return (buffers * fullsamples + samplepos / dma.channels);
+}
+
+/*
+==============
 SNDDMA_BeginPainting
 
 Makes sure dma.buffer is valid
@@ -723,6 +759,16 @@ void SNDDMA_Shutdown( void )
 	SNDDMA_FreeSound();
 }
 
+/*
+===========
+S_PrintDeviceName
+===========
+*/
+void S_PrintDeviceName( void )
+{
+	if( snd_isdirect ) Msg( "Audio: DirectSound\n" );
+	if( snd_iswave ) Msg( "Audio: WaveOutput\n" );
+}
 
 /*
 ===========

@@ -128,7 +128,7 @@ float S_GetMasterVolume( void )
 {
 	float	scale = 1.0f;
 
-	if( soundfade.percent != 0 )
+	if( si.IsInGame() && soundfade.percent != 0 )
 	{
 		scale = bound( 0.0f, soundfade.percent / 100.0f, 1.0f );
 		scale = 1.0f - scale;
@@ -399,66 +399,6 @@ channel_t *S_PickChannel( int entnum, int channel )
 
 /*
 =================
-S_AddLoopingSounds
-
-Entities with a sound field will generate looping sounds that are
-automatically started and stopped as the entities are sent to the
-client
-=================
-*/
-bool S_AddLoopingSound( int entnum, sound_t handle, float volume, float attn )
-{
-	channel_t		*ch;
-	sfx_t		*sfx = NULL;
-	int		i;
-
-	if(!al_state.initialized )
-		return false;
-	sfx = S_GetSfxByHandle( handle );
-
-	// default looped sound it's terrible :)
-	if( !sfx || !sfx->loaded || sfx->default_sound )
-		return false;
-
-	// if this entity is already playing the same sound effect on an
-	// active channel, then simply update it
-	for( i = 0, ch = s_channels; i < al_state.num_channels; i++, ch++ )
-	{
-		if( ch->sfx != sfx ) continue;
-		if( !ch->loopsound ) continue;
-		if( ch->loopnum != entnum ) continue;
-		if( ch->loopframe + 1 != al_state.framecount )
-			continue;
-
-		ch->loopframe = al_state.framecount;
-		break;
-	}
-	if( i != al_state.num_channels )
-		return false;
-
-	// otherwise pick a channel and start the sound effect
-	ch = S_PickChannel( 0, 0 );
-	if( !ch )
-	{
-		MsgDev( D_ERROR, "dropped sound \"sound/%s\"\n", sfx->name );
-		return false;
-	}
-
-	ch->loopsound = true;
-	ch->loopnum = entnum;
-	ch->loopframe = al_state.framecount;
-	ch->fixedPosition = false;
-	ch->volume = 1.0f;
-	ch->pitch = 1.0f;
-	ch->distanceMult = 1.0f / ATTN_NORM;
-
-	S_SpatializeChannel( ch );
-	S_PlayChannel( ch, sfx );
-	return true;
-}
-
-/*
-=================
 S_AllocPlaySound
 =================
 */
@@ -561,7 +501,7 @@ if origin is NULL, the sound will be dynamically sourced from the entity.
 entchannel 0 will never override a playing sound.
 =================
 */
-void S_StartSound( const vec3_t pos, int entnum, int channel, sound_t handle, float vol, float attn, float pitch, int flags )
+void S_StartSound( const vec3_t pos, int entnum, int channel, sound_t handle, float vol, float attn, int pitch, int flags )
 {
 	playSound_t	*ps, *sort;
 	sfx_t		*sfx = NULL;
@@ -617,7 +557,7 @@ S_StartLocalSound
 menu sound
 =================
 */
-bool S_StartLocalSound( const char *name, float volume, float pitch, const float *origin )
+bool S_StartLocalSound( const char *name, float volume, int pitch, const float *origin )
 {
 	sound_t	sfxHandle;
 
@@ -627,6 +567,18 @@ bool S_StartLocalSound( const char *name, float volume, float pitch, const float
 	sfxHandle = S_RegisterSound( name );
 	S_StartSound( origin, al_state.clientnum, CHAN_AUTO, sfxHandle, volume, ATTN_NONE, pitch, SND_STOP_LOOPING );
 	return true;
+}
+
+/*
+==================
+S_StopAllSounds
+
+stop all sounds for entity on a channel.
+==================
+*/
+void S_StopSound( int entnum, int channel )
+{
+	S_StopAllSounds();	// FIXME: this is incorrect!
 }
 
 /*
@@ -749,9 +701,6 @@ void S_Update( ref_params_t *fd )
 
 	// Stream background track
 	S_StreamBackgroundTrack();
-
-	// Add looping sounds
-	si.AddLoopingSounds();
 
 	// Issue playSounds
 	S_IssuePlaySounds();

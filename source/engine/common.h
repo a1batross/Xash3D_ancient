@@ -173,6 +173,7 @@ void pfnGetGameDir( char *szGetGameDir );
 const char *pfnCmd_Args( void );
 const char *pfnCmd_Argv( int argc );
 int pfnCmd_Argc( void );
+int pfnIsInGame( void );
 float pfnTime( void );
 
 /*
@@ -219,13 +220,16 @@ void CL_CharEvent( int key );
 void Tri_DrawTriangles( int fTrans );
 int CL_PointContents( const vec3_t point );
 void CL_StudioFxTransform( edict_t *ent, float transform[4][4] );
+bool CL_GetEntitySpatialization( int entnum, soundinfo_t *info );
 void CL_GetEntitySoundSpatialization( int ent, vec3_t origin, vec3_t velocity );
 bool CL_GetAttachment( int entityIndex, int number, vec3_t origin, vec3_t angles );
 bool CL_SetAttachment( int entityIndex, int number, vec3_t origin, vec3_t angles );
 void CL_StudioEvent( dstudioevent_t *event, edict_t *ent );
 bool CL_GetComment( const char *demoname, char *comment );
+trace_t CL_TraceLine( const vec3_t start, const vec3_t end );
 lerpframe_t *CL_GetLerpFrame( int entityIndex );
 edict_t *CL_GetEdictByIndex( int index );
+mouth_t *CL_GetEntityMouth( edict_t *ent );
 edict_t *CL_GetLocalPlayer( void );
 int CL_GetMaxClients( void );
 byte CL_GetMouthOpen( int entityIndex );

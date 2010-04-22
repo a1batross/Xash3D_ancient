@@ -206,6 +206,7 @@ _inline bool CM_BoxVisible( const vec3_t mins, const vec3_t maxs )
 #define S_RawSamples 		if( se ) se->StreamRawSamples
 #define S_FadeClientVolume		if( se ) se->FadeClientVolume
 #define S_StopAllSounds		if( se ) se->StopAllSounds
+#define S_StopSound			if( se ) se->StopSound
 #define S_AddLoopingSound		if( se ) se->AddLoopingSound
 #define S_Activate			if( se ) se->Activate
 #define S_Update			if( se ) se->RenderFrame

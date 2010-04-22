@@ -220,13 +220,18 @@ bool Host_InitSound( void )
 	if( host_nosound->integer )
 		return result;
 
-	// phys callback
 	si.api_size = sizeof( vsound_imp_t );
+
+	// sound callbacks
+	si.GetEntitySpatialization = CL_GetEntitySpatialization;
 	si.GetSoundSpatialization = CL_GetEntitySoundSpatialization;
+	si.TraceLine = CL_TraceLine;
 	si.PointContents = CL_PointContents;
 	si.GetClientEdict = CL_GetEdictByIndex;
-	si.AddLoopingSounds = CL_AddLoopingSounds;
+	si.GetEntityMouth = CL_GetEntityMouth;
 	si.GetServerTime = CL_GetServerTime;
+	si.IsInGame = pfnIsInGame;
+	si.IsActive = CL_Active;
 
 	Sys_LoadLibrary( host_audio->string, &vsound_dll );
 

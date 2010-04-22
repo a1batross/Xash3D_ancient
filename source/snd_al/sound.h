@@ -9,6 +9,7 @@
 #include <windows.h>
 #include "launch_api.h"
 #include "qfiles_ref.h"
+#include "engine_api.h"	// trace_t declaration
 #include "vsound_api.h"
 #include "s_openal.h"
 
@@ -185,14 +186,14 @@ void S_Activate( bool active );
 void S_SoundList_f( void );
 bool S_CheckForErrors( void );
 void S_Update( ref_params_t *fd );
-void S_StartSound( const vec3_t pos, int ent, int chan, sound_t sfx, float vol, float attn, float pitch, int flags );
+void S_StartSound( const vec3_t pos, int ent, int chan, sound_t sfx, float vol, float attn, int pitch, int flags );
 void S_StreamRawSamples( int samples, int rate, int width, int channels, const byte *data );
-bool S_AddLoopingSound( int entnum, sound_t handle, float volume, float attn );
 void S_StartBackgroundTrack( const char *intro, const char *loop );
 channel_t	*S_PickChannel( int entNum, int entChannel );
 void S_FadeClientVolume( float fadePercent, float fadeOutSeconds, float holdTime, float fadeInSeconds );
-int S_StartLocalSound( const char *name, float volume, float pitch, const float *org );
+int S_StartLocalSound( const char *name, float volume, int pitch, const float *org );
 sfx_t *S_GetSfxByHandle( sound_t handle );
+void S_StopSound( int entnum, int channel );
 void S_StreamBackgroundTrack( void );
 void S_StopBackgroundTrack( void );
 void S_ClearSoundBuffer( void );

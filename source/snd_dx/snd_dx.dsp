@@ -138,7 +138,15 @@ SOURCE=.\s_mix.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\s_mouth.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\s_stream.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\s_vox.c
 # End Source File
 # End Group
 # Begin Group "Header Files"

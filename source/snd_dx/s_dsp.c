@@ -1036,7 +1036,6 @@ void SXRVB_DoAMod( int count )
 		fmod = (sxmod_mod->integer > 0);
 
 		// process each sample in the paintbuffer...
-
 		while( countr-- )
 		{
 			if( dma.channels == 2 )
@@ -1235,21 +1234,19 @@ void SX_RoomFX( int endtime, int fFilter, int fTimefx )
 	int	roomType;
 
 	// return right away if fx processing is turned off
-	if( sxroom_off->value != 0.0 )
+	if( sxroom_off->value != 0.0f )
 		return;
 
 	sampleCount = endtime - paintedtime;
-	if( sampleCount < 0 )
-		return;
+	if( sampleCount < 0 ) return;
 
 	fReset = false;
-	if( listener_waterlevel > 2 )
+	if( s_listener.waterlevel > 2 )
 		roomType = sxroomwater_type->integer;
 	else roomType = sxroom_type->integer;
 
 	// only process legacy roomtypes here
-	if( roomType >= CSXROOM )
-		return;
+	if( roomType >= CSXROOM ) return;
 
 	if( roomType != sxroom_typeprev ) 
 	{

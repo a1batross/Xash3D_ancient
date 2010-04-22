@@ -39,6 +39,20 @@ edict_t *CL_GetEdictByIndex( int index )
 }
 
 /*
+====================
+CL_GetEntityMouth
+
+get pointer to mouth state
+====================
+*/
+mouth_t *CL_GetEntityMouth( edict_t *ent )
+{
+	if( !CL_IsValidEdict( ent ))
+		return NULL;
+	return &ent->pvClientData->mouth;
+}
+
+/*
 =============
 CL_AllocString
 
@@ -145,7 +159,7 @@ byte CL_GetMouthOpen( int entityIndex )
 
 	if( !ed || ed->free || !ed->pvClientData )
 		return 0;
-	return ed->pvClientData->mouth.open;
+	return ed->pvClientData->mouth.mouthopen;
 }
 
 lerpframe_t *CL_GetLerpFrame( int entityIndex )
@@ -1984,8 +1998,8 @@ pfnStopAllSounds
 */
 void pfnStopAllSounds( edict_t *ent, int entchannel )
 {
-	// FIXME: this code is wrong
-	S_StopAllSounds ();
+	if( !CL_IsValidEdict( ent )) return;
+	S_StopSound( ent->serialnumber, entchannel );
 }
 
 /*

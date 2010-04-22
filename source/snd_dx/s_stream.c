@@ -17,7 +17,6 @@ S_StartBackgroundTrack
 */
 void S_StartBackgroundTrack( const char *introTrack, const char *loopTrack )
 {
-	if( !sound_started ) return;
 	S_StopBackgroundTrack();
 
 	// start it up
@@ -31,8 +30,6 @@ void S_StartBackgroundTrack( const char *introTrack, const char *loopTrack )
 
 void S_StopBackgroundTrack( void )
 {
-	if( !sound_started ) return;
-
 	S_StopStreaming();
 
 	// UNDONE: close background track
@@ -60,10 +57,8 @@ void S_StreamRawSamples( int samples, int rate, int width, int channels, const b
 	int	i, src, dst;
 	float	scale;
 
-	if( !sound_started )
-		return;
-
-	if( s_rawend < paintedtime ) s_rawend = paintedtime;
+	if( s_rawend < paintedtime )
+		s_rawend = paintedtime;
 	scale = (float)rate / dma.speed;
 
 	if( channels == 2 && width == 2 )

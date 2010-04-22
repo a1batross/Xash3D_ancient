@@ -626,6 +626,18 @@ int CL_PointContents( const vec3_t p )
 
 /*
 ============
+CL_TraceLine
+
+soundlib light version
+============
+*/
+trace_t CL_TraceLine( const vec3_t start, const vec3_t end )
+{
+	return CL_Move( start, vec3_origin, vec3_origin, end, MOVE_NOMONSTERS, NULL );
+}
+
+/*
+============
 CL_TestPlayerPosition
 
 ============
