@@ -86,14 +86,6 @@ typedef struct
 	bool		bTraced;		// true if channel was already checked this frame for obscuring
 	float		radius;		// radius of this sound effect
 	bool		doppler_effect;	// this chanel has doppler effect
-
-	// obsolete. remove ?
-	int		looping;		// where to loop, -1 = no looping OBSOLETE?
-
-	int		loopnum;		// entity num that playing autosound
-	int		loopframe;	// for stopping looping sounds
-
-	bool		autosound;	// from an entity->sound, cleared each frame
 	bool		use_loop;		// don't loop default and local sounds
 } channel_t;
 
@@ -110,6 +102,7 @@ typedef struct
 	int		waterlevel;
 	float		frametime;	// used for sound fade
 	bool		ingame;		// listener in-game ?
+	bool		paused;
 } listener_t;
 
 typedef struct
@@ -206,7 +199,7 @@ channel_t *SND_PickStaticChannel( int entnum, sfx_t *sfx );
 void S_FadeClientVolume( float fadePercent, float fadeOutSeconds, float holdTime, float fadeInSeconds );
 int S_StartLocalSound( const char *name, float volume, int pitch, const float *org );
 sfx_t *S_GetSfxByHandle( sound_t handle );
-void S_StopSound( int entnum, int channel );
+void S_StopSound( int entnum, int channel, const char *soundname );
 void S_StopBackgroundTrack( void );
 void S_RenderFrame( ref_params_t *fd );
 void S_StartStreaming( void );

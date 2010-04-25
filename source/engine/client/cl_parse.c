@@ -29,6 +29,7 @@ char *svc_strings[256] =
 	"svc_packetentities",
 	"svc_frame",
 	"svc_sound",
+	"svc_ambientsound",
 	"svc_setangle",
 	"svc_addangle",
 	"svc_setview",
@@ -324,28 +325,25 @@ CL_ParseSoundPacket
 
 ==================
 */
-void CL_ParseSoundPacket( sizebuf_t *msg )
+void CL_ParseSoundPacket( sizebuf_t *msg, bool is_ambient )
 {
 	vec3_t	pos_;
 	float	*pos = NULL;
-	int 	channel, sound_num;
-	float 	volume, attenuation;  
+	int 	chan, sound;
+	float 	volume, attn;  
 	int	flags, pitch, entnum;
 
 	flags = MSG_ReadWord( msg );
-	sound_num = MSG_ReadWord( msg );
-	channel = MSG_ReadByte( msg );
+	sound = MSG_ReadWord( msg );
+	chan = MSG_ReadByte( msg );
 
 	if( flags & SND_VOLUME )
 		volume = MSG_ReadByte( msg ) / 255.0f;
 	else volume = VOL_NORM;
 
-	if( flags & SND_SOUNDLEVEL )
-	{
-		int soundlevel = MSG_ReadByte( msg );
-		attenuation = SNDLVL_TO_ATTN( soundlevel );
-	}
-	else attenuation = ATTN_NONE;	
+	if( flags & SND_ATTENUATION )
+		attn = MSG_ReadByte( msg ) / 64.0f;
+	else attn = ATTN_NONE;	
 
 	if( flags & SND_PITCH )
 		pitch = MSG_ReadByte( msg );
@@ -361,7 +359,14 @@ void CL_ParseSoundPacket( sizebuf_t *msg )
 		MSG_ReadPos( msg, pos );
 	}
 
-	S_StartSound( pos, entnum, channel, cl.sound_precache[sound_num], volume, attenuation, pitch, flags );
+	if( is_ambient )
+	{
+		S_AmbientSound( pos, entnum, chan, cl.sound_precache[sound], volume, attn, pitch, flags );
+	}
+	else
+	{
+		S_StartSound( pos, entnum, chan, cl.sound_precache[sound], volume, attn, pitch, flags );
+	}
 }
 
 /*
@@ -815,7 +820,10 @@ void CL_ParseServerMessage( sizebuf_t *msg )
 			CL_ParseDownload( msg );
 			break;
 		case svc_sound:
-			CL_ParseSoundPacket( msg );
+			CL_ParseSoundPacket( msg, false );
+			break;
+		case svc_ambientsound:
+			CL_ParseSoundPacket( msg, true );
 			break;
 		case svc_setangle:
 			CL_ParseSetAngle( msg );

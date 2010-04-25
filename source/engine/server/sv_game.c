@@ -596,14 +596,14 @@ void SV_BaselineForEntity( const edict_t *pEdict )
 
 		base = &sv_ent->s;
 
-		if( pEdict->v.modelindex || base->soundindex || pEdict->v.effects )
+		if( pEdict->v.modelindex || pEdict->v.effects )
 		{
 			// take current state as baseline
 			SV_UpdateEntityState( pEdict, true );
 			svs.baselines[pEdict->serialnumber] = *base;
                     }
 
-		if( sv.state == ss_active && ( base->modelindex || base->soundindex || base->effects ))
+		if( sv.state == ss_active && ( base->modelindex || base->effects ))
 		{
 			entity_state_t	nullstate;
 
@@ -1420,7 +1420,7 @@ SV_StartSound
 void SV_StartSound( edict_t *ent, int chan, const char *sample, float vol, float attn, int flags, int pitch )
 {
 	int 	sound_idx;
-	int	msg_dest = MSG_PAS_R;
+	int	msg_dest;
 	vec3_t	origin;
 
 	if( attn < ATTN_NONE || attn > ATTN_IDLE )
@@ -1443,7 +1443,7 @@ void SV_StartSound( edict_t *ent, int chan, const char *sample, float vol, float
 
 	if( sv.state == ss_loading ) flags |= SND_SPAWNING;
 	if( vol != VOL_NORM ) flags |= SND_VOLUME;
-	if( attn != ATTN_NONE ) flags |= SND_SOUNDLEVEL;
+	if( attn != ATTN_NONE ) flags |= SND_ATTENUATION;
 	if( pitch != PITCH_NORM ) flags |= SND_PITCH;
 
 	// ultimate method for detect bsp models with invalid solidity (e.g. func_pushable)
@@ -1477,9 +1477,9 @@ void SV_StartSound( edict_t *ent, int chan, const char *sample, float vol, float
 	MSG_WriteWord( &sv.multicast, sound_idx );
 	MSG_WriteByte( &sv.multicast, chan );
 
-	if ( flags & SND_VOLUME ) MSG_WriteByte( &sv.multicast, vol * 255 );
-	if ( flags & SND_SOUNDLEVEL ) MSG_WriteByte( &sv.multicast, ATTN_TO_SNDLVL( attn ));
-	if ( flags & SND_PITCH ) MSG_WriteByte( &sv.multicast, pitch );
+	if( flags & SND_VOLUME ) MSG_WriteByte( &sv.multicast, vol * 255 );
+	if( flags & SND_ATTENUATION ) MSG_WriteByte( &sv.multicast, attn * 64 );
+	if( flags & SND_PITCH ) MSG_WriteByte( &sv.multicast, pitch );
 
 	// plays from aiment
 	if( ent->v.aiment && !ent->v.aiment->free )
@@ -1515,7 +1515,7 @@ void pfnEmitAmbientSound( edict_t *ent, float *pos, const char *samp, float vol,
 
 	if( sv.state == ss_loading ) flags |= SND_SPAWNING;
 	if( vol != VOL_NORM ) flags |= SND_VOLUME;
-	if( attn != ATTN_NONE ) flags |= SND_SOUNDLEVEL;
+	if( attn != ATTN_NONE ) flags |= SND_ATTENUATION;
 	if( pitch != PITCH_NORM ) flags |= SND_PITCH;
 
 	if( flags & SND_SPAWNING )
@@ -1549,14 +1549,14 @@ void pfnEmitAmbientSound( edict_t *ent, float *pos, const char *samp, float vol,
 	// and return sound index when server is active
 	sound_idx = SV_SoundIndex( samp );
 
-	MSG_Begin( svc_sound );
+	MSG_Begin( svc_ambientsound );
 	MSG_WriteWord( &sv.multicast, flags );
 	MSG_WriteWord( &sv.multicast, sound_idx );
 	MSG_WriteByte( &sv.multicast, CHAN_AUTO );
 
-	if ( flags & SND_VOLUME ) MSG_WriteByte( &sv.multicast, vol * 255 );
-	if ( flags & SND_SOUNDLEVEL ) MSG_WriteByte( &sv.multicast, ATTN_TO_SNDLVL( attn ));
-	if ( flags & SND_PITCH ) MSG_WriteByte( &sv.multicast, pitch );
+	if( flags & SND_VOLUME ) MSG_WriteByte( &sv.multicast, vol * 255 );
+	if( flags & SND_ATTENUATION ) MSG_WriteByte( &sv.multicast, attn * 64 );
+	if( flags & SND_PITCH ) MSG_WriteByte( &sv.multicast, pitch );
 
 	// plays from fixed position
 	MSG_WriteWord( &sv.multicast, number );

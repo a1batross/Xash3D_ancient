@@ -49,19 +49,13 @@ class CWallTorch : public CBaseEntity
 public:
 	void Precache( void )
 	{
-		// if sound is missing just reset soundindex
-		pev->impulse = PRECACHE_SOUND( "ambience/fire1.wav" );
+		PRECACHE_SOUND( "ambience/fire1.wav" );
 		UTIL_PrecacheModel( "models/props/torch1.mdl" );
+		UTIL_EmitAmbientSound( ENT(pev), pev->origin, "ambience/fire1.wav", 1.0f, ATTN_NORM, 0, PITCH_NORM );
 	}
 	void Spawn( void )
 	{
 		Precache ();
-
-		if( !pev->impulse )
-		{
-			UTIL_Remove( this );
-			return;
-		}
 
 //		SetObjectClass( ED_NORMAL );
 		pev->flags |= FL_PHS_FILTER;	// allow phs filter instead pvs
@@ -69,7 +63,6 @@ public:
 		// setup attenuation radius
 		pev->armorvalue = 384.0f * ATTN_STATIC;
 
-		pev->soundindex = pev->impulse;
 		UTIL_SetModel( ENT( pev ), "models/props/torch1.mdl" );
 		UTIL_SetSize(pev, g_vecZero, g_vecZero);
 		SetBits( pFlags, PF_POINTENTITY );

@@ -18,7 +18,6 @@ static net_field_t ent_fields[] =
 { ES_FIELD(ed_type),		NET_BYTE,	 true	},	// stateflags_t #0 (4 bytes)
 { ES_FIELD(ed_flags),		NET_BYTE,	 false	},	// stateflags_t #0 (4 bytes)
 { ES_FIELD(classname),		NET_WORD,  true	},
-{ ES_FIELD(soundindex),		NET_WORD,	 false	},	// 512 sounds ( OpenAL software limit is 255 )
 { ES_FIELD(angles[0]),		NET_FLOAT, false	},
 { ES_FIELD(angles[1]),		NET_FLOAT, false	},
 { ES_FIELD(angles[2]),		NET_FLOAT, false	},

@@ -35,5 +35,6 @@ Xash 0.71 Beta 05.05.10
 11.rewrite EntitiesInPVS check		OK
 12.revision MOVETYPE_BOUNCE physic		OK
 13.revision MOVETYPE_COMPOUND physic		OK
-14.re-design sound library
+14.re-design sound library			OK
 15. move loding sounds into launch.dll		OK
+16.implement generic streaming background track

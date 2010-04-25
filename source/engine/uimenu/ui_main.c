@@ -162,7 +162,7 @@ static void UI_Main_HazardCourse( void )
 	Cvar_SetValue( "pausable", 1.0f ); // singleplayer is always allowing pause
 	Cvar_SetValue( "coop", 0.0f );
 
-	Cbuf_ExecuteText( EXEC_APPEND, va( "loading; killserver; wait; map %s\n", GI->trainmap ));
+	Host_NewGame( GI->trainmap, false );
 }
 
 /*

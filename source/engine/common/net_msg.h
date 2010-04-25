@@ -65,6 +65,7 @@ enum svc_ops_e
 	svc_packetentities,		// [...]
 	svc_frame,		// server frame
 	svc_sound,		// <see code>
+	svc_ambientsound,		// <see code>
 	svc_setangle,		// [short short short] set the view angle to this absolute value
 	svc_addangle,		// [short short] add angles when client turn on mover
 	svc_setview,		// [short] entity number

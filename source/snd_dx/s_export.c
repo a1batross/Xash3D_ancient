@@ -33,6 +33,7 @@ vsound_exp_t DLLEXPORT *CreateAPI( stdlib_api_t *input, vsound_imp_t *engfuncs )
 
 	snd.FadeClientVolume = S_FadeClientVolume;
 	snd.StartSound = S_StartSound;
+	snd.StaticSound = S_StartStaticSound;
 	snd.StreamRawSamples = S_StreamRawSamples;
 	snd.StartLocalSound = S_StartLocalSound;
 	snd.StartBackgroundTrack = S_StartBackgroundTrack;

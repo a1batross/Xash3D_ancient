@@ -39,7 +39,6 @@ typedef struct entity_state_s
 	uint		number;		// edict index
 	edtype_t		ed_type;		// edict type
 	string_t		classname;	// edict classname
-	int		soundindex;	// looped ambient sound
 	int		ed_flags;		// engine clearing this at end of server frame
 
 	// physics information
@@ -65,6 +64,7 @@ typedef struct entity_state_s
 	float		frame;		// % playback position in animation sequences (0..255)
 	int		skin;		// skin for studiomodels
 	int		body;		// sub-model selection for studiomodels
+	float		localtime;	// pev->ltime for monsters for right lerping on platforms, trains etc
 	float		animtime;		// auto-animating time
 	float		framerate;	// custom framerate, specified by QC
 	int		sequence;		// animation sequence (0 - 255)

@@ -76,7 +76,7 @@ static void UI_NewGame_StartGame( float skill )
 	Cvar_SetValue( "pausable", 1 ); // singleplayer is always allowing pause
 	Cvar_SetValue( "coop", 0 );
 
-	Cbuf_ExecuteText( EXEC_APPEND, "loading; killserver; wait; newgame\n" );
+	Host_NewGame( GI->startmap, false );
 }
 
 static void UI_PromptDialog( float skill )

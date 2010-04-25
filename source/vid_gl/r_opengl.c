@@ -242,7 +242,7 @@ bool R_SetPixelformat( void )
 	Sys_LoadLibrary( NULL, &opengl_dll );	// load opengl32.dll
 	if( !opengl_dll.link ) return false;
 
-	glw_state.minidriver = false;	// FIXME
+	glw_state.minidriver = false;	// FIXME: allow 3dfx drivers too
 
 	if( glw_state.minidriver )
 	{
@@ -417,6 +417,7 @@ void R_Free_OpenGL( void )
 		DestroyWindow ( glw_state.hWnd );
 		glw_state.hWnd = NULL;
 	}
+
 	UnregisterClass( "Xash Window", glw_state.hInst );
 
 	if( glState.fullScreen )
@@ -433,16 +434,17 @@ void R_Free_OpenGL( void )
 
 void R_SaveVideoMode( int vid_mode )
 {
-	int	i = bound( 0, vid_mode, num_vidmodes ); // check range
+	int	mode = bound( 0, vid_mode, num_vidmodes ); // check range
 
-	glState.width = vidmode[i].width;
-	glState.height = vidmode[i].height;
-	glState.wideScreen = vidmode[i].wideScreen;
+	glState.width = vidmode[mode].width;
+	glState.height = vidmode[mode].height;
+	glState.wideScreen = vidmode[mode].wideScreen;
 
-	Cvar_FullSet( "width", va( "%i", vidmode[i].width ), CVAR_READ_ONLY );
-	Cvar_FullSet( "height", va( "%i", vidmode[i].height ), CVAR_READ_ONLY );
-	Cvar_SetValue( "r_mode", i ); // merge if out of bounds
-	MsgDev( D_NOTE, "Set: %s [%dx%d]\n", vidmode[i].desc, vidmode[i].width, vidmode[i].height );
+	Cvar_FullSet( "width", va( "%i", vidmode[mode].width ), CVAR_READ_ONLY );
+	Cvar_FullSet( "height", va( "%i", vidmode[mode].height ), CVAR_READ_ONLY );
+	Cvar_SetValue( "r_mode", mode ); // merge if it out of bounds
+
+	MsgDev( D_NOTE, "Set: %s [%dx%d]\n", vidmode[mode].desc, vidmode[mode].width, vidmode[mode].height );
 }
 
 bool R_CreateWindow( int width, int height, bool fullscreen )
@@ -504,7 +506,7 @@ bool R_CreateWindow( int width, int height, bool fullscreen )
 
 		if( Cvar_VariableInteger( "r_mode" ) != glConfig.prev_mode )
 		{
-			if((x + w > glw_state.desktopWidth) || (y + h > glw_state.desktopHeight))
+			if(( x + w > glw_state.desktopWidth ) || ( y + h > glw_state.desktopHeight ))
 			{
 				x = ( glw_state.desktopWidth - w ) / 2;
 				y = ( glw_state.desktopHeight - h ) / 2;
@@ -516,7 +518,7 @@ bool R_CreateWindow( int width, int height, bool fullscreen )
 
 	if( !glw_state.hWnd ) 
 	{
-		MsgDev( D_ERROR, "R_CreateWindow: couldn't create window %s\n", wndname );
+		MsgDev( D_ERROR, "R_CreateWindow: couldn't create '%s'\n", wndname );
 		return false;
 	}
 	

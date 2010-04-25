@@ -374,8 +374,10 @@ channel_t *SND_PickStaticChannel( int entnum, sfx_t *sfx )
 	{
 		// no empty slots, alloc a new static sound channel
 		if( total_channels == MAX_CHANNELS )
+		{
+			MsgDev( D_ERROR, "S_PickChannel: no free channels\n" );
 			return NULL;
-
+		}
 		// get a channel for the static sound
 		ch = &channels[total_channels];
 		total_channels++;
@@ -407,7 +409,7 @@ int S_AlterChannel( int entnum, int channel, sfx_t *sfx, int vol, int pitch, int
 		// at a time, so we can just shut off
 		// any channel that has ch->isSentence >= 0 and matches the entnum.
 
-		for( i = 0, ch = channels; i < total_channels; i++ )
+		for( i = 0, ch = channels; i < total_channels; i++, ch++ )
 		{
 			if( ch->entnum == entnum && ch->entchannel == channel && ch->sfx && ch->isSentence )
 			{
@@ -429,7 +431,7 @@ int S_AlterChannel( int entnum, int channel, sfx_t *sfx, int vol, int pitch, int
 	}
 
 	// regular sound or streaming sound
-	for( i = 0, ch = channels; i < total_channels; i++ )
+	for( i = 0, ch = channels; i < total_channels; i++, ch++ )
 	{
 		if( ch->entnum == entnum && ch->entchannel == channel && ch->sfx )
 		{
@@ -438,7 +440,7 @@ int S_AlterChannel( int entnum, int channel, sfx_t *sfx, int vol, int pitch, int
 				
 			if( flags & SND_CHANGE_VOL )
 				ch->master_vol = vol;
-				
+
 			if( flags & SND_STOP )
 				S_FreeChannel( ch );
 
@@ -986,13 +988,7 @@ void S_StartSound( const vec3_t pos, int ent, int chan, sound_t handle, float fv
 	sfx_t	*sfx = NULL;
 	channel_t	*target_chan, *check;
 	int	vol, fsentence = 0;
-	int	soundlevel, ch_idx;
-
-	if( pos )
-	{
-		S_StartStaticSound( pos, ent, chan, handle, fvol, attn, pitch, flags );
-		return;
-	}
+	int	ch_idx;
 
 	sfx = S_GetSfxByHandle( handle );
 	if( !sfx ) return;
@@ -1027,7 +1023,6 @@ void S_StartSound( const vec3_t pos, int ent, int chan, sound_t handle, float fv
 
 	if( S_TestSoundChar( sfx->name, '!' ))
 		fsentence = true;
-	soundlevel = ATTN_TO_SNDLVL( attn );
 
 	// spatialize
 	Mem_Set( target_chan, 0, sizeof( *target_chan ));
@@ -1036,7 +1031,7 @@ void S_StartSound( const vec3_t pos, int ent, int chan, sound_t handle, float fv
 	VectorCopy( vec3_origin, target_chan->direction );	// initially unused
 	target_chan->staticsound = ( ent == 0 ) ? true : false;	// world static sound
 	target_chan->use_loop = (flags & SND_STOP_LOOPING) ? false : true;
-	target_chan->dist_mult = SNDLVL_TO_DIST_MULT( soundlevel );
+	target_chan->dist_mult = (attn / 1000.0f);
 	target_chan->master_vol = vol;
 	target_chan->entnum = ent;
 	target_chan->entchannel = chan;
@@ -1141,7 +1136,6 @@ void S_StartStaticSound( const vec3_t pos, int ent, int chan, sound_t handle, fl
 	int	vol, fvox = 0;
 	float	flSoundRadius = 0.0f;	
 	bool	looping = false;
-	int	soundlevel;
 	
 	sfx = S_GetSfxByHandle( handle );
 	if( !sfx ) return;
@@ -1161,6 +1155,8 @@ void S_StartStaticSound( const vec3_t pos, int ent, int chan, sound_t handle, fl
 		return;
 	}
 
+	if( !pos ) pos = vec3_origin;
+
 	// First, make sure the sound source entity is even in the PVS.	
 	SndInfo.pOrigin = NULL;
 	SndInfo.pAngles = NULL;
@@ -1171,8 +1167,6 @@ void S_StartStaticSound( const vec3_t pos, int ent, int chan, sound_t handle, fl
 	// pick a channel to play on from the static area
 	ch = SND_PickStaticChannel( ent, sfx );	// autolooping sounds are always fixed origin(?)
 	if( !ch ) return;
-
-	soundlevel = ATTN_TO_SNDLVL( attn );
 
 	if( S_TestSoundChar( sfx->name, '!' ))
 	{
@@ -1198,8 +1192,9 @@ void S_StartStaticSound( const vec3_t pos, int ent, int chan, sound_t handle, fl
 
 	// never update positions if source entity is 0
 	ch->staticsound = ( ent == 0 ) ? true : false;
+	ch->use_loop = (flags & SND_STOP_LOOPING) ? false : true;
 	ch->master_vol = vol;
-	ch->dist_mult = SNDLVL_TO_DIST_MULT( soundlevel );
+	ch->dist_mult = (attn / 1000.0f);
 	ch->basePitch = pitch;
 	ch->entnum = ent;
 	ch->entchannel = chan;
@@ -1213,6 +1208,8 @@ void S_StartStaticSound( const vec3_t pos, int ent, int chan, sound_t handle, fl
 	ch->ob_gain_inc = 0.0;
 	ch->ob_gain_target = 0.0;
 	ch->bTraced = false;
+	ch->pos = 0;
+	ch->end = paintedtime + sfx->cache->samples;
 
 	SND_Spatialize( ch );
 }
@@ -1254,19 +1251,26 @@ void S_ClearBuffer( void )
 
 /*
 ==================
-S_StopAllSounds
+S_StopSound
 
 stop all sounds for entity on a channel.
 ==================
 */
-void S_StopSound( int entnum, int channel )
+void S_StopSound( int entnum, int channel, const char *soundname )
 {
 	int	i;
 
 	for( i = 0; i < total_channels; i++ )
 	{
-		if( channels[i].entnum == entnum && channels[i].entchannel == channel )
-			S_FreeChannel( &channels[i] );
+		channel_t	*ch = &channels[i];
+
+		if( !ch->sfx ) continue; // already freed
+		if( ch->entnum == entnum && ch->entchannel == channel )
+		{
+			if( soundname && com.strcmp( ch->sfx->name, soundname ))
+				continue;
+			S_FreeChannel( ch );
+		}
 	}
 }
 
@@ -1346,10 +1350,9 @@ void S_RenderFrame( ref_params_t *fd )
 	// if the loading plaque is up, clear everything
 	// out to make sure we aren't looping a dirty
 	// dma buffer while loading
-	if( fd->paused )
+	if( fd->paused && !s_listener.paused )
 	{
 		S_ClearBuffer();
-		return;
 	}
 
 	// update any client side sound fade
@@ -1365,6 +1368,9 @@ void S_RenderFrame( ref_params_t *fd )
 	s_listener.frametime = fd->frametime;
 	s_listener.waterlevel = fd->waterlevel;
 	s_listener.ingame = si.IsInGame();
+	s_listener.paused = fd->paused;
+
+	if( s_listener.paused ) return;
 
 	VectorCopy( fd->simorg, s_listener.origin );
 	VectorCopy( fd->vieworg, s_listener.vieworg );
@@ -1508,10 +1514,9 @@ void S_Shutdown( void )
 	Cmd_RemoveCommand( "s_info" );
 
 	S_StopAllSounds ();
-	SNDDMA_Shutdown ();
-
-	S_FreeSounds();
+	S_FreeSounds ();
 	SX_Free ();
 
+	SNDDMA_Shutdown ();
 	Mem_FreePool( &sndpool );
 }

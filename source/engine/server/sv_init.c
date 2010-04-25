@@ -528,6 +528,13 @@ void SV_ForceError( void )
 
 bool SV_NewGame( const char *mapName, bool loadGame )
 {
+	if( !loadGame )
+	{
+		if( !SV_MapIsValid( mapName, GI->sp_entity, NULL ))
+		return false;
+	}
+
+	S_StopAllSounds ();
 	SV_InactivateClients ();
 	SV_DeactivateServer ();
 

@@ -71,8 +71,6 @@ bool Host_NewGame( const char *mapName, bool loadGame )
 {
 	bool	iRet;
 
-	S_StopAllSounds ();
-
 	iRet = SV_NewGame( mapName, loadGame );
 
 	return iRet;
@@ -224,7 +222,6 @@ bool Host_InitSound( void )
 
 	// sound callbacks
 	si.GetEntitySpatialization = CL_GetEntitySpatialization;
-	si.GetSoundSpatialization = CL_GetEntitySoundSpatialization;
 	si.TraceLine = CL_TraceLine;
 	si.PointContents = CL_PointContents;
 	si.GetClientEdict = CL_GetEdictByIndex;

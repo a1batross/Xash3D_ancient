@@ -221,7 +221,6 @@ void Tri_DrawTriangles( int fTrans );
 int CL_PointContents( const vec3_t point );
 void CL_StudioFxTransform( edict_t *ent, float transform[4][4] );
 bool CL_GetEntitySpatialization( int entnum, soundinfo_t *info );
-void CL_GetEntitySoundSpatialization( int ent, vec3_t origin, vec3_t velocity );
 bool CL_GetAttachment( int entityIndex, int number, vec3_t origin, vec3_t angles );
 bool CL_SetAttachment( int entityIndex, int number, vec3_t origin, vec3_t angles );
 void CL_StudioEvent( dstudioevent_t *event, edict_t *ent );

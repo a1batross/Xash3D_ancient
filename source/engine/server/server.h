@@ -345,7 +345,6 @@ float SV_VecToYaw( const vec3_t src );
 // sv_send.c
 //
 void SV_SendClientMessages( void );
-void SV_AmbientSound( edict_t *entity, int soundindex, float volume, float attenuation );
 void SV_ClientPrintf( sv_client_t *cl, int level, char *fmt, ... );
 void SV_BroadcastPrintf( int level, char *fmt, ... );
 void SV_BroadcastCommand( char *fmt, ... );

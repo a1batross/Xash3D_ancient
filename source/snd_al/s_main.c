@@ -7,9 +7,9 @@
 #include "const.h"
 #include "trace_def.h"
 
-#define MAX_PLAYSOUNDS		256
-#define MAX_CHANNELS		64
-#define CSXROOM			29
+#define MAX_CHANNELS	128
+#define CSXROOM		29
+int MAX_DYNAMIC_CHANNELS	= 24;	// can be reduced by openAL limitations
 
 typedef struct 
 {
@@ -20,9 +20,6 @@ typedef struct
 } dsproom_t;
 
 static soundfade_t	soundfade;
-static playSound_t	s_playSounds[MAX_PLAYSOUNDS];
-static playSound_t	s_freePlaySounds;
-static playSound_t	s_pendingPlaySounds;
 static channel_t	s_channels[MAX_CHANNELS];
 static listener_t	s_listener;
 
@@ -87,7 +84,7 @@ bool S_CheckForErrors( void )
 
 	if( !s_check_errors->integer )
 		return false;
-	if((err = palGetError()) == AL_NO_ERROR)
+	if(( err = palGetError( )) == AL_NO_ERROR )
 		return false;
 
 	switch( err )
@@ -198,6 +195,16 @@ void S_UpdateSoundFade( void )
 
 /*
 =================
+S_IsClient
+=================
+*/
+bool S_IsClient( int entnum )
+{
+	return ( entnum == al_state.clientnum );
+}
+
+/*
+=================
 S_AllocChannels
 =================
 */
@@ -211,8 +218,16 @@ static void S_AllocChannels( void )
 		palGenSources( 1, &ch->sourceNum );
 		if( palGetError() != AL_NO_ERROR )
 			break;
-		al_state.num_channels++;
+		al_state.max_channels++;
 	}
+
+	if( al_state.max_channels <= MAX_DYNAMIC_CHANNELS )
+	{
+		// there are not enough channels!
+		MAX_DYNAMIC_CHANNELS = (int)(al_state.max_channels / 3);
+		MsgDev( D_WARN, "S_AllocChannels: reduced dynamic channels count from 24 to %i\n", MAX_DYNAMIC_CHANNELS );
+	}
+	al_state.initialized = true;
 }
 
 /*
@@ -225,12 +240,12 @@ static void S_FreeChannels( void )
 	channel_t	*ch;
 	int	i;
 
-	for( i = 0, ch = s_channels; i < al_state.num_channels; i++, ch++ )
+	for( i = 0, ch = s_channels; i < al_state.max_channels; i++, ch++ )
 	{
-		palDeleteSources(1, &ch->sourceNum);
-		Mem_Set(ch, 0, sizeof(*ch));
+		palDeleteSources( 1, &ch->sourceNum );
+		Mem_Set( ch, 0, sizeof( *ch ));
 	}
-	al_state.num_channels = 0;
+	al_state.max_channels = 0;
 }
 
 /*
@@ -266,23 +281,37 @@ S_PlayChannel
 */
 static void S_PlayChannel( channel_t *ch, sfx_t *sfx )
 {
+	if( sfx == NULL )
+	{
+		S_StopChannel( ch );
+		return;
+	}
 	ch->sfx = sfx;
 
 	palSourcei( ch->sourceNum, AL_BUFFER, sfx->bufferNum );
-	palSourcei( ch->sourceNum, AL_LOOPING, ch->loopsound );
+	palSourcei( ch->sourceNum, AL_LOOPING, false );
 	palSourcei( ch->sourceNum, AL_SOURCE_RELATIVE, false );
 	palSourcei( ch->sourceNum, AL_SAMPLE_OFFSET, 0 );
 
-	if( ch->loopstart >= 0 )
+	if( ch->use_loop )
 	{
-		// kill any looping sounds
-		if( al_state.paused )
+		if( ch->sfx->loopStart >= 0 )
 		{
-			palSourceStop( ch->sourceNum );
-			return;
+			if( ch->state == CHAN_FIRSTPLAY )
+			{
+				// play first from start, then from loopOffset
+				ch->state = CHAN_LOOPED;
+			}
+			else if( ch->state == CHAN_LOOPED )
+			{
+				palSourcei( ch->sourceNum, AL_SAMPLE_OFFSET, sfx->loopStart );
+			}
 		}
-		if( ch->state == CHAN_FIRSTPLAY ) ch->state = CHAN_LOOPED;
-		else if( ch->state == CHAN_LOOPED ) palSourcei( ch->sourceNum, AL_SAMPLE_OFFSET, sfx->loopstart );
+		else
+		{
+			ch->state = CHAN_LOOPED;
+			palSourcei( ch->sourceNum, AL_LOOPING, true );
+		}
 	}
 	palSourcePlay( ch->sourceNum );
 }
@@ -294,25 +323,29 @@ S_SpatializeChannel
 */
 static void S_SpatializeChannel( channel_t *ch )
 {
-	vec3_t	position, velocity;
-
+	vec3_t		position, velocity;
+	soundinfo_t	SndInfo;
+	
 	// update position and velocity
-	if( ch->entnum == al_state.clientnum || !ch->distanceMult )
+	if( ch->entnum == al_state.clientnum || !ch->dist_mult )
 	{
-		palSourcefv(ch->sourceNum, AL_POSITION, s_listener.position);
-		palSourcefv(ch->sourceNum, AL_VELOCITY, s_listener.velocity);
+		palSourcefv( ch->sourceNum, AL_POSITION, s_listener.position );
+		palSourcefv( ch->sourceNum, AL_VELOCITY, s_listener.velocity );
 	}
 	else
 	{
-		if( ch->fixedPosition )
+		if( ch->staticsound )
 		{
-			palSource3f(ch->sourceNum, AL_POSITION, ch->position[1], ch->position[2], -ch->position[0]);
-			palSource3f(ch->sourceNum, AL_VELOCITY, 0, 0, 0);
+			palSource3f( ch->sourceNum, AL_POSITION, ch->position[1], ch->position[2], -ch->position[0] );
+			palSource3f( ch->sourceNum, AL_VELOCITY, 0, 0, 0 );
 		}
 		else
 		{
-			if( ch->loopsound ) si.GetSoundSpatialization( ch->loopnum, position, velocity );
-			else si.GetSoundSpatialization( ch->entnum, position, velocity );
+			SndInfo.pOrigin = position;
+			SndInfo.pAngles = velocity;	// FIXME: this is angles, not velocity
+			SndInfo.pflRadius = NULL;
+
+			si.GetEntitySpatialization( ch->entnum, &SndInfo );
 
 			palSource3f( ch->sourceNum, AL_POSITION, position[1], position[2], -position[0] );
 			palSource3f( ch->sourceNum, AL_VELOCITY, velocity[1], velocity[2], -velocity[0] );
@@ -320,8 +353,8 @@ static void S_SpatializeChannel( channel_t *ch )
 	}
 
 	// update min/max distance
-	if( ch->distanceMult )
-		palSourcef( ch->sourceNum, AL_REFERENCE_DISTANCE, s_minDistance->value * ch->distanceMult );
+	if( ch->dist_mult )
+		palSourcef( ch->sourceNum, AL_REFERENCE_DISTANCE, s_minDistance->value * ch->dist_mult );
 	else palSourcef( ch->sourceNum, AL_REFERENCE_DISTANCE, s_maxDistance->value );
 
 	palSourcef( ch->sourceNum, AL_MAX_DISTANCE, s_maxDistance->value );
@@ -334,162 +367,186 @@ static void S_SpatializeChannel( channel_t *ch )
 
 /*
 =================
-S_PickChannel
+SND_PickDynamicChannel
 
-Tries to find a free channel, or tries to replace an active channel
+Select a channel from the dynamic channel allocation area.  For the given entity, 
+override any other sound playing on the same channel (see code comments below for
+exceptions).
 =================
 */
-channel_t *S_PickChannel( int entnum, int channel )
+channel_t *SND_PickDynamicChannel( int entnum, int channel, sfx_t *sfx )
 {
-	channel_t		*ch;
-	int		i;
-	int		firstToDie = -1;
-	float		oldestTime = Sys_DoubleTime();
+	int	ch_idx;
+	int	first_to_die;
+	int	life_left;
 
-	if( entnum < 0 || channel < 0 ) return NULL; // invalid channel or entnum
+	// check for replacement sound, or find the best one to replace
+	first_to_die = -1;
+	life_left = 0x7fffffff;
 
-	for( i = 0, ch = s_channels; i < al_state.num_channels; i++, ch++ )
+	for( ch_idx = 0; ch_idx < MAX_DYNAMIC_CHANNELS; ch_idx++ )
 	{
-		// don't let game sounds override streaming sounds
-		if( ch->streaming ) continue;
+		channel_t	*ch = &s_channels[ch_idx];
 
-		// check if this channel is active
-		if( channel == CHAN_AUTO && !ch->sfx )
+		// Never override a streaming sound that is currently playing or
+		// voice over IP data that is playing or any sound on CHAN_VOICE( acting )
+		if( ch->sfx && ( ch->entchannel == CHAN_STREAM ))
 		{
-			// free channel
-			firstToDie = i;
-			break;
+			continue;
 		}
 
-		// channel 0 never overrides
-		if( channel != CHAN_AUTO && (ch->entnum == entnum && ch->entchannel == channel))
+		if( channel != 0 && ch->entnum == entnum && ( ch->entchannel == channel || channel == -1 ))
 		{
 			// always override sound from same entity
-			firstToDie = i;
+			first_to_die = ch_idx;
 			break;
 		}
+
+		// don't let monster sounds override player sounds
+		if( ch->sfx && S_IsClient( ch->entnum ) && !S_IsClient( entnum ))
+			continue;
 
 		// don't let monster sounds override player sounds
 		if( entnum != al_state.clientnum && ch->entnum == al_state.clientnum )
 			continue;
 
 		// replace the oldest sound
-		if( ch->startTime < oldestTime )
+		if( ch->startTime < life_left )
 		{
-			oldestTime = ch->startTime;
-			firstToDie = i;
+			life_left = ch->startTime;
+			first_to_die = ch_idx;
 		}
 	}
 
-	if( firstToDie == -1 ) return NULL;
-	ch = &s_channels[firstToDie];
+	if( first_to_die == -1 )
+		return NULL;
 
-	ch->entnum = entnum;
-	ch->entchannel = channel;
-	ch->startTime = Sys_DoubleTime();
-	ch->state = CHAN_NORMAL;	// remove any loop sound
-	ch->loopsound = false;	// clear loopstate
-	ch->loopstart = -1;	
+	if( s_channels[first_to_die].sfx )
+	{
+		// don't restart looping sounds for the same entity
+		if( sfx->loopStart != -1 )
+		{
+			channel_t	*ch = &s_channels[first_to_die];
 
-	// make sure this channel is stopped
-	S_StopChannel( ch );
+			if( ch->entnum == entnum && ch->entchannel == channel && ch->sfx == sfx )
+			{
+				// same looping sound, same ent, same channel, don't restart the sound
+				return NULL;
+			}
+		}
 
+		// be sure and release previous channel if sentence.
+		S_StopChannel( &( s_channels[first_to_die] ));
+	}
+
+	return &s_channels[first_to_die];
+}
+
+/*
+=====================
+SND_PickStaticChannel
+
+Pick an empty channel from the static sound area, or allocate a new
+channel.  Only fails if we're at max_channels (128!!!) or if 
+we're trying to allocate a channel for a stream sound that is 
+already playing.
+=====================
+*/
+channel_t *SND_PickStaticChannel( int entnum, sfx_t *sfx )
+{
+	channel_t	*ch = NULL;
+	int	i;
+
+	// check for replacement sound, or find the best one to replace
+ 	for( i = MAX_DYNAMIC_CHANNELS; i < al_state.total_channels; i++ )
+ 	{
+		if( s_channels[i].sfx == NULL )
+			break;
+	}
+
+	if( i < al_state.total_channels ) 
+	{
+		// reuse an empty static sound channel
+		ch = &s_channels[i];
+	}
+	else
+	{
+		// no empty slots, alloc a new static sound channel
+		if( al_state.total_channels >= al_state.max_channels )
+		{
+			MsgDev( D_ERROR, "S_PickChannel: no free channels\n" );
+			return NULL;
+		}
+		// get a channel for the static sound
+		ch = &s_channels[al_state.total_channels];
+		al_state.total_channels++;
+	}
 	return ch;
 }
 
 /*
 =================
-S_AllocPlaySound
+S_AlterChannel
+
+search through all channels for a channel that matches this
+soundsource, entchannel and sfx, and perform alteration on channel
+as indicated by 'flags' parameter. If shut down request and
+sfx contains a sentence name, shut off the sentence.
+returns TRUE if sound was altered,
+returns FALSE if sound was not found (sound is not playing)
 =================
 */
-static playSound_t *S_AllocPlaySound( void )
+int S_AlterChannel( int entnum, int channel, sfx_t *sfx, float vol, int pitch, int flags )
 {
-	playSound_t	*ps;
+	channel_t	*ch;
+	int	i;	
 
-	ps = s_freePlaySounds.next;
-	if( ps == &s_freePlaySounds )
-		return NULL; // No free playSounds
-
-	// unlink from freelist
-	ps->prev->next = ps->next;
-	ps->next->prev = ps->prev;
-
-	return ps;
-}
-
-/*
-=================
-S_FreePlaySound
-=================
-*/
-static void S_FreePlaySound( playSound_t *ps )
-{
-	// unlink from channel
-	ps->prev->next = ps->next;
-	ps->next->prev = ps->prev;
-
-	// add to free list
-	ps->next = s_freePlaySounds.next;
-	s_freePlaySounds.next->prev = ps;
-	ps->prev = &s_freePlaySounds;
-	s_freePlaySounds.next = ps;
-}
-
-/*
- =================
-S_IssuePlaySounds
-
-Take all the pending playSounds and begin playing them.
-This is never called directly by S_Start*, but only by the update loop.
-=================
-*/
-static void S_IssuePlaySounds( void )
-{
-	playSound_t	*ps;
-	channel_t		*ch;
-
-	while( 1 )
+	if( S_TestSoundChar( sfx->name, '!' ))
 	{
-		ps = s_pendingPlaySounds.next;
+		// This is a sentence name.
+		// For sentences: assume that the entity is only playing one sentence
+		// at a time, so we can just shut off
+		// any channel that has ch->isSentence >= 0 and matches the entnum.
 
-		if( ps == &s_pendingPlaySounds )
-			break;	// no more pending playSounds
-
-		if( ps->beginTime > Sys_DoubleTime( ))
-			break;	// No more pending playSounds this frame
-
-		// pick a channel and start the sound effect
-		ch = S_PickChannel( ps->entnum, ps->entchannel );
-		if( !ch )
+		for( i = 0, ch = s_channels; i < al_state.total_channels; i++, ch++ )
 		{
-			if( ps->sfx->name[0] == '#' ) MsgDev( D_ERROR, "dropped sound %s\n", &ps->sfx->name[1] );
-			else MsgDev( D_ERROR, "dropped sound \"sound/%s\"\n", ps->sfx->name );
-			S_FreePlaySound( ps );
-			continue;
+			if( ch->entnum == entnum && ch->entchannel == channel && ch->sfx && ch->isSentence )
+			{
+				if( flags & SND_CHANGE_PITCH )
+					ch->pitch = pitch / (float)PITCH_NORM;
+				
+				if( flags & SND_CHANGE_VOL )
+					ch->volume = vol;
+				
+				if( flags & SND_STOP )
+					S_StopChannel( ch );
+
+				return true;
+			}
 		}
+		// channel not found
+		return false;
 
-		// check for looping sounds with "cue " marker
-		if( ps->use_loop && ps->sfx->loopstart >= 0 )
-		{
-			// jump to loopstart at next playing
-			ch->state = CHAN_FIRSTPLAY;
-			ch->loopstart = ps->sfx->loopstart;
-		}
-
-		ch->fixedPosition = ps->fixedPosition;
-		VectorCopy( ps->position, ch->position );
-		ch->volume = ps->volume;
-		ch->pitch = ps->pitch;
-
-		if( ps->attenuation != ATTN_NONE ) ch->distanceMult = 1.0 / ps->attenuation;
-		else ch->distanceMult = 0.0;
-
-		S_SpatializeChannel( ch );
-		S_PlayChannel( ch, ps->sfx );
-
-		// free the playSound
-		S_FreePlaySound( ps );
 	}
+
+	// regular sound or streaming sound
+	for( i = 0, ch = s_channels; i < al_state.total_channels; i++, ch++ )
+	{
+		if( ch->entnum == entnum && ch->entchannel == channel && ch->sfx )
+		{
+			if( flags & SND_CHANGE_PITCH )
+				ch->pitch = pitch / (float)PITCH_NORM;
+
+			if( flags & SND_CHANGE_VOL )
+				ch->volume = vol;
+
+			if( flags & SND_STOP )
+				S_StopChannel( ch );
+
+			return true;
+		}
+	}
+	return false;
 }
 
 /*
@@ -501,53 +558,146 @@ if origin is NULL, the sound will be dynamically sourced from the entity.
 entchannel 0 will never override a playing sound.
 =================
 */
-void S_StartSound( const vec3_t pos, int entnum, int channel, sound_t handle, float vol, float attn, int pitch, int flags )
+void S_StartSound( const vec3_t pos, int ent, int chan, sound_t handle, float fvol, float attn, int pitch, int flags )
 {
-	playSound_t	*ps, *sort;
-	sfx_t		*sfx = NULL;
+	sfx_t	*sfx = NULL;
+	channel_t	*target_chan;
+	int	vol, fsentence = 0;
 
-	if( !al_state.initialized )
-		return;
 	sfx = S_GetSfxByHandle( handle );
 	if( !sfx ) return;
 
+	vol = bound( 0, fvol * 255, 255 );
+
+	if( flags & ( SND_STOP|SND_CHANGE_VOL|SND_CHANGE_PITCH ))
+	{
+		if( S_AlterChannel( ent, chan, sfx, vol, pitch, flags ))
+			return;
+
+		if( flags & SND_STOP ) return;
+		// fall through - if we're not trying to stop the sound, 
+		// and we didn't find it (it's not playing), go ahead and start it up
+	}
+
+	if( pitch == 0 )
+	{
+		MsgDev( D_WARN, "S_StartSound: ( %s ) ignored, called with pitch 0\n", sfx->name );
+		return;
+	}
+
+	if( !pos ) pos = vec3_origin;
+
+	// pick a channel to play on
+	target_chan = SND_PickDynamicChannel( ent, chan, sfx );
+	if( !target_chan )
+	{
+		MsgDev( D_ERROR, "dropped sound \"sound/%s\"\n", sfx->name );
+		return;
+	}
+
+	target_chan->entnum = ent;
+	target_chan->entchannel = chan;
+	target_chan->startTime = Sys_Milliseconds();
+	VectorCopy( pos, target_chan->position );
+	target_chan->volume = vol;
+	target_chan->entnum = ent;
+	target_chan->entchannel = chan;
+	target_chan->isSentence = false;
+	target_chan->dist_mult = (attn / 1000.0f);
+	target_chan->state = CHAN_FIRSTPLAY;
+	target_chan->sfx = sfx;
+	target_chan->pitch = pitch / (float)PITCH_NORM;
+
 	// make sure the sound is loaded
 	if( !S_LoadSound( sfx ))
-		return;
-
-	// allocate a playSound
-	ps = S_AllocPlaySound();
-	if( !ps )
 	{
-		if( sfx->name[0] == '#' ) MsgDev( D_ERROR, "dropped sound %s\n", &sfx->name[1] );
-		else MsgDev( D_ERROR, "dropped sound \"sound/%s\"\n", sfx->name );
+		S_StopChannel( target_chan );
 		return;
 	}
 
-	ps->sfx = sfx;
-	ps->entnum = entnum;
-	ps->entchannel = channel;
-	ps->use_loop = (flags & (SND_STOP_LOOPING|SND_STOP)) ? false : true;
+	// only using loop for looped sounds
+	if( flags & SND_STOP_LOOPING )
+		target_chan->use_loop = false;
+	else target_chan->use_loop = ( sfx->loopStart == -1 ) ? false : true;
 
-	if( pos )
-	{
-		ps->fixedPosition = true;
-		VectorCopy( pos, ps->position );
-	}
-	else ps->fixedPosition = false;
+	S_SpatializeChannel( target_chan );
+	S_PlayChannel( target_chan, sfx );
+}
+
+/*
+=================
+S_StartStaticSound
+
+Start playback of a sound, loaded into the static portion of the channel array.
+Currently, this should be used for looping ambient sounds, looping sounds
+that should not be interrupted until complete, non-creature sentences,
+and one-shot ambient streaming sounds.  Can also play 'regular' sounds one-shot,
+in case designers want to trigger regular game sounds.
+Pitch changes playback pitch of wave by % above or below 100.  Ignored if pitch == 100
+
+NOTE: volume is 0.0 - 1.0 and attenuation is 0.0 - 1.0 when passed in.
+=================
+*/
+void S_StaticSound( const vec3_t pos, int ent, int chan, sound_t handle, float fvol, float attn, int pitch, int flags )
+{
+	channel_t	*ch;
+	sfx_t	*sfx = NULL;
+	int	vol, fvox = 0;
 	
-	ps->volume = vol;
-	ps->pitch = pitch / PITCH_NORM;
-	ps->attenuation = attn;
-	ps->beginTime = Sys_DoubleTime();
+	sfx = S_GetSfxByHandle( handle );
+	if( !sfx ) return;
 
-	// sort into the pending playSounds list
-	for( sort = s_pendingPlaySounds.next; sort != &s_pendingPlaySounds && sort->beginTime < ps->beginTime; sort = sort->next );
+	vol = bound( 0, fvol * 255, 255 );
 
-	ps->next = sort;
-	ps->prev = sort->prev;
-	ps->next->prev = ps;
-	ps->prev->next = ps;
+	if( flags & (SND_STOP|SND_CHANGE_VOL|SND_CHANGE_PITCH))
+	{
+		if( S_AlterChannel( ent, chan, sfx, vol, pitch, flags ))
+			return;
+		if( flags & SND_STOP ) return;
+	}
+	
+	if( pitch == 0 )
+	{
+		MsgDev( D_WARN, "S_StartStaticSound: ( %s ) ignored, called with pitch 0\n", sfx->name );
+		return;
+	}
+
+	if( !pos ) pos = vec3_origin;
+
+	// pick a channel to play on from the static area
+	ch = SND_PickStaticChannel( ent, sfx );	// autolooping sounds are always fixed origin(?)
+	if( !ch ) return;
+
+	// make sure the sound is loaded
+	if( !S_LoadSound( sfx ))
+	{
+		S_StopChannel( ch );
+		return;
+	}
+
+	VectorCopy( pos, ch->position );
+
+	ch->entnum = ent;
+	ch->entchannel = chan;
+	ch->startTime = Sys_Milliseconds();
+	ch->state = CHAN_FIRSTPLAY;
+	VectorCopy( pos, ch->position );
+	ch->volume = vol;
+	ch->entnum = ent;
+	ch->entchannel = chan;
+	ch->isSentence = false;
+	ch->dist_mult = (attn / 1000.0f);
+	ch->sfx = sfx;
+	ch->pitch = pitch / (float)PITCH_NORM;
+	ch->staticsound = true;
+
+	// only using loop for looped sounds
+	if( flags & SND_STOP_LOOPING )
+		ch->use_loop = false;
+	else ch->use_loop = ( sfx->loopStart == -1 ) ? false : true;
+
+	S_SpatializeChannel( ch );
+	S_PlayChannel( ch, sfx );
 }
 
 /*
@@ -561,9 +711,6 @@ bool S_StartLocalSound( const char *name, float volume, int pitch, const float *
 {
 	sound_t	sfxHandle;
 
-	if( !al_state.initialized )
-		return false;
-
 	sfxHandle = S_RegisterSound( name );
 	S_StartSound( origin, al_state.clientnum, CHAN_AUTO, sfxHandle, volume, ATTN_NONE, pitch, SND_STOP_LOOPING );
 	return true;
@@ -576,9 +723,22 @@ S_StopAllSounds
 stop all sounds for entity on a channel.
 ==================
 */
-void S_StopSound( int entnum, int channel )
+void S_StopSound( int entnum, int channel, const char *soundname )
 {
-	S_StopAllSounds();	// FIXME: this is incorrect!
+	int	i;
+
+	for( i = 0; i < al_state.total_channels; i++ )
+	{
+		channel_t	*ch = &s_channels[i];
+
+		if( !ch->sfx ) continue; // already freed
+		if( ch->entnum == entnum && ch->entchannel == channel )
+		{
+			if( soundname && com.strcmp( ch->sfx->name, soundname ))
+				continue;
+			S_StopChannel( ch );
+		}
+	}
 }
 
 /*
@@ -591,25 +751,10 @@ void S_StopAllSounds( void )
 	channel_t	*ch;
 	int	i;
 
-	if( !al_state.initialized )
-		return;
-
-	// Clear all the playSounds
-	Mem_Set( s_playSounds, 0, sizeof(s_playSounds));
-
-	s_freePlaySounds.next = s_freePlaySounds.prev = &s_freePlaySounds;
-	s_pendingPlaySounds.next = s_pendingPlaySounds.prev = &s_pendingPlaySounds;
-
-	for( i = 0; i < MAX_PLAYSOUNDS; i++ )
-	{
-		s_playSounds[i].prev = &s_freePlaySounds;
-		s_playSounds[i].next = s_freePlaySounds.next;
-		s_playSounds[i].prev->next = &s_playSounds[i];
-		s_playSounds[i].next->prev = &s_playSounds[i];
-	}
+	al_state.total_channels = MAX_DYNAMIC_CHANNELS; // no statics
 
 	// Stop all the channels
-	for( i = 0, ch = s_channels; i < al_state.num_channels; i++, ch++ )
+	for( i = 0, ch = s_channels; i < al_state.max_channels; i++, ch++ )
 	{
 		if( !ch->sfx ) continue;
 		S_StopChannel( ch );
@@ -661,8 +806,7 @@ void S_Update( ref_params_t *fd )
 	channel_t	*ch;
 	int	i;
 
-	if( !al_state.initialized || !fd )
-		return;
+	if( !fd ) return;
 
 	// bump frame count
 	al_state.framecount++;
@@ -671,7 +815,8 @@ void S_Update( ref_params_t *fd )
 	al_state.refdef = fd; // for using everthing else
 
 	// update any client side sound fade
-	if( !fd->paused ) S_UpdateSoundFade();
+	if( !fd->paused && si.IsInGame( ))
+		S_UpdateSoundFade();
 
 	// set up listener
 	VectorSet( s_listener.position, fd->simorg[1], fd->simorg[2], -fd->simorg[0] );
@@ -694,34 +839,32 @@ void S_Update( ref_params_t *fd )
 	// Set state
 	palDistanceModel( AL_INVERSE_DISTANCE_CLAMPED );
 
-	palDopplerFactor(s_dopplerFactor->value);
-	palDopplerVelocity(s_dopplerVelocity->value);
+	palDopplerFactor( s_dopplerFactor->value );
+	palDopplerVelocity( s_dopplerVelocity->value );
 
 	S_AddEnvironmentEffects ();
 
 	// Stream background track
-	S_StreamBackgroundTrack();
-
-	// Issue playSounds
-	S_IssuePlaySounds();
+	S_StreamBackgroundTrack ();
 
 	// update spatialization for all sounds
-	for( i = 0, ch = s_channels; i < al_state.num_channels; i++, ch++ )
+	for( i = 0, ch = s_channels; i < al_state.total_channels; i++, ch++ )
 	{
 		if( !ch->sfx ) continue; // not active
 
 		// check for stop
-		if( ch->loopsound )
+		if( ch->use_loop && ch->sfx->loopStart >= 0 )
 		{
-			if( ch->loopframe != al_state.framecount )
+			int	samplePos;
+
+			palGetSourcei( ch->sourceNum, AL_SAMPLE_OFFSET, &samplePos );
+
+			if( samplePos + ch->sfx->sampleStep >= ch->sfx->samples )
 			{
-				S_StopChannel( ch );
-				continue;
+				Msg( "restart %s\n", ch->sfx->name );
+				palSourcei( ch->sourceNum, AL_SAMPLE_OFFSET, ch->sfx->loopStart );
 			}
-		}
-		else if( ch->loopstart >= 0 && ch->volume > 0.0f )
-		{
-			if( S_ChannelState( ch ) == AL_STOPPED )
+			else if( S_ChannelState( ch ) == AL_STOPPED )
 			{
 				S_PlayChannel( ch, ch->sfx );
 			}
@@ -751,12 +894,9 @@ and an activate.
 */
 void S_Activate( bool active )
 {
-	if(!al_state.initialized )
-		return;
-
 	al_state.active = active;
-	if( active ) palListenerf( AL_GAIN, S_GetMasterVolume() );
-	else palListenerf( AL_GAIN, 0.0 );
+	if( active ) palListenerf( AL_GAIN, S_GetMasterVolume( ));
+	else palListenerf( AL_GAIN, 0.0f );
 }
 
 /*
@@ -805,22 +945,16 @@ S_SoundInfo_f
 */
 void S_SoundInfo_f( void )
 {
-	if(!al_state.initialized )
-	{
-		Msg("Sound system not started\n");
-		return;
-	}
-
-	Msg("\n");
-	Msg("AL_VENDOR: %s\n", al_config.vendor_string);
-	Msg("AL_RENDERER: %s\n", al_config.renderer_string);
-	Msg("AL_VERSION: %s\n", al_config.version_string);
-	Msg("AL_EXTENSIONS: %s\n", al_config.extensions_string);
-	Msg("\n");
-	Msg("DEVICE: %s\n", s_alDevice->string );
-	Msg("CHANNELS: %i\n", al_state.num_channels);
-	Msg("3D sound: %s\n", (al_config.allow_3DMode) ? "enabled" : "disabled" );
-	Msg("\n");
+	Msg( "\n" );
+	Msg( "AL_VENDOR: %s\n", al_config.vendor_string );
+	Msg( "AL_RENDERER: %s\n", al_config.renderer_string );
+	Msg( "AL_VERSION: %s\n", al_config.version_string );
+	Msg( "AL_EXTENSIONS: %s\n", al_config.extensions_string );
+	Msg( "\n" );
+	Msg( "DEVICE: %s\n", s_alDevice->string );
+	Msg( "CHANNELS: %i\n", al_state.max_channels );
+	Msg( "3D sound: %s\n", (al_config.allow_3DMode) ? "enabled" : "disabled" );
+	Msg( "\n" );
 }
 
 /*
@@ -859,12 +993,11 @@ bool S_Init( void *hInst )
 		return false;
 	}
 
-	palcGetIntegerv( al_state.hDevice, ALC_MONO_SOURCES, sizeof(int), &num_mono_src );
-	palcGetIntegerv( al_state.hDevice, ALC_STEREO_SOURCES, sizeof(int), &num_stereo_src );
+	palcGetIntegerv( al_state.hDevice, ALC_MONO_SOURCES, sizeof( int ), &num_mono_src );
+	palcGetIntegerv( al_state.hDevice, ALC_STEREO_SOURCES, sizeof( int ), &num_stereo_src );
 	MsgDev( D_NOTE, "S_Init: mono sources %d, stereo %d\n", num_mono_src, num_stereo_src );
 
 	sndpool = Mem_AllocPool( "Sound Zone" );
-	al_state.initialized = true;
 
 	S_AllocChannels();
 	S_StopAllSounds();
@@ -892,13 +1025,9 @@ void S_Shutdown( void )
 	Cmd_RemoveCommand( "s_info" );
 	Cmd_RemoveCommand( "soundlist" );
 
-	if( !al_state.initialized )
-		return;
-
 	S_FreeSounds();
 	S_FreeChannels();
 
 	Mem_FreePool( &sndpool );
 	S_Free_OpenAL();
-	al_state.initialized = false;
 }

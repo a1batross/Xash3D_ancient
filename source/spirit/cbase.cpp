@@ -1039,13 +1039,6 @@ int CBaseEntity::Restore( CRestore &restore )
 		SET_MODEL(ENT(pev), STRING(pev->model));
 		UTIL_SetSize(pev, mins, maxs);	// Reset them
 	}
-
-	if( pev->soundindex != 0 && !FStringNull( pev->noise ))
-	{
-		PRECACHE_SOUND( (char *)STRING( pev->noise ));
-		LINK_ENTITY( ENT( pev ), false );
-	}
-
 	return status;
 }
 

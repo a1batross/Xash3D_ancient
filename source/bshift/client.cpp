@@ -942,11 +942,11 @@ void UpdateEntityState( entity_state_t *to, edict_t *from, int baseline )
 	to->skin = pNet->pev->skin;		// studio model skin
 	to->body = pNet->pev->body;		// studio model submodel 
 	to->effects = pNet->pev->effects;	// shared client and render flags
-	to->soundindex = pNet->pev->soundindex;	// soundindex
 	to->renderfx = pNet->pev->renderfx;	// renderer flags
 	to->rendermode = pNet->pev->rendermode;	// rendering mode
 	to->renderamt = pNet->pev->renderamt;	// alpha value
 	to->animtime = (int)(1000.0 * pNet->pev->animtime) * 0.001; // sequence time
+	to->localtime = (int)(1000.0 * pNet->pev->ltime) * 0.001; // movement time
 	to->scale = pNet->pev->scale;		// shared client and render flags
 	to->movetype = (movetype_t)pNet->pev->movetype;
 	to->frame = pNet->pev->frame;		// any model current frame
@@ -1019,16 +1019,7 @@ void UpdateEntityState( entity_state_t *to, edict_t *from, int baseline )
 	}
 	else if( to->ed_type == ED_AMBIENT )
 	{
-		to->soundindex = pNet->pev->soundindex;
-
-		if( pNet->pev->solid == SOLID_TRIGGER )
-		{
-			Vector	midPoint;
-
-			// NOTE: no reason to compute this shit on the client - save bandwidth
-			midPoint = pNet->pev->mins + pNet->pev->maxs * 0.5f;
-			to->origin += midPoint;
-		}
+		// add here specified fiels e.g for trigger_teleport wind sound etc
 	}
 	else if( to->ed_type == ED_MOVER || to->ed_type == ED_BSPBRUSH || to->ed_type == ED_PORTAL )
 	{

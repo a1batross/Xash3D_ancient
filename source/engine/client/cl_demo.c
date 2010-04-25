@@ -93,7 +93,7 @@ void CL_WriteDemoHeader( const char *name )
 	for( i = 0; i < clgame.globals->maxEntities; i++ )
 	{
 		state = &clgame.baselines[i];
-		if( !state->modelindex && !state->soundindex && !state->effects )
+		if( !state->modelindex && !state->effects )
 			continue;
 
 		MSG_WriteByte( &buf, svc_spawnbaseline );		

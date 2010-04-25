@@ -856,7 +856,7 @@ void SV_Baselines_f( sv_client_t *cl )
 	while( cl->netchan.message.cursize < MAX_MSGLEN / 2 && start < GI->max_edicts )
 	{
 		base = &svs.baselines[start];
-		if( base->modelindex || base->soundindex || base->effects )
+		if( base->modelindex || base->effects )
 		{
 			MSG_WriteByte( &cl->netchan.message, svc_spawnbaseline );
 			MSG_WriteDeltaEntity( &nullstate, base, &cl->netchan.message, true, true );

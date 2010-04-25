@@ -1943,7 +1943,7 @@ pfnStopSound
 */
 void pfnStopSound( int ent, int channel, const char *sample )
 {
-	S_StartSound( vec3_origin, ent, channel, S_RegisterSound( sample ), 0, 0, PITCH_NORM, SND_STOP );
+	S_StopSound( ent, channel, sample );
 }
 
 /*
@@ -1999,7 +1999,7 @@ pfnStopAllSounds
 void pfnStopAllSounds( edict_t *ent, int entchannel )
 {
 	if( !CL_IsValidEdict( ent )) return;
-	S_StopSound( ent->serialnumber, entchannel );
+	S_StopSound( ent->serialnumber, entchannel, NULL );
 }
 
 /*

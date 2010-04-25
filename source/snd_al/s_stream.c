@@ -210,8 +210,6 @@ S_StartBackgroundTrack
 */
 void S_StartBackgroundTrack( const char *introTrack, const char *loopTrack )
 {
-	if( !al_state.initialized ) return;
-
 	// stop any playing tracks
 	S_StopBackgroundTrack();
 
@@ -237,8 +235,6 @@ S_StopBackgroundTrack
 */
 void S_StopBackgroundTrack( void )
 {
-	if( !al_state.initialized ) return;
-
 	S_StopStreaming();
 	S_CloseBackgroundTrack(&s_bgTrack);
 	Mem_Set(&s_bgTrack, 0, sizeof(bg_track_t));
@@ -251,13 +247,12 @@ S_StartStreaming
 */
 void S_StartStreaming( void )
 {
-	if( !al_state.initialized ) return;
 	if( s_streamingChannel ) return; // already started
 
-	s_streamingChannel = S_PickChannel( 0, 0 );
+	s_streamingChannel = SND_PickStaticChannel( 0, NULL );
 	if( !s_streamingChannel ) return;
 
-	s_streamingChannel->streaming = true;
+	s_streamingChannel->entchannel = CHAN_STREAM;
 
 // FIXME: OpenAL bug?
 //palDeleteSources(1, &s_streamingChannel->sourceNum);
@@ -287,7 +282,7 @@ void S_StopStreaming( void )
 	if( !al_state.initialized ) return;
 	if( !s_streamingChannel ) return;	// already stopped
 
-	s_streamingChannel->streaming = false;
+	s_streamingChannel->entchannel = CHAN_AUTO;
 	// clean up the source
 	palSourceStop(s_streamingChannel->sourceNum);
 

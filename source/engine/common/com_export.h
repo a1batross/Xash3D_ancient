@@ -200,6 +200,7 @@ _inline bool CM_BoxVisible( const vec3_t mins, const vec3_t maxs )
 #define S_Shutdown			if( se ) se->Shutdown
 #define S_StartStreaming		if( se ) se->StartStreaming
 #define S_StartSound		if( se ) se->StartSound
+#define S_AmbientSound		if( se ) se->StaticSound
 #define S_StartLocalSound		if( se ) se->StartLocalSound
 #define S_StartBackgroundTrack	if( se ) se->StartBackgroundTrack
 #define S_StopBackgroundTrack		if( se ) se->StopBackgroundTrack

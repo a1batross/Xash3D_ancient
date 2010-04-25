@@ -132,27 +132,30 @@ S_InitDriver
 */
 static bool S_InitDriver( void )
 {
-	int attrlist[3] = { ALC_FREQUENCY, 44100, 0 };
-	int *al_contxt = attrlist;
+	int	attrlist[3] = { ALC_FREQUENCY, 44100, 0 };
+	int	*al_contxt = attrlist;
 
-	if((al_state.hDevice = palcOpenDevice( s_alDevice->string )) == NULL)
+	if(( al_state.hDevice = palcOpenDevice( s_alDevice->string )) == NULL )
 	{
 		Msg("alOpenDevice - failed\n" );
 		return false;
 	}
-	if((al_state.hALC = palcCreateContext( al_state.hDevice, al_contxt )) == NULL)
+
+	if(( al_state.hALC = palcCreateContext( al_state.hDevice, al_contxt )) == NULL )
 		goto failed;
-	if(!palcMakeContextCurrent(al_state.hALC))
+
+	if( !palcMakeContextCurrent( al_state.hALC ))
 		goto failed;
 	return true;
 
 failed:
-	if(al_state.hALC)
+	if( al_state.hALC )
 	{
 		palcDestroyContext( al_state.hALC );
 		al_state.hALC = NULL;
 	}
-	if(al_state.hDevice)
+
+	if( al_state.hDevice )
 	{
 		palcCloseDevice( al_state.hDevice );
 		al_state.hDevice = NULL;
@@ -171,11 +174,11 @@ static bool S_SetupEFX( void )
 	const dllfunc_t	*func;
 
 	// get the function pointers
-	for(func = openal_effects; func && func->name != NULL; func++)
+	for( func = openal_effects; func && func->name != NULL; func++ )
 	{
-		if (!(*func->func = palGetProcAddress( func->name )))
+		if( !( *func->func = palGetProcAddress( func->name )))
 		{
-			MsgDev(D_ERROR, "S_InitEffects: %s missing or invalid function\n", func->name );
+			MsgDev( D_ERROR, "S_InitEffects: %s missing or invalid function\n", func->name );
 			return false;
 		}
 	}
@@ -190,31 +193,31 @@ static void S_InitEffects( void )
 	if( palGetError() == AL_NO_ERROR )
 	{
 		MsgDev( D_NOTE, "S_InitEffects:" );
-		alEffecti(uiEffects[0], AL_EFFECT_TYPE, AL_EFFECT_REVERB);
+		alEffecti( uiEffects[0], AL_EFFECT_TYPE, AL_EFFECT_REVERB );
 		if(!palGetError()) MsgDev( D_NOTE, " ^3al_ext_revrb" );
-		alEffecti(uiEffects[0], AL_EFFECT_TYPE, AL_EFFECT_EAXREVERB);
+		alEffecti( uiEffects[0], AL_EFFECT_TYPE, AL_EFFECT_EAXREVERB );
 		if(!palGetError()) MsgDev( D_NOTE, " ^3al_ext_eaxrevrb" );
-		alEffecti(uiEffects[0], AL_EFFECT_TYPE, AL_EFFECT_CHORUS);
+		alEffecti( uiEffects[0], AL_EFFECT_TYPE, AL_EFFECT_CHORUS );
 		if(!palGetError()) MsgDev( D_NOTE, " ^3al_ext_chorus" );
-		alEffecti(uiEffects[0], AL_EFFECT_TYPE, AL_EFFECT_DISTORTION);
+		alEffecti( uiEffects[0], AL_EFFECT_TYPE, AL_EFFECT_DISTORTION );
 		if(!palGetError()) MsgDev( D_NOTE, " ^3al_ext_distortion" );
-		alEffecti(uiEffects[0], AL_EFFECT_TYPE, AL_EFFECT_ECHO);
+		alEffecti( uiEffects[0], AL_EFFECT_TYPE, AL_EFFECT_ECHO );
 		if(!palGetError()) MsgDev( D_NOTE, " ^3al_ext_echo" );
-		alEffecti(uiEffects[0], AL_EFFECT_TYPE, AL_EFFECT_FLANGER);
+		alEffecti( uiEffects[0], AL_EFFECT_TYPE, AL_EFFECT_FLANGER );
 		if(!palGetError()) MsgDev( D_NOTE, " ^3al_ext_flanger" );
-		alEffecti(uiEffects[0], AL_EFFECT_TYPE, AL_EFFECT_FREQUENCY_SHIFTER);
+		alEffecti( uiEffects[0], AL_EFFECT_TYPE, AL_EFFECT_FREQUENCY_SHIFTER );
 		if(!palGetError()) MsgDev( D_NOTE, " ^3al_ext_frequency_shifter" );
-		alEffecti(uiEffects[0], AL_EFFECT_TYPE, AL_EFFECT_VOCAL_MORPHER);
+		alEffecti( uiEffects[0], AL_EFFECT_TYPE, AL_EFFECT_VOCAL_MORPHER );
 		if(!palGetError()) MsgDev( D_NOTE, " ^3al_ext_vocal_morpher" );
-		alEffecti(uiEffects[0], AL_EFFECT_TYPE, AL_EFFECT_PITCH_SHIFTER);
+		alEffecti( uiEffects[0], AL_EFFECT_TYPE, AL_EFFECT_PITCH_SHIFTER );
 		if(!palGetError()) MsgDev( D_NOTE, " ^3al_ext_pitch_shifter" );
-		alEffecti(uiEffects[0], AL_EFFECT_TYPE, AL_EFFECT_RING_MODULATOR);
+		alEffecti( uiEffects[0], AL_EFFECT_TYPE, AL_EFFECT_RING_MODULATOR );
 		if(!palGetError()) MsgDev( D_NOTE, " ^3al_ext_ring_modulator" );
-		alEffecti(uiEffects[0], AL_EFFECT_TYPE, AL_EFFECT_AUTOWAH);
+		alEffecti( uiEffects[0], AL_EFFECT_TYPE, AL_EFFECT_AUTOWAH );
 		if(!palGetError()) MsgDev( D_NOTE, " ^3al_ext_autowah" );
-		alEffecti(uiEffects[0], AL_EFFECT_TYPE, AL_EFFECT_COMPRESSOR);
+		alEffecti( uiEffects[0], AL_EFFECT_TYPE, AL_EFFECT_COMPRESSOR );
 		if(!palGetError()) MsgDev( D_NOTE, " ^3al_ext_compressor" );
-		alEffecti(uiEffects[0], AL_EFFECT_TYPE, AL_EFFECT_EQUALIZER);
+		alEffecti( uiEffects[0], AL_EFFECT_TYPE, AL_EFFECT_EQUALIZER );
 		if(!palGetError()) MsgDev( D_NOTE, " ^3al_ext_equalizer" );
 		MsgDev( D_NOTE, "\n" );
 	}
@@ -229,15 +232,15 @@ static void S_InitFilters( void )
 	if( palGetError() == AL_NO_ERROR )
 	{
 		MsgDev( D_NOTE, "S_InitFilters:" );
-		alFilteri(uiFilters[0], AL_FILTER_TYPE, AL_FILTER_LOWPASS);
+		alFilteri( uiFilters[0], AL_FILTER_TYPE, AL_FILTER_LOWPASS );
 		if(!palGetError()) MsgDev( D_NOTE, " ^3al_ext_lowpass" );
-		alFilteri(uiFilters[0], AL_FILTER_TYPE, AL_FILTER_HIGHPASS);
+		alFilteri( uiFilters[0], AL_FILTER_TYPE, AL_FILTER_HIGHPASS );
 		if(!palGetError()) MsgDev( D_NOTE, " ^3al_ext_highpass" );
-		alFilteri(uiFilters[0], AL_FILTER_TYPE, AL_FILTER_BANDPASS);
+		alFilteri( uiFilters[0], AL_FILTER_TYPE, AL_FILTER_BANDPASS );
 		if(!palGetError()) MsgDev( D_NOTE, " ^3al_ext_bandpass" );
 		MsgDev( D_NOTE, "\n" );
 	}
-	alDeleteFilters(1, &uiFilters[0]);
+	alDeleteFilters( 1, &uiFilters[0] );
 }
 
 /*
@@ -259,8 +262,8 @@ static void S_InitExtensions( void )
 	// check I3DL2 extension for NVidia's Sound Storm chips. I3DL2 is hidden and can be missed in extension list.
 	if( !com.strcmp( NVIDIA_DEVICE_NAME, al_config.deviceList[0] ))
 	{
-		I3DL2Get = (void *)palGetProcAddress("I3DL2Get");
-		I3DL2Set = (void *)palGetProcAddress("I3DL2Set");
+		I3DL2Get = (void *)palGetProcAddress( "I3DL2Get" );
+		I3DL2Set = (void *)palGetProcAddress( "I3DL2Set" );
 		if( I3DL2Get && I3DL2Set )
 		{
 			al_config.allow_3DMode = true;
@@ -269,7 +272,7 @@ static void S_InitExtensions( void )
 			MsgDev( D_NOTE, "S_InitExtensions: enable I3DL2\n" );
 		}
 	}
-	if( palIsExtensionPresent("EAX3.0") && !al_config.allow_3DMode )
+	if( palIsExtensionPresent( "EAX3.0" ) && !al_config.allow_3DMode )
 	{
 		alEAXSet = (void *)palGetProcAddress( "EAXSet" );
 		alEAXGet = (void *)palGetProcAddress( "EAXGet" );
@@ -281,7 +284,7 @@ static void S_InitExtensions( void )
 			MsgDev( D_NOTE, "S_InitExtensions: enable EAX 3.0\n" );
 		}
 	}
-	if( palIsExtensionPresent("EAX2.0") && !al_config.allow_3DMode )
+	if( palIsExtensionPresent( "EAX2.0" ) && !al_config.allow_3DMode )
 	{
 		alEAXSet = (void *)palGetProcAddress( "EAXSet" );
 		alEAXGet = (void *)palGetProcAddress( "EAXGet" );
@@ -293,7 +296,7 @@ static void S_InitExtensions( void )
 			MsgDev( D_NOTE, "S_InitExtensions: enable EAX 2.0\n" );
 		}
 	}
-	if( palIsExtensionPresent("EAX") && !al_config.allow_3DMode )
+	if( palIsExtensionPresent( "EAX" ) && !al_config.allow_3DMode )
 	{
 		alEAXSet = (void *)palGetProcAddress( "EAXSet" );
 		alEAXGet = (void *)palGetProcAddress( "EAXGet" );
@@ -306,18 +309,17 @@ static void S_InitExtensions( void )
 		}
 	}
 
-	if(palcIsExtensionPresent( al_state.hDevice, "ALC_EXT_EFX"))
+	if( palcIsExtensionPresent( al_state.hDevice, "ALC_EXT_EFX" ))
 	{
-
 		uint	uiEffectSlots[MAX_EFFECTS] = { 0 };
 
-		if(!S_SetupEFX()) return;
+		if( !S_SetupEFX( )) return;
 
 		// testing effect slots
 		for( al_config.num_slots = 0; al_config.num_slots < MAX_EFFECTS; al_config.num_slots++ )
 		{
 			alGenAuxiliaryEffectSlots( 1, &uiEffectSlots[al_config.num_slots] );
-			if( palGetError() != AL_NO_ERROR) break;
+			if( palGetError() != AL_NO_ERROR ) break;
 			
 		}
 		palcGetIntegerv( al_state.hDevice, ALC_MAX_AUXILIARY_SENDS, 1, &al_config.num_sends );
@@ -340,7 +342,7 @@ bool S_Init_OpenAL( void )
 	}
 
 	// Get device list
-	if( palcIsExtensionPresent( NULL, "ALC_ENUMERATION_EXT"))
+	if( palcIsExtensionPresent( NULL, "ALC_ENUMERATION_EXT" ))
 	{
 		// get list of devices
 		const char *device_enum = palcGetString( NULL, ALC_DEVICE_SPECIFIER );
@@ -361,13 +363,13 @@ bool S_Init_OpenAL( void )
 	} 
 
 	// initialize the device, context, etc...
-	if(!S_InitDriver()) return false;
+	if( !S_InitDriver( )) return false;
 
 	// get some openal strings
-	al_config.vendor_string = palGetString(AL_VENDOR);
-	al_config.renderer_string = palGetString(AL_RENDERER);	// stupid name :)
-	al_config.version_string = palGetString(AL_VERSION);
-	al_config.extensions_string = palGetString(AL_EXTENSIONS);
+	al_config.vendor_string = palGetString( AL_VENDOR );
+	al_config.renderer_string = palGetString( AL_RENDERER );	// stupid name :-)
+	al_config.version_string = palGetString( AL_VERSION );
+	al_config.extensions_string = palGetString( AL_EXTENSIONS );
 	MsgDev( D_INFO, "Audio: %s\n", al_config.renderer_string );
 
 	// Initialize extensions
@@ -386,6 +388,7 @@ void S_Free_OpenAL( void )
 			palcDestroyContext( al_state.hALC );
 		al_state.hALC = NULL;
 	}
+
 	if( al_state.hDevice )
 	{
 		if( palcCloseDevice )
@@ -394,6 +397,6 @@ void S_Free_OpenAL( void )
 	}
 
 	Sys_FreeLibrary( &openal_dll );
-	Mem_Set(&al_config, 0, sizeof(alconfig_t));
-	Mem_Set(&al_state, 0, sizeof(alstate_t));
+	Mem_Set( &al_config, 0, sizeof( alconfig_t ));
+	Mem_Set( &al_state, 0, sizeof( alstate_t ));
 }

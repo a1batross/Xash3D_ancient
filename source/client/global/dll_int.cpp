@@ -224,6 +224,7 @@ void HUD_UpdateEntityVars( edict_t *ent, const entity_state_t *state, const enti
 	ent->v.flags = state->flags;
 	ent->v.ideal_pitch = state->idealpitch;
 	ent->v.animtime = state->animtime;
+	ent->v.ltime = state->localtime;
 
 	if( state->groundent != -1 )
 		ent->v.groundentity = GetEntityByIndex( state->groundent );
