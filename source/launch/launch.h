@@ -365,6 +365,11 @@ bool Sound_Process( wavdata_t **wav, int rate, int width, uint flags );
 bool FS_SaveSound( const char *name, wavdata_t *sound );
 void FS_FreeSound( wavdata_t *pack );
 
+stream_t *FS_OpenStream( const char *filename );
+wavdata_t *FS_StreamInfo( stream_t *stream );
+long FS_ReadStream( stream_t *stream, int bytes, void *buffer );
+void FS_FreeStream( stream_t *stream );
+
 search_t *FS_Search(const char *pattern, int caseinsensitive );
 search_t *FS_SearchDirs(const char *pattern, int caseinsensitive );
 

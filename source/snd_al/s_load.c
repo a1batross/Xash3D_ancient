@@ -4,7 +4,6 @@
 //=======================================================================
 
 #include "sound.h"
-#include "s_stream.h"
 
 // during registration it is possible to have more sounds
 // than could actually be referenced during gameplay,
@@ -92,6 +91,28 @@ char *S_SkipSoundChar( const char *pch )
 	return pcht;
 }
 
+uint S_GetFormat( int width, int channels )
+{
+	uint	format = AL_FORMAT_MONO16;
+
+	// work out format
+	if( width == 1 )
+	{
+		if( channels == 1 )
+			format = AL_FORMAT_MONO8;
+		else if( channels == 2 )
+			format = AL_FORMAT_STEREO8;
+	}
+	else if( width == 2 )
+	{
+		if( channels == 1 )
+			format = AL_FORMAT_MONO16;
+		else if( channels == 2 )
+			format = AL_FORMAT_STEREO16;
+	}
+	return format;
+}
+
 /*
 =================
 S_UploadSound
@@ -104,19 +125,8 @@ static void S_UploadSound( wavdata_t *sc, sfx_t *sfx )
 	sfx->rate = sc->rate;
 	sfx->sampleStep = 1000 * ( sfx->rate / (float)sfx->samples ); // samples per second
 	
-	// Set buffer format
-	if( sc->width == 2 )
-	{
-		if( sc->channels == 2 )
-			sfx->format = AL_FORMAT_STEREO16;
-		else sfx->format = AL_FORMAT_MONO16;
-	}
-	else
-	{
-		if( sc->channels == 2 )
-			sfx->format = AL_FORMAT_STEREO8;
-		else sfx->format = AL_FORMAT_MONO8;
-	}
+	// set buffer format
+	sfx->format = S_GetFormat( sc->width, sc->channels );
 
 	// upload the sound
 	palGenBuffers( 1, &sfx->bufferNum );

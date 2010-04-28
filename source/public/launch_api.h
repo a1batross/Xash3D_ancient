@@ -69,6 +69,7 @@ typedef struct file_s file_t;		// normal file
 typedef struct vfile_s vfile_t;	// virtual file
 typedef struct wfile_s wfile_t;	// wad file
 typedef struct script_s script_t;	// script machine
+typedef struct stream_s stream_t;	// sound stream for background music playing
 typedef struct { const char *name; void **func; } dllfunc_t; // Sys_LoadLibrary stuff
 typedef struct { int numfilenames; char **filenames; char *filenamesbuffer; } search_t;
 typedef void ( *cmsave_t )( void* handle, const void* buffer, size_t size );
@@ -426,9 +427,9 @@ typedef enum
 // imagelib global settings
 typedef enum
 {
-	SL_USE_LERPING	= BIT(3),	// lerping sounds during resample
-	SL_KEEP_8BIT	= BIT(4),	// don't expand 8bit sounds automatically up to 16 bit
-	SL_ALLOW_OVERWRITE	= BIT(5),	// allow to overwrite stored sounds
+	SL_USE_LERPING	= BIT(0),	// lerping sounds during resample
+	SL_KEEP_8BIT	= BIT(1),	// don't expand 8bit sounds automatically up to 16 bit
+	SL_ALLOW_OVERWRITE	= BIT(2),	// allow to overwrite stored sounds
 } slFlags_t;
 
 // wavdata output flags
@@ -436,6 +437,7 @@ typedef enum
 {
 	// wavdata->flags
 	SOUND_LOOPED	= BIT( 0 ),	// this is looped sound (contain cue markers)
+	SOUND_STREAM	= BIT( 1 ),	// this is a streaminfo, not a real sound
 
 	// Sound_Process manipulation flags
 	SOUND_RESAMPLE	= BIT(12),	// resample sound to specified rate
@@ -673,6 +675,12 @@ typedef struct stdilib_api_s
 	bool (*SoundSave)( const char *name, wavdata_t *image );		// save sound into specified format
 	bool (*SoundConvert)( wavdata_t **pix, int rt, int wdth, uint flags );// sound manipulations
  	void (*SoundFree)( wavdata_t *pack );				// release sound buffer
+
+	// music stream reading funcs
+	stream_t *(*OpenStream)( const char *filename );			// open music stream
+	wavdata_t *(*GetStreamInfo)( stream_t *stream );			// get stream info
+	long (*ReadStream)( stream_t *stream, int bytes, void *buffer );	// returns num of readed bytes
+	void (*FreeStream)( stream_t *stream );				// release stream
  
 	// random generator
 	long (*Com_RandomLong)( long lMin, long lMax );			// returns random integer
@@ -982,6 +990,11 @@ sndlib manager
 #define FS_FreeSound		com.SoundFree
 #define Sound_Init			com.SndlibSetup
 #define Sound_Process		com.SoundConvert
+
+#define FS_OpenStream		com.OpenStream
+#define FS_StreamInfo		com.GetStreamInfo
+#define FS_ReadStream		com.ReadStream
+#define FS_CloseStream		com.FreeStream
 
 /*
 ===========================================

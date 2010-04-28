@@ -9,7 +9,7 @@
 /*
 =============================================================================
 
-	XASH3D LOAD IMAGE FORMATS
+	XASH3D LOAD SOUND FORMATS
 
 =============================================================================
 */
@@ -42,7 +42,7 @@ static const loadwavformat_t load_quake1[] =
 { NULL, NULL, NULL }
 };
 
-// version11 - Xash3D default sound profile
+// version3 - Xash3D default sound profile
 static const loadwavformat_t load_xash[] =
 {
 { "sound/%s%s.%s", "wav", Sound_LoadWAV },
@@ -50,6 +50,41 @@ static const loadwavformat_t load_xash[] =
 { "sound/%s%s.%s", "ogg", Sound_LoadOGG },
 { "%s%s.%s", "ogg", Sound_LoadOGG },
 { NULL, NULL, NULL }
+};
+
+/*
+=============================================================================
+
+	XASH3D PROCESS STREAM FORMATS
+
+=============================================================================
+*/
+// stub
+static const streamformat_t stream_null[] =
+{
+{ NULL, NULL, NULL, NULL, NULL }
+};
+
+// version0 - using only ogg streams
+static const streamformat_t stream_stalker[] =
+{
+{ "%s%s.%s", "ogg", Stream_OpenOGG, Stream_ReadOGG, Stream_FreeOGG },
+{ NULL, NULL, NULL, NULL, NULL }
+};
+
+// version1 - using only wav streams
+static const streamformat_t stream_quake3[] =
+{
+{ "%s%s.%s", "wav", Stream_OpenWAV, Stream_ReadWAV, Stream_FreeWAV },
+{ NULL, NULL, NULL, NULL, NULL }
+};
+
+// version3 - Xash3D default stream profile
+static const streamformat_t stream_xash[] =
+{
+{ "%s%s.%s", "ogg", Stream_OpenOGG, Stream_ReadOGG, Stream_FreeOGG },
+{ "%s%s.%s", "wav", Stream_OpenWAV, Stream_ReadWAV, Stream_FreeWAV },
+{ NULL, NULL, NULL, NULL, NULL }
 };
 
 /*
@@ -88,10 +123,12 @@ void Sound_Init( void )
 		break;
 	case HOST_RIPPER:
 		sound.loadformats = load_null;
+		sound.streamformat = stream_null;
 		sound.saveformats = save_extragen;
 		break;
 	default:	// all other instances not using soundlib or will be reinstalling later
 		sound.loadformats = load_null;
+		sound.streamformat = stream_null;
 		sound.saveformats = save_null;
 		break;
 	}
@@ -109,10 +146,12 @@ void Sound_Setup( const char *formats, const uint flags )
 	if( !com.stricmp( formats, "Xash3D" ) || !com.stricmp( formats, "Xash" ))
 	{
 		sound.loadformats = load_xash;
+		sound.streamformat = stream_xash;
 	}
 	else if( !com.stricmp( formats, "stalker" ) || !com.stricmp( formats, "S.T.A.L.K.E.R" ))
 	{
 		sound.loadformats = load_stalker;
+		sound.streamformat = stream_stalker;
 	}
 	else if( !com.stricmp( formats, "Doom1" ) || !com.stricmp( formats, "Doom2" ))
 	{
@@ -129,6 +168,7 @@ void Sound_Setup( const char *formats, const uint flags )
 	else if( !com.stricmp( formats, "Quake3" ))
 	{
 		sound.loadformats = load_quake1;
+		sound.streamformat = stream_quake3;
 	}
 	else if( !com.stricmp( formats, "Quake4" ) || !com.stricmp( formats, "Doom3" ))
 	{
@@ -137,6 +177,7 @@ void Sound_Setup( const char *formats, const uint flags )
 	else if( !com.stricmp( formats, "hl1" ) || !com.stricmp( formats, "Half-Life" ))
 	{
 		sound.loadformats = load_quake1;
+		sound.streamformat = stream_xash;
 	}
 	else if( !com.stricmp( formats, "hl2" ) || !com.stricmp( formats, "Half-Life 2" ))
 	{
@@ -145,6 +186,7 @@ void Sound_Setup( const char *formats, const uint flags )
 	else
 	{
 		sound.loadformats = load_xash; // unrecognized version, use default
+		sound.streamformat = stream_xash;
 	}
 
 	if( Sys.app_name == HOST_RIPPER )
@@ -155,6 +197,25 @@ void Sound_Shutdown( void )
 {
 	Mem_Check(); // check for leaks
 	Mem_FreePool( &Sys.soundpool );
+}
+
+/*
+=================
+Sound_ByteSwapRawSamples
+=================
+*/
+void Sound_ByteSwapRawSamples( int samples, int width, int s_channels, const byte *data )
+{
+	int	i;
+
+	if( !big_endian ) return;
+	if( width != 2 ) return;
+
+	if( s_channels == 2 )
+		samples <<= 1;
+
+	for( i = 0; i < samples; i++ )
+		((short *)data)[i] = LittleShort((( short *)data)[i] );
 }
 
 bool Sound_Process( wavdata_t **wav, int rate, int width, uint flags )

@@ -36,5 +36,6 @@ Xash 0.71 Beta 05.05.10
 12.revision MOVETYPE_BOUNCE physic		OK
 13.revision MOVETYPE_COMPOUND physic		OK
 14.re-design sound library			OK
-15. move loding sounds into launch.dll		OK
-16.implement generic streaming background track
+15.move loding sounds into launch.dll		OK
+16.implement generic streaming background track	OK
+17.check bugs before snapshot

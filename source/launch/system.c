@@ -233,6 +233,11 @@ void Sys_GetStdAPI( void )
 	com.SndlibSetup = Sound_Setup;		// set soundlib global features
 	com.SoundConvert = Sound_Process;		// resample, change resolution etc
 
+	com.OpenStream = FS_OpenStream;		// open music stream
+	com.GetStreamInfo = FS_StreamInfo;		// get basic stream info
+	com.ReadStream = FS_ReadStream;		// returns num of readed bytes
+	com.FreeStream = FS_FreeStream;		// release stream
+
 	com.Com_RandomLong = Com_RandomLong;
 	com.Com_RandomFloat = Com_RandomFloat;
 

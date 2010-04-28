@@ -54,7 +54,7 @@ wavdata_t *FS_LoadSound( const char *filename, const byte *buffer, size_t size )
 	const loadwavformat_t *format;
 	byte		*f;
 
-	Sound_Reset(); // clear old image
+	Sound_Reset(); // clear old sounddata
 	com.strncpy( loadname, filename, sizeof( loadname ));
 
 	if( com.stricmp( ext, "" ))
@@ -146,4 +146,121 @@ void FS_FreeSound( wavdata_t *pack )
 		Mem_Free( pack );
 	}
 	else MsgDev( D_WARN, "FS_FreeSound: trying to free NULL sound\n" );
+}
+
+/*
+================
+FS_OpenStream
+
+open and reading basic info from sound stream 
+================
+*/
+stream_t *FS_OpenStream( const char *filename )
+{
+          const char	*ext = FS_FileExtension( filename );
+	string		path, loadname;
+	bool		anyformat = true;
+	const streamformat_t *format;
+	stream_t		*stream;
+
+	Sound_Reset(); // clear old streaminfo
+	com.strncpy( loadname, filename, sizeof( loadname ));
+
+	if( com.stricmp( ext, "" ))
+	{
+		// we needs to compare file extension with list of supported formats
+		// and be sure what is real extension, not a filename with dot
+		for( format = sound.streamformat; format && format->formatstring; format++ )
+		{
+			if( !com.stricmp( format->ext, ext ))
+			{
+				FS_StripExtension( loadname );
+				anyformat = false;
+				break;
+			}
+		}
+	}
+
+	// engine notify
+	if( !anyformat ) MsgDev( D_NOTE, "Note: %s will be loading only with ext .%s\n", loadname, ext );
+	
+	// now try all the formats in the selected list
+	for( format = sound.streamformat; format && format->formatstring; format++)
+	{
+		if( anyformat || !com_stricmp( ext, format->ext ))
+		{
+			com_sprintf( path, format->formatstring, loadname, "", format->ext );
+			if(( stream = format->openfunc( path )) != NULL )
+			{
+				stream->format = format;
+				return stream; // done
+			}
+		}
+	}
+
+	if( !sound.streamformat || sound.streamformat->ext == NULL )
+		MsgDev( D_NOTE, "FS_OpenStream: soundlib offline\n" );
+	else MsgDev( D_WARN, "FS_OpenStream: couldn't open \"%s\"\n", loadname );
+
+	return NULL;
+}
+
+/*
+================
+FS_StreamInfo
+
+get basic stream info
+================
+*/
+wavdata_t *FS_StreamInfo( stream_t *stream )
+{
+	static wavdata_t	info;
+
+	if( !stream ) return NULL;
+
+	// fill structure
+	info.loopStart = -1;
+	info.rate = stream->rate;
+	info.width = stream->width;
+	info.channels = stream->channels;
+	info.flags = SOUND_STREAM; 
+	info.size = stream->size;
+	info.buffer = NULL;
+	info.samples = 0;	// not actual for streams
+	info.type = stream->type;
+
+	return &info;
+}
+
+/*
+================
+FS_ReadStream
+
+extract stream as wav-data and put into buffer, move file pointer
+================
+*/
+long FS_ReadStream( stream_t *stream, int bytes, void *buffer )
+{
+	if( !stream || !stream->format || !stream->format->readfunc )
+		return 0;
+
+	if( bytes <= 0 || buffer == NULL )
+		return 0;
+
+	return stream->format->readfunc( stream, bytes, buffer );
+}
+
+/*
+================
+FS_FreeStream
+
+close sound stream
+================
+*/
+void FS_FreeStream( stream_t *stream )
+{
+	if( !stream || !stream->format || !stream->format->freefunc )
+		return;
+
+	stream->format->freefunc( stream );
 }

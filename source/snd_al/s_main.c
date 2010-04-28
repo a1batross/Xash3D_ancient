@@ -460,6 +460,10 @@ channel_t *SND_PickStaticChannel( int entnum, sfx_t *sfx )
 	// check for replacement sound, or find the best one to replace
  	for( i = MAX_DYNAMIC_CHANNELS; i < al_state.total_channels; i++ )
  	{
+		// music or cinematic channel
+		if( s_channels[i].entchannel == CHAN_STREAM )
+			continue;
+
 		if( s_channels[i].sfx == NULL )
 			break;
 	}
@@ -861,7 +865,6 @@ void S_Update( ref_params_t *fd )
 
 			if( samplePos + ch->sfx->sampleStep >= ch->sfx->samples )
 			{
-				Msg( "restart %s\n", ch->sfx->name );
 				palSourcei( ch->sourceNum, AL_SAMPLE_OFFSET, ch->sfx->loopStart );
 			}
 			else if( S_ChannelState( ch ) == AL_STOPPED )

@@ -4,101 +4,14 @@
 //=======================================================================
 
 #include "sound.h"
-#include "s_stream.h"
 
-#define BUFFER_SIZE	16384
+#define NUM_MUSIC_BUFFERS	4
+#define MUSIC_BUFFER_SIZE	4096
+#define RAW_BUFFER_SIZE	16384
 
-static bg_track_t	s_bgTrack;
-static channel_t	*s_streamingChannel;
-
-/*
-=======================================================================
-
- OGG VORBIS STREAMING
-
-=======================================================================
-*/
-static size_t ovc_read( void *ptr, size_t size, size_t nmemb, void *datasource )
-{
-	bg_track_t *track = (bg_track_t *)datasource;
-
-	if (!size || !nmemb)
-		return 0;
-
-	return FS_Read( track->file, ptr, size * nmemb ) / size;
-}
-
-static int ovc_seek ( void *datasource, ogg_int64_t offset, int whence )
-{
-	bg_track_t *track = (bg_track_t *)datasource;
-
-	switch( whence )
-	{
-	case SEEK_SET:
-		FS_Seek(track->file, (int)offset, SEEK_SET);
-		break;
-	case SEEK_CUR:
-		FS_Seek(track->file, (int)offset, SEEK_CUR);
-		break;
-	case SEEK_END:
-		FS_Seek(track->file, (int)offset, SEEK_END);
-		break;
-	default:
-		return -1;
-	}
-	return 0;
-}
-
-static int ovc_close( void *datasource )
-{
-	return 0;
-}
-
-static long ovc_tell (void *datasource)
-{
-	bg_track_t *track = (bg_track_t *)datasource;
-
-	return FS_Tell( track->file );
-}
-
-/*
-=================
-S_OpenBackgroundTrack
-=================
-*/
-static bool S_OpenBackgroundTrack (const char *name, bg_track_t *track)
-{
-	vorbisfile_t	*vorbisFile;
-	vorbis_info_t	*vorbisInfo;
-	ov_callbacks_t	vorbisCallbacks = { ovc_read, ovc_seek, ovc_close, ovc_tell };
-
-	track->file = FS_Open( name, "rb" );
-	if( !track->file )
-	{
-		MsgDev( D_ERROR, "S_OpenBackgroundTrack: couldn't find %s\n", name );
-		return false;
-	}
-	track->vorbisFile = vorbisFile = Z_Malloc(sizeof(vorbisfile_t));
-
-	if( ov_open_callbacks(track, vorbisFile, NULL, 0, vorbisCallbacks) < 0 )
-	{
-		MsgDev( D_ERROR, "S_OpenBackgroundTrack: couldn't open ogg stream %s\n", name );
-		return false;
-	}
-
-	vorbisInfo = ov_info( vorbisFile, -1 );
-	if( vorbisInfo->channels != 1 && vorbisInfo->channels != 2)
-	{
-		MsgDev( D_ERROR, "S_OpenBackgroundTrack: only mono and stereo ogg files supported %s\n", name );
-		return false;
-	}
-
-	track->start = ov_raw_tell( vorbisFile );
-	track->rate = vorbisInfo->rate;
-	track->format = (vorbisInfo->channels == 2) ? AL_FORMAT_STEREO16 : AL_FORMAT_MONO16;
-
-	return true;
-}
+static bg_track_t		s_bgTrack;
+static channel_t		*s_streamingChannel;
+static uint		musicBuffers[NUM_MUSIC_BUFFERS];
 
 /*
 =================
@@ -107,16 +20,77 @@ S_CloseBackgroundTrack
 */
 static void S_CloseBackgroundTrack( bg_track_t *track )
 {
-	if( track->vorbisFile )
+	if( track->intro_stream )
 	{
-		ov_clear( track->vorbisFile );
-		Mem_Free( track->vorbisFile );
-		track->vorbisFile = NULL;
+		FS_CloseStream( track->intro_stream );
+		track->intro_stream = NULL;
 	}
-	if( track->file )
+
+	if( track->main_stream )
 	{
-		FS_Close( track->file );
-		track->file = 0;
+		FS_CloseStream( track->main_stream );
+		track->main_stream = NULL;
+	}
+}
+
+/*
+=================
+S_ProcessBuffers
+=================
+*/
+static void S_ProcessBuffers( uint bufnum )
+{
+	uint	format;
+	stream_t	*curstream;
+	byte	decode_buffer[MUSIC_BUFFER_SIZE];
+	wavdata_t	*info;
+	size_t	size;
+
+	if( s_bgTrack.intro_stream )
+		curstream = s_bgTrack.intro_stream;
+	else curstream = s_bgTrack.main_stream;
+
+	if( !curstream ) return; // stopped
+
+	size = FS_ReadStream( curstream, MUSIC_BUFFER_SIZE, decode_buffer );
+
+	// run out data to read, start at the beginning again
+	if( size == 0 )
+	{
+		FS_CloseStream( curstream );
+
+		// the intro stream just finished playing so we don't need to reopen
+		// the music stream.
+		if( s_bgTrack.intro_stream )
+			s_bgTrack.intro_stream = NULL;
+		else s_bgTrack.main_stream = FS_OpenStream( s_bgTrack.loopName );
+		
+		curstream = s_bgTrack.main_stream;
+
+		if( !curstream )
+		{
+			S_StopBackgroundTrack();
+			return;
+		}
+		size = FS_ReadStream( curstream, MUSIC_BUFFER_SIZE, decode_buffer );
+	}
+
+	info = FS_StreamInfo( curstream );
+
+	format = S_GetFormat( info->width, info->channels );
+
+	if( size == 0 )
+	{
+		// we have no data to buffer, so buffer silence
+		byte dummyData[2] = { 0 };
+		palBufferData( bufnum, AL_FORMAT_MONO16, (void *)dummyData, 2, 22050 );
+	}
+	else palBufferData( bufnum, format, decode_buffer, size, info->rate );
+
+	if( S_CheckForErrors( ))
+	{
+		S_StopBackgroundTrack ();
+		return;
 	}
 }
 
@@ -127,80 +101,37 @@ S_StreamBackgroundTrack
 */
 void S_StreamBackgroundTrack( void )
 {
-	byte	data[BUFFER_SIZE];
-	int	processed, queued, state;
-	int	size, read, dummy;
-	uint	buffer;
+	int	numBuffers;
+	int	state;
 
-	if( !s_bgTrack.file || !s_musicvolume->value )
+	if( !s_bgTrack.active )
 		return;
-	if(!s_streamingChannel) return;
 
-	// unqueue and delete any processed buffers
-	palGetSourcei( s_streamingChannel->sourceNum, AL_BUFFERS_PROCESSED, &processed );
-	if( processed > 0 )
+	palGetSourcei( s_streamingChannel->sourceNum, AL_BUFFERS_PROCESSED, &numBuffers );
+
+	while( numBuffers-- )
 	{
-		while( processed-- )
-		{
-			palSourceUnqueueBuffers(s_streamingChannel->sourceNum, 1, &buffer);
-			palDeleteBuffers(1, &buffer);
-		}
+		uint	bufNum;
+
+		palSourceUnqueueBuffers( s_streamingChannel->sourceNum, 1, &bufNum );
+		S_ProcessBuffers( bufNum );
+		palSourceQueueBuffers( s_streamingChannel->sourceNum, 1, &bufNum );
 	}
 
-	// make sure we always have at least 4 buffers in the queue
-	palGetSourcei( s_streamingChannel->sourceNum, AL_BUFFERS_QUEUED, &queued );
-	while( queued < 4 )
-	{
-		size = 0;
-		// stream from disk
-		while( size < BUFFER_SIZE )
-		{
-			read = ov_read( s_bgTrack.vorbisFile, data + size, BUFFER_SIZE - size, big_endian, 2, 1, &dummy );
-			if( read == 0 )
-			{
-				// end of file
-				if(!s_bgTrack.looping)
-				{
-					// close the intro track
-					S_CloseBackgroundTrack( &s_bgTrack );
-
-					// open the loop track
-					if(!S_OpenBackgroundTrack(s_bgTrack.loopName, &s_bgTrack))
-					{
-						S_StopBackgroundTrack();
-						return;
-					}
-					s_bgTrack.looping = true;
-				}
-
-				// restart the track, skipping over the header
-				ov_raw_seek(s_bgTrack.vorbisFile, (ogg_int64_t)s_bgTrack.start );
-
-				// try streaming again
-				read = ov_read( s_bgTrack.vorbisFile, data + size, BUFFER_SIZE - size, 0, 2, 1, &dummy );
-			}
-			if( read <= 0 )
-			{
-				// an error occurred
-				S_StopBackgroundTrack();
-				return;
-			}
-			size += read;
-		}
-
-		// upload and queue the new buffer
-		palGenBuffers( 1, &buffer );
-		palBufferData( buffer, s_bgTrack.format, data, size, s_bgTrack.rate );
-		palSourceQueueBuffers( s_streamingChannel->sourceNum, 1, &buffer );
-		queued++;
-	}
-
-	// update volume
-	palSourcef( s_streamingChannel->sourceNum, AL_GAIN, s_musicvolume->value );
-
-	// if not playing, then do so
+	// hitches can cause OpenAL to be starved of buffers when streaming.
+	// If this happens, it will stop playback. This restarts the source if
+	// it is no longer playing, and if there are buffers available
 	palGetSourcei( s_streamingChannel->sourceNum, AL_SOURCE_STATE, &state );
-	if( state != AL_PLAYING ) palSourcePlay(s_streamingChannel->sourceNum);
+	palGetSourcei( s_streamingChannel->sourceNum, AL_BUFFERS_QUEUED, &numBuffers );
+
+	if( state == AL_STOPPED && numBuffers )
+	{
+		MsgDev( D_INFO, "restarted background track\n" );
+		palSourcePlay( s_streamingChannel->sourceNum );
+	}
+
+	// Set the gain property
+	palSourcef( s_streamingChannel->sourceNum, AL_GAIN, s_musicvolume->value );
 }
 
 /*
@@ -208,24 +139,65 @@ void S_StreamBackgroundTrack( void )
 S_StartBackgroundTrack
 =================
 */
-void S_StartBackgroundTrack( const char *introTrack, const char *loopTrack )
+void S_StartBackgroundTrack( const char *introTrack, const char *mainTrack )
 {
+	bool	issame = false;
+	int	i;
+
 	// stop any playing tracks
 	S_StopBackgroundTrack();
 
-	// Start it up
-	com.snprintf( s_bgTrack.introName, sizeof(s_bgTrack.introName), "media/%s.ogg", introTrack);
-	com.snprintf( s_bgTrack.loopName, sizeof(s_bgTrack.loopName), "media/%s.ogg", loopTrack );
+	if(( !introTrack || !*introTrack ) && ( !mainTrack || !*mainTrack ))
+		return;
 
 	S_StartStreaming();
 
-	// open the intro track
-	if(!S_OpenBackgroundTrack( s_bgTrack.introName, &s_bgTrack))
+	if( !mainTrack || !*mainTrack )
+	{
+		mainTrack = introTrack;
+		issame = true;
+	}
+	else if( introTrack && *introTrack && !com.strcmp( introTrack, mainTrack ))
+	{
+		issame = true;
+	}
+
+	// copy the loop over
+	com.snprintf( s_bgTrack.loopName, sizeof( s_bgTrack.loopName ), "media/%s", mainTrack );
+
+	if( !issame )
+	{
+		// Open the intro and don't mind whether it succeeds.
+		// The important part is the loop.
+		s_bgTrack.intro_stream = FS_OpenStream( va( "media/%s", introTrack ));
+	}
+	else s_bgTrack.intro_stream = NULL;
+
+	s_bgTrack.main_stream = FS_OpenStream( s_bgTrack.loopName );
+
+	if( !s_bgTrack.main_stream )
 	{
 		S_StopBackgroundTrack();
 		return;
 	}
-	S_StreamBackgroundTrack();
+
+	// generate the musicBuffers
+	palGenBuffers( NUM_MUSIC_BUFFERS, musicBuffers );
+	
+	// queue the musicBuffers up
+	for( i = 0; i < NUM_MUSIC_BUFFERS; i++ )
+	{
+		S_ProcessBuffers( musicBuffers[i] );
+	}
+
+	palSourceQueueBuffers( s_streamingChannel->sourceNum, NUM_MUSIC_BUFFERS, musicBuffers );
+
+	// set the initial gain property
+	palSourcef( s_streamingChannel->sourceNum, AL_GAIN, s_musicvolume->value );
+	
+	// Start playing
+	palSourcePlay( s_streamingChannel->sourceNum );
+	s_bgTrack.active = true;
 }
 
 /*
@@ -252,21 +224,19 @@ void S_StartStreaming( void )
 	s_streamingChannel = SND_PickStaticChannel( 0, NULL );
 	if( !s_streamingChannel ) return;
 
+	// lock stream channel to avoid re-use it
 	s_streamingChannel->entchannel = CHAN_STREAM;
-
-// FIXME: OpenAL bug?
-//palDeleteSources(1, &s_streamingChannel->sourceNum);
-//palGenSources(1, &s_streamingChannel->sourceNum);
+	s_streamingChannel->sfx = NULL;
 
 	// set up the source
-	palSourcei(s_streamingChannel->sourceNum, AL_BUFFER, 0 );
-	palSourcei(s_streamingChannel->sourceNum, AL_LOOPING, 0 );
-	palSourcei(s_streamingChannel->sourceNum, AL_SOURCE_RELATIVE, 1 );
-	palSourcefv(s_streamingChannel->sourceNum, AL_POSITION, vec3_origin);
-	palSourcefv(s_streamingChannel->sourceNum, AL_VELOCITY, vec3_origin);
-	palSourcef(s_streamingChannel->sourceNum, AL_REFERENCE_DISTANCE, 1.0);
-	palSourcef(s_streamingChannel->sourceNum, AL_MAX_DISTANCE, 1.0);
-	palSourcef(s_streamingChannel->sourceNum, AL_ROLLOFF_FACTOR, 0.0);
+	palSourcei( s_streamingChannel->sourceNum, AL_BUFFER, 0 );
+	palSourcei( s_streamingChannel->sourceNum, AL_LOOPING, 0 );
+	palSourcei( s_streamingChannel->sourceNum, AL_SOURCE_RELATIVE, 1 );
+	palSourcefv( s_streamingChannel->sourceNum, AL_POSITION, vec3_origin );
+	palSourcefv( s_streamingChannel->sourceNum, AL_VELOCITY, vec3_origin );
+	palSourcef( s_streamingChannel->sourceNum, AL_REFERENCE_DISTANCE, 1.0f );
+	palSourcef( s_streamingChannel->sourceNum, AL_MAX_DISTANCE, 1.0f );
+	palSourcef( s_streamingChannel->sourceNum, AL_ROLLOFF_FACTOR, 0.0f );
 }
 
 /*
@@ -279,28 +249,25 @@ void S_StopStreaming( void )
 	int	processed;
 	uint	buffer;
 
-	if( !al_state.initialized ) return;
 	if( !s_streamingChannel ) return;	// already stopped
 
-	s_streamingChannel->entchannel = CHAN_AUTO;
-	// clean up the source
-	palSourceStop(s_streamingChannel->sourceNum);
+	s_streamingChannel->entchannel = 0;	// can be reused now
+	s_streamingChannel->sfx = NULL;
 
-	palGetSourcei(s_streamingChannel->sourceNum, AL_BUFFERS_PROCESSED, &processed);
+	// clean up the source
+	palSourceStop( s_streamingChannel->sourceNum );
+
+	palGetSourcei( s_streamingChannel->sourceNum, AL_BUFFERS_PROCESSED, &processed );
 	if( processed > 0 )
 	{
 		while( processed-- )
 		{
-			palSourceUnqueueBuffers(s_streamingChannel->sourceNum, 1, &buffer);
-			palDeleteBuffers(1, &buffer);
+			palSourceUnqueueBuffers( s_streamingChannel->sourceNum, 1, &buffer );
+			palDeleteBuffers( 1, &buffer );
 		}
 	}
 
-	palSourcei(s_streamingChannel->sourceNum, AL_BUFFER, 0);
-
-// FIXME: OpenAL bug?
-//palDeleteSources(1, &s_streamingChannel->sourceNum);
-//palGenSources(1, &s_streamingChannel->sourceNum);
+	palSourcei( s_streamingChannel->sourceNum, AL_BUFFER, 0 );
 	s_streamingChannel = NULL;
 }
 

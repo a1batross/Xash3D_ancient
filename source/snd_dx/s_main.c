@@ -1406,8 +1406,10 @@ void S_RenderFrame( ref_params_t *fd )
 		Msg( "----(%i)---- painted: %i\n", total, paintedtime );
 	}
 
+	S_StreamBackgroundTrack ();
+
 	// mix some sound
-	S_UpdateChannels();
+	S_UpdateChannels ();
 }
 
 /*
@@ -1425,6 +1427,20 @@ void S_Play_f( void )
 		return;
 	}
 	S_StartLocalSound( Cmd_Argv( 1 ), 1.0f, PITCH_NORM, NULL );
+}
+
+/*
+=================
+S_Music_f
+=================
+*/
+void S_Music_f( void )
+{
+	int	c = Cmd_Argc();
+
+	if( c == 2 ) S_StartBackgroundTrack( Cmd_Argv(1), Cmd_Argv(1) );
+	else if( c == 3 ) S_StartBackgroundTrack( Cmd_Argv(1), Cmd_Argv(2) );
+	else Msg( "Usage: music <musicfile> [loopfile]\n" );
 }
 
 /*
@@ -1483,6 +1499,7 @@ bool S_Init( void *hInst )
 
 	Cmd_AddCommand( "playsound", S_Play_f, "playing a specified sound file" );
 	Cmd_AddCommand( "stopsound", S_StopSound_f, "stop all sounds" );
+	Cmd_AddCommand( "music", S_Music_f, "starting a background track" );
 	Cmd_AddCommand( "soundlist", S_SoundList_f, "display loaded sounds" );
 	Cmd_AddCommand( "s_info", S_SoundInfo_f, "print sound system information" );
 
@@ -1510,6 +1527,7 @@ void S_Shutdown( void )
 {
 	Cmd_RemoveCommand( "playsound" );
 	Cmd_RemoveCommand( "stopsound" );
+	Cmd_RemoveCommand( "music" );
 	Cmd_RemoveCommand( "soundlist" );
 	Cmd_RemoveCommand( "s_info" );
 

@@ -56,14 +56,10 @@ typedef struct sfx_s
 
 typedef struct
 {
-	string		introName;
 	string		loopName;
-	bool		looping;
-	file_t		*file;
-	int		start;
-	int		rate;
-	uint		format;
-	void		*vorbisFile;
+	stream_t		*intro_stream;
+	stream_t		*main_stream;	// mainstream he-he
+	bool		active;
 } bg_track_t;
 
 // structure used for fading in and out client sound volume.
@@ -156,6 +152,7 @@ extern cvar_t *s_check_errors;
 //
 bool S_TestSoundChar( const char *pch, char c );
 char *S_SkipSoundChar( const char *pch );
+uint S_GetFormat( int width, int channels );
 
 bool S_Init( void *hInst );
 void S_Shutdown( void );

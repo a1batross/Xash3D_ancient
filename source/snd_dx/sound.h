@@ -117,14 +117,8 @@ typedef struct
 
 typedef struct
 {
-	string		introName;
 	string		loopName;
-	bool		looping;
-	file_t		*file;
-	int		start;
-	int		rate;
-	uint		format;
-	void		*vorbisFile;
+	stream_t		*stream;
 } bg_track_t;
 
 /*
@@ -155,11 +149,13 @@ extern channel_t	channels[MAX_CHANNELS];
 extern int	total_channels;
 extern int	paintedtime;
 extern int	s_rawend;
+extern int	soundtime;
 extern dma_t	dma;
 extern listener_t	s_listener;
 
 extern cvar_t	*s_check_errors;
 extern cvar_t	*s_volume;
+extern cvar_t	*s_musicvolume;
 extern cvar_t	*s_khz;
 extern cvar_t	*s_show;
 extern cvar_t	*s_mixahead;
@@ -191,19 +187,13 @@ void S_SoundInfo_f( void );
 // if origin is NULL, the sound will be dynamically sourced from the entity
 void S_StartSound( const vec3_t pos, int ent, int chan, sound_t sfx, float vol, float attn, int pitch, int flags );
 void S_StartStaticSound( const vec3_t pos, int ent, int chan, sound_t handle, float fvol, float attn, int pitch, int flags );
-void S_StreamRawSamples( int samples, int rate, int width, int channels, const byte *data );
-bool S_AddLoopingSound( int entnum, sound_t handle, float volume, float attn );
-void S_StartBackgroundTrack( const char *intro, const char *loop );
 channel_t *SND_PickDynamicChannel( int entnum, int channel, sfx_t *sfx );
 channel_t *SND_PickStaticChannel( int entnum, sfx_t *sfx );
 void S_FadeClientVolume( float fadePercent, float fadeOutSeconds, float holdTime, float fadeInSeconds );
 int S_StartLocalSound( const char *name, float volume, int pitch, const float *org );
 sfx_t *S_GetSfxByHandle( sound_t handle );
 void S_StopSound( int entnum, int channel, const char *soundname );
-void S_StopBackgroundTrack( void );
 void S_RenderFrame( ref_params_t *fd );
-void S_StartStreaming( void );
-void S_StopStreaming( void );
 void S_StopAllSounds( void );
 void S_FreeSounds( void );
 
@@ -212,6 +202,16 @@ void S_FreeSounds( void );
 //
 void SND_InitMouth( int entnum, int entchannel );
 void SND_CloseMouth( channel_t *ch );
+
+//
+// s_stream.c
+//
+void S_StartStreaming( void );
+void S_StopStreaming( void );
+void S_StreamRawSamples( int samples, int rate, int width, int channels, const byte *data );
+void S_StartBackgroundTrack( const char *intro, const char *loop );
+void S_StreamBackgroundTrack( void );
+void S_StopBackgroundTrack( void );
 
 //
 // s_vox.c

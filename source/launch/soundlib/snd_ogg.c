@@ -191,7 +191,16 @@ extern int ov_raw_seek( vorbisfile_t *vf, ogg_int64_t pos );
 extern ogg_int64_t ov_raw_tell( vorbisfile_t *vf );
 extern int ov_clear( vorbisfile_t *vf);
 
-static size_t ovc_read( void *ptr, size_t size, size_t nb, void *datasrc )
+static int ovc_close( void *datasrc ) { return 0; }	// close callback generic stub
+
+/*
+=================================================================
+
+	Memory reading funcs
+
+=================================================================
+*/
+static size_t ovcm_read( void *ptr, size_t size, size_t nb, void *datasrc )
 {
 	ov_decode_t	*oggfile = (ov_decode_t *)datasrc;
 	size_t		remain, length;
@@ -208,7 +217,7 @@ static size_t ovc_read( void *ptr, size_t size, size_t nb, void *datasrc )
 	return length / size;
 }
 
-static int ovc_seek( void *datasrc, ogg_int64_t offset, int whence )
+static int ovcm_seek( void *datasrc, ogg_int64_t offset, int whence )
 {
 	ov_decode_t	*oggfile = (ov_decode_t*)datasrc;
 
@@ -233,14 +242,54 @@ static int ovc_seek( void *datasrc, ogg_int64_t offset, int whence )
 	return 0;
 }
 
-static int ovc_close( void *datasrc )
+static long ovcm_tell( void *datasrc )
 {
+	return ((ov_decode_t *)datasrc)->ind;
+}
+
+/*
+=================================================================
+
+	OGG decompression
+
+=================================================================
+*/
+static size_t ovcf_read( void *ptr, size_t size, size_t nb, void *datasrc )
+{
+	stream_t	*track = (stream_t *)datasrc;
+
+	if( !size || !nb )
+		return 0;
+
+	return FS_Read( track->file, ptr, size * nb ) / size;
+}
+
+static int ovcf_seek( void *datasrc, ogg_int64_t offset, int whence )
+{
+	stream_t	*track = (stream_t *)datasrc;
+
+	switch( whence )
+	{
+	case SEEK_SET:
+		FS_Seek( track->file, (int)offset, SEEK_SET );
+		break;
+	case SEEK_CUR:
+		FS_Seek( track->file, (int)offset, SEEK_CUR );
+		break;
+	case SEEK_END:
+		FS_Seek( track->file, (int)offset, SEEK_END );
+		break;
+	default:
+		return -1;
+	}
 	return 0;
 }
 
-static long ovc_tell( void *datasrc )
+static long ovcf_tell( void *datasrc )
 {
-	return ((ov_decode_t *)datasrc)->ind;
+	stream_t	*track = (stream_t *)datasrc;
+
+	return FS_Tell( track->file );
 }
 
 /*
@@ -257,7 +306,7 @@ bool Sound_LoadOGG( const char *name, const byte *buffer, size_t filesize )
 	vorbis_info_t	*vi;
 	vorbis_comment_t	*vc;
 	ov_decode_t	ov_decode;
-	ov_callbacks_t	ov_callbacks = { ovc_read, ovc_seek, ovc_close, ovc_tell };
+	ov_callbacks_t	ov_callbacks = { ovcm_read, ovcm_seek, ovc_close, ovcm_tell };
 	long		done = 0, ret;
 	const char	*comm;
 	int		dummy;
@@ -325,4 +374,118 @@ bool Sound_LoadOGG( const char *name, const byte *buffer, size_t filesize )
 	ov_clear( &vf );
 
 	return true;
+}
+
+/*
+=================
+Stream_OpenOGG
+=================
+*/
+stream_t *Stream_OpenOGG( const char *filename )
+{
+	vorbisfile_t	*vorbisFile;
+	vorbis_info_t	*vorbisInfo;
+	ov_callbacks_t	vorbisCallbacks = { ovcf_read, ovcf_seek, ovc_close, ovcf_tell };
+	stream_t		*stream;
+	file_t		*file;
+
+	file = FS_Open( filename, "rb" );
+	if( !file ) return NULL;
+
+	// at this point we have valid stream
+	stream = Mem_Alloc( Sys.soundpool, sizeof( stream_t ));
+	stream->file = file;
+
+	vorbisFile = Mem_Alloc( Sys.soundpool, sizeof( vorbisfile_t ));
+
+	if( ov_open_callbacks( stream, vorbisFile, NULL, 0, vorbisCallbacks ) < 0 )
+	{
+		MsgDev( D_ERROR, "Stream_OpenOGG: couldn't open %s\n", filename );
+		ov_clear( vorbisFile );
+		Mem_Free( vorbisFile );
+		Mem_Free( stream );
+		FS_Close( file );
+		return NULL;
+	}
+
+	vorbisInfo = ov_info( vorbisFile, -1 );
+	if( vorbisInfo->channels != 1 && vorbisInfo->channels != 2 )
+	{
+		MsgDev( D_ERROR, "Stream_OpenOGG: only mono and stereo ogg files supported %s\n", filename );
+		ov_clear( vorbisFile );
+		Mem_Free( vorbisFile );
+		Mem_Free( stream );
+		FS_Close( file );
+		return NULL;
+	}
+
+	stream->pos = ov_raw_tell( vorbisFile );
+	stream->channels = vorbisInfo->channels;
+	stream->width = 2;	// always 16 bit
+	stream->rate = vorbisInfo->rate; // save rate instead of constant width
+	stream->ptr = vorbisFile;
+	stream->type = WF_OGGDATA;
+
+	return stream;
+}
+
+/*
+=================
+Stream_ReadOGG
+
+assume stream is valid
+=================
+*/
+long Stream_ReadOGG( stream_t *stream, long bytes, void *buffer )
+{
+	// buffer handling
+	int	bytesRead, bytesLeft;
+	int	c, dummy;
+	char	*bufPtr;
+
+	bytesRead = 0;
+	bytesLeft = bytes;
+	bufPtr = buffer;
+
+	// cycle until we have the requested or all available bytes read
+	while( 1 )
+	{
+		// read some bytes from the OGG codec
+		c = ov_read(( vorbisfile_t *)stream->ptr, bufPtr, bytesLeft, big_endian, 2, 1, &dummy );
+		
+		// no more bytes are left
+		if( c <= 0 ) break;
+
+		bytesRead += c;
+		bytesLeft -= c;
+		bufPtr += c;
+  
+		// we have enough bytes
+		if( bytesLeft <= 0 )
+			break;
+	}
+	return bytesRead;
+}
+
+/*
+=================
+Stream_FreeOGG
+
+assume stream is valid
+=================
+*/
+void Stream_FreeOGG( stream_t *stream )
+{
+	if( stream->ptr )
+	{
+		ov_clear( stream->ptr );
+		Mem_Free( stream->ptr );
+	}
+
+	if( stream->file )
+	{
+		FS_Close( stream->file );
+	}
+
+	Mem_Free( stream );
 }

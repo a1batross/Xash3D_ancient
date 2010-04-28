@@ -15,34 +15,149 @@ static bg_track_t		s_bgTrack;
 S_StartBackgroundTrack
 =================
 */
-void S_StartBackgroundTrack( const char *introTrack, const char *loopTrack )
+void S_StartBackgroundTrack( const char *introTrack, const char *mainTrack )
 {
 	S_StopBackgroundTrack();
 
-	// start it up
-	com.snprintf( s_bgTrack.introName, sizeof(s_bgTrack.introName), "media/%s.ogg", introTrack);
-	com.snprintf( s_bgTrack.loopName, sizeof(s_bgTrack.loopName), "media/%s.ogg", loopTrack );
+	if(( !introTrack || !*introTrack ) && ( !mainTrack || !*mainTrack ))
+		return;
+
+	if( !introTrack )
+	{
+		introTrack = "";
+	}
+	if( !mainTrack || !*mainTrack )
+	{
+		mainTrack = introTrack;
+	}
+	if( !*introTrack ) return;
+
+	if( mainTrack )
+	{
+		com.snprintf( s_bgTrack.loopName, sizeof( s_bgTrack.loopName ), "media/%s", mainTrack );
+	}
+	else s_bgTrack.loopName[0] = 0;
 
 	S_StartStreaming();
 
-	// UNDONE: process streaming
+	// close the background track, but DON'T reset s_rawend
+	// if restarting the same back ground track
+	if( s_bgTrack.stream )
+	{
+		FS_CloseStream( s_bgTrack.stream );
+		s_bgTrack.stream = NULL;
+	}
+
+	// open stream
+	s_bgTrack.stream = FS_OpenStream( va( "media/%s", introTrack ));
 }
 
 void S_StopBackgroundTrack( void )
 {
 	S_StopStreaming();
 
-	// UNDONE: close background track
+	if( !s_bgTrack.stream ) return;
+
+	FS_CloseStream( s_bgTrack.stream );
 	Mem_Set( &s_bgTrack, 0, sizeof( bg_track_t ));
+	s_rawend = 0;
 }
 
+/*
+=================
+S_StreamBackgroundTrack
+=================
+*/
+void S_StreamBackgroundTrack( void )
+{
+	int	bufferSamples;
+	int	fileSamples;
+	byte	raw[MAX_RAW_SAMPLES];
+	int	r, fileBytes;
+	float	musicVolume = 0.5f;
+
+	if( !s_bgTrack.stream ) return;
+
+	// graeme see if this is OK
+	musicVolume = ( musicVolume + ( s_musicvolume->value * 2 )) / 4.0f;
+
+	// don't bother playing anything if musicvolume is 0
+	if( musicVolume <= 0 ) return;
+
+	// see how many samples should be copied into the raw buffer
+	if( s_rawend < soundtime )
+		s_rawend = soundtime;
+
+	while( s_rawend < soundtime + MAX_RAW_SAMPLES )
+	{
+		wavdata_t	*info = FS_StreamInfo( s_bgTrack.stream );
+
+		bufferSamples = MAX_RAW_SAMPLES - (s_rawend - soundtime);
+
+		// decide how much data needs to be read from the file
+		fileSamples = bufferSamples * info->rate / dma.speed;
+
+		// our max buffer size
+		fileBytes = fileSamples * ( info->width * info->channels );
+
+		if( fileBytes > sizeof( raw ))
+		{
+			fileBytes = sizeof( raw );
+			fileSamples = fileBytes / ( info->width * info->channels );
+		}
+
+		// read
+		r = FS_ReadStream( s_bgTrack.stream, fileBytes, raw );
+
+		if( r < fileBytes )
+		{
+			fileBytes = r;
+			fileSamples = r / ( info->width * info->channels );
+		}
+
+		if( r > 0 )
+		{
+			// add to raw buffer
+			// FIXME: apply musicVolume
+			S_StreamRawSamples( fileSamples, info->rate, info->width, info->channels, raw );
+		}
+		else
+		{
+			// loop
+			if( s_bgTrack.loopName[0] )
+			{
+				FS_CloseStream( s_bgTrack.stream );
+				s_bgTrack.stream = NULL;
+				S_StartBackgroundTrack( s_bgTrack.loopName, s_bgTrack.loopName );
+				if( !s_bgTrack.stream ) return;
+			}
+			else
+			{
+				S_StopBackgroundTrack();
+				return;
+			}
+		}
+
+	}
+}
+
+/*
+=================
+S_StartStreaming
+=================
+*/
 void S_StartStreaming( void )
 {
-	// UNDONE: allocate static channel for streaimng
 }
 
+/*
+=================
+S_StopStreaming
+=================
+*/
 void S_StopStreaming( void )
 {
+	// clear s_rawend here ?
 }
 
 /*
