@@ -594,7 +594,7 @@ bool R_AddSkySurface( msurface_t *fa )
 	r_warpface = fa;
 	r_warpfacevis = false;
 
-	if( fa->shader->skySpeed )
+	if( tr.currentSkyShader && tr.currentSkyShader->skySpeed )
 	{
 		// HACK: force full sky to draw when rotating
 		for( i = 0; i < 6; i++ )

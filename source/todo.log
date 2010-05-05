@@ -23,7 +23,7 @@ fopen завешивает приложение, даже если перепутать местами + и a, при установке р
 Xash 0.71 Beta 05.05.10
 
 1. revision of all resources			OK
-2. fix sky changelevel bug
+2. fix sky changelevel bug			OK
 3. complete lights.shader
 4. implement original half-life dll		OK
 5. revision monster moving			OK
@@ -38,4 +38,6 @@ Xash 0.71 Beta 05.05.10
 14.re-design sound library			OK
 15.move loding sounds into launch.dll		OK
 16.implement generic streaming background track	OK
-17.check bugs before snapshot
+17.check bugs before snapshot			OK
+18.fix logic_switcher			OK
+19.implement botman's parabot dll

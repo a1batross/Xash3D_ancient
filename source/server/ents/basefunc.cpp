@@ -170,7 +170,12 @@ public:
 	void EXPORT Flicker( void );
 	void Die( void );
 };
-LINK_ENTITY_TO_CLASS( func_lamp, CFuncLamp );
+
+// please don't this in current Xash3D version
+// lightstyles on arealights currently not supported
+// LINK_ENTITY_TO_CLASS( func_lamp, CFuncLamp );
+
+LINK_ENTITY_TO_CLASS( func_lamp, CFuncWall );	// temporary moved here
 
 void CFuncLamp :: Spawn( void )
 {	
@@ -573,12 +578,15 @@ void CFuncMonitor :: Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYP
 		pev->body = 0;
 		pev->frame = 0;
 	}
-	else if (useType == USE_SET)
+	else if ( useType == USE_SET )
 	{
-		if(pActivator->IsPlayer())
+		if( pActivator->IsPlayer())
 		{
-			if( value ) UTIL_SetView(pActivator, iStringNull, 0 );
-			else if(pev->body)
+			if ( value )
+			{
+				UTIL_SetView( pActivator, iStringNull, 0 );
+			}
+			else if ( pev->body )
 			{
 				UTIL_SetView( pev->target, CAMERA_ON );
 				m_pController = (CBasePlayer*)pActivator;

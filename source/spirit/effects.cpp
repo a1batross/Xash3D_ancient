@@ -4580,6 +4580,7 @@ void CEnvMirror :: Spawn( void )
 { 
 	// setup mirror
 	SetObjectClass( ED_PORTAL );	
+	UTIL_SetOrigin( this, pev->origin );
 	pev->modelindex = 1; // world
 	pev->oldorigin = pev->origin;
 }

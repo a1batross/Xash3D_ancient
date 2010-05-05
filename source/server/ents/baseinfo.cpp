@@ -321,7 +321,6 @@ void CInfoPath :: Spawn( void )
 	m_iState = STATE_ON;
           m_index = 0;
 	SetBits( pFlags, PF_POINTENTITY );
-	UTIL_SetModel( ENT( pev ), "blabla.mdl");
 	pev->scale = 0.1f;
 }
 

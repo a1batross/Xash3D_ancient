@@ -4110,17 +4110,17 @@ void CBasePlayer :: UpdateClientData( void )
 		//try to find entity by targetname
 		CBaseEntity *pViewEnt = UTIL_FindEntityByString( NULL, "targetname", STRING(viewEntity) );
 
-		if (!FNullEnt(pViewEnt))
+		if (!FNullEnt( pViewEnt ))
 		{
 			indexToSend = pViewEnt->entindex();
 			if(pViewEnt->pev->flags & FL_MONSTER) viewFlags |= MONSTER_VIEW;
 			ALERT(at_aiconsole, "Find by name : activated with index %i and flags %i\n", indexToSend, viewFlags);
 		}
 		else
-		{	//try to find entity by classname
+		{	// try to find entity by classname
 			CBaseEntity *pViewEnt = UTIL_FindEntityByString( NULL, "classname", STRING(viewEntity) );
 
-			if (!FNullEnt(pViewEnt))
+			if (!FNullEnt( pViewEnt ))
 			{
 				indexToSend = pViewEnt->entindex();
 
@@ -4134,6 +4134,12 @@ void CBasePlayer :: UpdateClientData( void )
 				viewFlags = 0; // clear possibly ACTIVE flag
 				ALERT(at_aiconsole, "View data : deactivated\n");
 			}
+		}
+
+		if( !( viewFlags & CAMERA_ON ))
+		{
+			indexToSend = 0;	// inactive
+			viewFlags = 0;	// clear flags
 		}
 
 		MESSAGE_BEGIN(MSG_ONE, gmsgCamData, NULL, pev);

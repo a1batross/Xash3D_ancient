@@ -292,27 +292,6 @@ static void S_PlayChannel( channel_t *ch, sfx_t *sfx )
 	palSourcei( ch->sourceNum, AL_LOOPING, false );
 	palSourcei( ch->sourceNum, AL_SOURCE_RELATIVE, false );
 	palSourcei( ch->sourceNum, AL_SAMPLE_OFFSET, 0 );
-
-	if( ch->use_loop )
-	{
-		if( ch->sfx->loopStart >= 0 )
-		{
-			if( ch->state == CHAN_FIRSTPLAY )
-			{
-				// play first from start, then from loopOffset
-				ch->state = CHAN_LOOPED;
-			}
-			else if( ch->state == CHAN_LOOPED )
-			{
-				palSourcei( ch->sourceNum, AL_SAMPLE_OFFSET, sfx->loopStart );
-			}
-		}
-		else
-		{
-			ch->state = CHAN_LOOPED;
-			palSourcei( ch->sourceNum, AL_LOOPING, true );
-		}
-	}
 	palSourcePlay( ch->sourceNum );
 }
 
@@ -522,7 +501,7 @@ int S_AlterChannel( int entnum, int channel, sfx_t *sfx, float vol, int pitch, i
 				if( flags & SND_CHANGE_VOL )
 					ch->volume = vol;
 				
-				if( flags & SND_STOP )
+				if( flags & SND_STOP && ch->sfx->loopStart >= 0 )
 					S_StopChannel( ch );
 
 				return true;
@@ -544,7 +523,7 @@ int S_AlterChannel( int entnum, int channel, sfx_t *sfx, float vol, int pitch, i
 			if( flags & SND_CHANGE_VOL )
 				ch->volume = vol;
 
-			if( flags & SND_STOP )
+			if( flags & SND_STOP && ch->sfx->loopStart >= 0 )
 				S_StopChannel( ch );
 
 			return true;
@@ -608,7 +587,6 @@ void S_StartSound( const vec3_t pos, int ent, int chan, sound_t handle, float fv
 	target_chan->entchannel = chan;
 	target_chan->isSentence = false;
 	target_chan->dist_mult = (attn / 1000.0f);
-	target_chan->state = CHAN_FIRSTPLAY;
 	target_chan->sfx = sfx;
 	target_chan->pitch = pitch / (float)PITCH_NORM;
 
@@ -684,7 +662,6 @@ void S_StaticSound( const vec3_t pos, int ent, int chan, sound_t handle, float f
 	ch->entnum = ent;
 	ch->entchannel = chan;
 	ch->startTime = Sys_Milliseconds();
-	ch->state = CHAN_FIRSTPLAY;
 	VectorCopy( pos, ch->position );
 	ch->volume = vol;
 	ch->entnum = ent;

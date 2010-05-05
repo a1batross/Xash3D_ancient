@@ -699,7 +699,7 @@ trace_t SV_PushEntity( edict_t *ent, const vec3_t lpush, const vec3_t apush, int
 		type = MOVE_NOMONSTERS; // only clip against bmodels
 	else type = MOVE_NORMAL;
 
-	trace = SV_Move( ent->v.origin, ent->v.mins, ent->v.maxs, end, type|FTRACE_SIMPLEBOX, ent );
+	trace = SV_Move( ent->v.origin, ent->v.mins, ent->v.maxs, end, type|FMOVE_SIMPLEBOX, ent );
 	VectorCopy( trace.vecEndPos, ent->v.origin );
 	SV_LinkEdict( ent, true );
 
@@ -719,10 +719,7 @@ trace_t SV_PushEntity( edict_t *ent, const vec3_t lpush, const vec3_t apush, int
 	if( blocked ) *blocked = !VectorCompare( ent->v.origin, end ); // can't move full distance
 
 	// so we can run impact function afterwards.
-	if( trace.pHit && ( !(ent->v.flags & FL_ONGROUND) || ent->v.groundentity != trace.pHit ))
-	{
-		SV_Impact( ent, &trace );
-	}
+	if( trace.pHit ) SV_Impact( ent, &trace );
 
 	return trace;
 }
@@ -1016,7 +1013,7 @@ void SV_PushMove( edict_t *pusher, float movetime )
 				continue;
 
 			pusher->v.solid = SOLID_NOT;
-			trace = SV_ClipMoveToEntity( pusher, check->v.origin, check->v.mins, check->v.maxs, check->v.origin, MASK_SOLID, FTRACE_SIMPLEBOX );
+			trace = SV_ClipMoveToEntity( pusher, check->v.origin, check->v.mins, check->v.maxs, check->v.origin, MASK_SOLID, FMOVE_SIMPLEBOX );
 			pusher->v.solid = oldsolid; // was SOLID_BSP
 			if( !trace.fStartSolid ) continue; // not touched
 		}

@@ -341,7 +341,7 @@ void HUD_UpdateEntityVars( edict_t *ent, const entity_state_t *state, const enti
 		ent->v.controller[i] = state->controller[i];
 
 	// g-cont. moved here because we may needs apply null scale to skyportal
-	if( ent->v.scale == 0.0f ) ent->v.scale = 1.0f;	
+	if( ent->v.scale == 0.0f && ent->v.skin >= 0 ) ent->v.scale = 1.0f;	
 	ent->v.pContainingEntity = ent;
 }
 

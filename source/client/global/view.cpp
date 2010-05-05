@@ -846,7 +846,7 @@ float V_CalcWaterLevel( ref_params_t *pparams )
 		float	waterDist = cl_waterdist->value;
 		Vector	point;
 
-		edict_t *pwater = g_engfuncs.pfnWaterEntity( pparams->simorg );
+		edict_t	*pwater = g_engfuncs.pfnWaterEntity( pparams->simorg );
 		if( pwater ) waterDist += ( pwater->v.scale * 16 );
 
 		point = pparams->vieworg;

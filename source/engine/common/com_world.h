@@ -10,8 +10,8 @@
 #define MOVE_MISSILE	2	// extra size for monsters
 #define MOVE_WORLDONLY	3	// clip only world
 
-#define FTRACE_IGNORE_GLASS	0x100
-#define FTRACE_SIMPLEBOX	0x200
+#define FMOVE_IGNORE_GLASS	0x100
+#define FMOVE_SIMPLEBOX	0x200
 
 /*
 ===============================================================================

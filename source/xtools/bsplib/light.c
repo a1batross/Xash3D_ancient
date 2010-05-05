@@ -231,22 +231,23 @@ void CreateEntityLights( void )
 	double		vec[4], col[3];
 	
 	/* go throught entity list and find lights */
-	for( i = 0; i < numEntities; i++ )
+	for( i = 0; i < numBSPEntities; i++ )
 	{
 		e = &entities[i];
 		name = ValueForKey( e, "classname" );
+
 		environment = false;
-		
+		junior = false;
+
 		// check for lightJunior
 		if( !com.strnicmp( name, "lightJunior", 11 ))
 			junior = true;
+		else if( !com.strnicmp( name, "light_environment", 17 ))
+			environment = true;
 		else if( !com.strnicmp( name, "light", 5 ))
 			junior = false;
 		else continue;
 
-		if( !com.stricmp( name, "light_environment" ))
-			environment = true;
-		
 		// lights with target names (and therefore styles) are only parsed from BSP
 		target = ValueForKey( e, "targetname" );
 		if( target[0] != '\0' && i >= numBSPEntities )
@@ -405,12 +406,15 @@ void CreateEntityLights( void )
 			sun.next = NULL;
 					
 			/* make a sun light */
+#if 0
 			CreateSunLight( &sun );
-					
+#else
+			CreateSkyLights( sun.color, intensity, 5, 0.0f, LS_NORMAL );
+#endif					
 			/* free original light */
 			Mem_Free( light );
 			light = NULL;
-					
+
 			/* skip the rest of this love story */
 			continue;
 		}

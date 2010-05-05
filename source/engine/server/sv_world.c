@@ -357,7 +357,7 @@ trace_t SV_ClipMoveToEntity( edict_t *ent, const vec3_t start, vec3_t mins, vec3
 
 	if( ent == svgame.edicts )
 		CM_BoxTrace( &trace, start, end, mins, maxs, handle, umask, TR_AABB );
-	else if( !(flags & FTRACE_SIMPLEBOX) && CM_GetModelType( ent->v.modelindex ) == mod_studio )
+	else if( !(flags & FMOVE_SIMPLEBOX) && CM_GetModelType( ent->v.modelindex ) == mod_studio )
 	{
 		if( CM_HitboxTrace( &trace, ent, start, end )); // continue tracing bbox if hitbox missing
 		else CM_TransformedBoxTrace( &trace, start, end, mins, maxs, handle, umask, origin, angles, TR_AABB );
@@ -368,7 +368,7 @@ trace_t SV_ClipMoveToEntity( edict_t *ent, const vec3_t start, vec3_t mins, vec3
 	if( trace.flFraction < 1.0f || trace.fStartSolid )
 		trace.pHit = ent;
 
-	if( !(flags & FTRACE_SIMPLEBOX) && CM_GetModelType( ent->v.modelindex ) == mod_studio )
+	if( !(flags & FMOVE_SIMPLEBOX) && CM_GetModelType( ent->v.modelindex ) == mod_studio )
 	{
 		if( VectorIsNull( mins ) && VectorIsNull( maxs ) && trace.iHitgroup == -1 )
 		{
@@ -459,7 +459,7 @@ static void SV_ClipToLinks( areanode_t *node, moveclip_t *clip )
 		if( !svgame.dllFuncs.pfnShouldCollide( touch, clip->passedict ))
 			continue;
 
-		if( clip->flags & FTRACE_IGNORE_GLASS && CM_GetModelType( touch->v.modelindex ) == mod_brush )
+		if( clip->flags & FMOVE_IGNORE_GLASS && CM_GetModelType( touch->v.modelindex ) == mod_brush )
 		{
 			vec3_t	point;
 

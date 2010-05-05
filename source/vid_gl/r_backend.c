@@ -2836,6 +2836,12 @@ void R_RenderMeshBuffer( const meshbuffer_t *mb )
 					// other passes are GL_ADD
 					r_lightmapPasses[0] = *pass;
 
+					if( r_lightmapPasses[0].rgbGen.args == NULL )
+					{
+						// in cause we crash on breaklight.bsp
+						r_lightmapPasses[0].rgbGen.args = r_lightmapPassesArgs[0];
+                    			}
+		
 					for( j = 0, l = 0, u = 0; j < LM_STYLES && r_superLightStyle->lightmapStyles[j] != 255; j++ )
 					{
 						VectorCopy( r_lightStyles[r_superLightStyle->lightmapStyles[j]].rgb, colorSum );

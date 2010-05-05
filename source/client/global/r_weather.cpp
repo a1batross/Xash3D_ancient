@@ -146,7 +146,7 @@ void ProcessRain( void )
 			vecEnd[2] = -4096;
 
 			TraceResult tr;
-			TRACE_HULL( vecStart, vecStart + vecEnd, true, 1, player, &tr );
+			UTIL_TraceLine( vecStart, vecStart + vecEnd, ignore_monsters, player, &tr );
 
 			if ( tr.fStartSolid || tr.fAllSolid )
 			{

@@ -258,7 +258,7 @@ static TraceResult PM_TraceModel( edict_t *pEnt, const vec3_t start, const vec3_
 	clgame.pmove->usehull = bound( 0, clgame.pmove->usehull, 3 );
 	mins = clgame.pmove->player_mins[clgame.pmove->usehull];
 	maxs = clgame.pmove->player_maxs[clgame.pmove->usehull];
-	result = CL_ClipMoveToEntity( pEnt, start, mins, maxs, end, umask, FTRACE_SIMPLEBOX );
+	result = CL_ClipMoveToEntity( pEnt, start, mins, maxs, end, umask, FMOVE_SIMPLEBOX );
 	Mem_Copy( &out, &result, sizeof( TraceResult ));
 
 	return out;

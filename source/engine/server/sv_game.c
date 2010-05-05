@@ -1576,7 +1576,7 @@ static void pfnTraceLine( const float *v1, const float *v2, int fNoMonsters, edi
 	trace_t	result;
 
 	if( svgame.globals->trace_flags & 1 )
-		fNoMonsters |= FTRACE_SIMPLEBOX;
+		fNoMonsters |= FMOVE_SIMPLEBOX;
 	svgame.globals->trace_flags = 0;
 
 	if( VectorIsNAN( v1 ) || VectorIsNAN( v2 ))
@@ -1621,7 +1621,7 @@ static void pfnTraceHull( const float *v1, const float *v2, int fNoMonsters, int
 	maxs = GI->client_maxs[hullNumber];
 
 	if( svgame.globals->trace_flags & 1 )
-		fNoMonsters |= FTRACE_SIMPLEBOX;
+		fNoMonsters |= FMOVE_SIMPLEBOX;
 	svgame.globals->trace_flags = 0;
 
 	if( VectorIsNAN( v1 ) || VectorIsNAN( v2 ))
@@ -1648,7 +1648,7 @@ static int pfnTraceMonsterHull( edict_t *pEdict, const float *v1, const float *v
 	}
 
 	if( svgame.globals->trace_flags & 1 )
-		fNoMonsters |= FTRACE_SIMPLEBOX;
+		fNoMonsters |= FMOVE_SIMPLEBOX;
 	svgame.globals->trace_flags = 0;
 
 	mins = pEdict->v.mins;

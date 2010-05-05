@@ -3871,15 +3871,19 @@ void CBasePlayer :: UpdateClientData( void )
 	{
 		int indexToSend;
 
-		//we can entity to look at
-		if(pViewEnt)indexToSend = pViewEnt->entindex();
-		else	//just reset camera
+		// we can entity to look at
+		if( pViewEnt && ( viewFlags & CAMERA_ON ))
 		{
+			indexToSend = pViewEnt->entindex();
+		}
+		else
+		{
+			// just reset camera
 			indexToSend = 0;
 			viewFlags = 0; //clear possibly ACTIVE flag
 		}
 
-		MESSAGE_BEGIN(MSG_ONE, gmsg.CamData, NULL, pev);
+		MESSAGE_BEGIN( MSG_ONE, gmsg.CamData, NULL, pev );
 			WRITE_SHORT( indexToSend );
 			WRITE_SHORT( viewFlags );
 		MESSAGE_END();

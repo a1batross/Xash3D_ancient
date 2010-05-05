@@ -5,6 +5,8 @@
 #ifndef TRACE_DEF_H
 #define TRACE_DEF_H
 
+#define FTRACE_SIMPLEBOX	(1<<0)		// traceline with a simple box
+
 typedef enum { point_hull = 0, human_hull = 1, large_hull = 2, head_hull = 3 };
 typedef enum { ignore_monsters = 1, dont_ignore_monsters = 0, missile = 2 } IGNORE_MONSTERS;
 typedef enum { ignore_glass = 1, dont_ignore_glass = 0 } IGNORE_GLASS;

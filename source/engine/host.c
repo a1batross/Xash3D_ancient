@@ -879,7 +879,7 @@ void Host_Init( const int argc, const char **argv )
 	host_nosound = Cvar_Get( "host_nosound", "0", CVAR_SYSTEMINFO, "disable sound system" );
 	timescale = Cvar_Get( "timescale", "1.0", 0, "slow-mo timescale" );
 
-	s = va( "^1Xash %g ^3%s", GI->version, buildstring );
+	s = va( "^1Xash %g ^3%s", SI->version, buildstring );
 	Cvar_Get( "version", s, CVAR_INIT, "engine current version" );
 
 	// content control

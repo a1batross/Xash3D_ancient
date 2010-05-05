@@ -19,6 +19,9 @@
 #include "utils.h"
 #include "hud.h"
 #include "aurora.h"
+#include "ref_params.h"
+
+extern ref_params_t		*gpViewParams;
 
 // CHud message handlers
 DECLARE_HUDMESSAGE( HUDColor );
@@ -284,6 +287,11 @@ int CHud :: MsgFunc_CamData( const char *pszName, int iSize, void *pbuf )
 	if( gHUD.viewFlags )
 		m_iCameraMode = 1;
 	else m_iCameraMode = m_iLastCameraMode;
+
+	// update pparams->viewentity too for right hearing
+	if( gHUD.viewEntityIndex )
+		gpViewParams->viewentity = gHUD.viewEntityIndex;
+	else gpViewParams->viewentity = GetLocalPlayer()->serialnumber;
 
 	END_READ();
 	

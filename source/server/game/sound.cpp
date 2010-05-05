@@ -230,9 +230,6 @@ void CAmbientGeneric :: Spawn( void )
 		m_fLooping = TRUE;
 
 	Precache( );
-
-	SetObjectClass( ED_AMBIENT );
-	UTIL_SetOrigin( this, pev->origin );	// need to relink for complete registration
 }
 
 // this function needs to be called when the game is loaded, not just when the entity spawns.

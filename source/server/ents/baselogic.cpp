@@ -651,6 +651,7 @@ public:
 	int		m_cTargets;// the total number of targets in this manager's fire list.
 	int		m_index;		// Current target
 	int		m_iTargetName   [ MAX_MULTI_TARGETS ];// list if indexes into global string array
+	int		m_iTargetNumber [ MAX_MULTI_TARGETS ];// list of target numbers
 };
 LINK_ENTITY_TO_CLASS( logic_switcher, CSwitcher );
 
@@ -659,6 +660,7 @@ TYPEDESCRIPTION	CSwitcher::m_SaveData[] =
 {	DEFINE_FIELD( CSwitcher, m_cTargets, FIELD_INTEGER ),
 	DEFINE_FIELD( CSwitcher, m_index, FIELD_INTEGER ),
 	DEFINE_ARRAY( CSwitcher, m_iTargetName, FIELD_STRING, MAX_MULTI_TARGETS ),
+	DEFINE_ARRAY( CSwitcher, m_iTargetNumber, FIELD_INTEGER, MAX_MULTI_TARGETS ),
 };IMPLEMENT_SAVERESTORE(CSwitcher, CBaseLogic);
 
 void CSwitcher :: KeyValue( KeyValueData *pkvd )
@@ -681,6 +683,7 @@ void CSwitcher :: KeyValue( KeyValueData *pkvd )
 		char tmp[128];
 		UTIL_StripToken( pkvd->szKeyName, tmp );
 		m_iTargetName [ m_cTargets ] = ALLOC_STRING( tmp );
+		m_iTargetNumber [ m_cTargets ] = atoi( pkvd->szValue );
 		m_cTargets++;
 		pkvd->fHandled = TRUE;
 	}
@@ -688,49 +691,59 @@ void CSwitcher :: KeyValue( KeyValueData *pkvd )
 
 void CSwitcher :: Spawn( void )
 {
-	int r_index = 0;
-	int w_index = m_cTargets - 1;
+	// Sort targets
+	// Quick and dirty bubble sort
+	int swapped = 1;
 
-	while(r_index < w_index)
+	while ( swapped )
 	{
-		//we store target with right index in tempname
-		int name = m_iTargetName [r_index];
-		
-		//target with right name is free, record new value from wrong name
-		m_iTargetName [r_index] = m_iTargetName [w_index];
-		
-		//ok, we can swap targets
-		m_iTargetName [w_index] = name;
-		r_index++;
-		w_index--;
+		swapped = 0;
+		for ( int i = 1; i < m_cTargets; i++ )
+		{
+			if ( m_iTargetNumber[i] < m_iTargetNumber[i-1] )
+			{
+				// Swap out of order elements
+				int name = m_iTargetName[i];
+				int number = m_iTargetNumber[i];
+				m_iTargetName[i] = m_iTargetName[i-1];
+				m_iTargetNumber[i] = m_iTargetNumber[i-1];
+				m_iTargetName[i-1] = name;
+				m_iTargetNumber[i-1] = number;
+				swapped = 1;
+			}
+		}
 	}
-	
+
 	m_iState = STATE_OFF;
 	m_index = 0;
-	if(pev->spawnflags & SF_START_ON)
+
+	if ( pev->spawnflags & SF_START_ON )
 	{
 		m_iState = STATE_ON;
- 		SetNextThink (m_flDelay);
+ 		SetNextThink ( m_flDelay );
 	}	
 }
 
 void CSwitcher :: Think ( void )
 {
-	if(pev->button == MODE_INCREMENT)//increase target number
+	if ( pev->button == MODE_INCREMENT )
 	{
+		// increase target number
 		m_index++;
-		if(m_index >= m_cTargets) m_index = 0;
+		if( m_index >= m_cTargets )
+			m_index = 0;
 	}
-	else if(pev->button == MODE_DECREMENT)
+	else if ( pev->button == MODE_DECREMENT )
 	{
 		m_index--;
-		if(m_index < 0) m_index = m_cTargets - 1;
+		if( m_index < 0 )
+			m_index = m_cTargets - 1;
 	}
-	else if(pev->button == MODE_RANDOM_VALUE)
+	else if ( pev->button == MODE_RANDOM_VALUE )
 	{
-		m_index = RANDOM_LONG (0, m_cTargets - 1);
+		m_index = RANDOM_LONG( 0, m_cTargets - 1 );
 	}
-	SetNextThink (m_flDelay);
+	SetNextThink ( m_flDelay );
 }
 
 void CSwitcher :: Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )

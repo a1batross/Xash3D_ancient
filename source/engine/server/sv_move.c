@@ -56,7 +56,7 @@ realcheck:
 
 	if( iMode == WALKMOVE_WORLDONLY )
 		trace = SV_Move( start, vec3_origin, vec3_origin, stop, MOVE_WORLDONLY, ent );
-	else trace = SV_Move( start, vec3_origin, vec3_origin, stop, MOVE_NORMAL|FTRACE_SIMPLEBOX, ent );
+	else trace = SV_Move( start, vec3_origin, vec3_origin, stop, MOVE_NORMAL|FMOVE_SIMPLEBOX, ent );
 
 	if( trace.flFraction == 1.0f )
 		return false;
@@ -72,7 +72,7 @@ realcheck:
 
 			if( iMode == WALKMOVE_WORLDONLY )
 				trace = SV_Move( start, vec3_origin, vec3_origin, stop, MOVE_WORLDONLY, ent );
-			else trace = SV_Move( start, vec3_origin, vec3_origin, stop, MOVE_NORMAL|FTRACE_SIMPLEBOX, ent );
+			else trace = SV_Move( start, vec3_origin, vec3_origin, stop, MOVE_NORMAL|FMOVE_SIMPLEBOX, ent );
 
 			if( trace.flFraction != 1.0f && trace.vecEndPos[2] > bottom )
 				bottom = trace.vecEndPos[2];
@@ -134,7 +134,7 @@ bool SV_WalkMove( edict_t *ent, const vec3_t move, int iMode )
 	{
 		if( iMode == WALKMOVE_WORLDONLY )
 			trace = SV_Move( oldorg, ent->v.mins, ent->v.maxs, neworg, MOVE_WORLDONLY, ent );
-		else trace = SV_Move( oldorg, ent->v.mins, ent->v.maxs, neworg, MOVE_NORMAL|FTRACE_SIMPLEBOX, ent );
+		else trace = SV_Move( oldorg, ent->v.mins, ent->v.maxs, neworg, MOVE_NORMAL|FMOVE_SIMPLEBOX, ent );
 
 		if( trace.flFraction == 1.0f )
 		{
@@ -158,7 +158,7 @@ bool SV_WalkMove( edict_t *ent, const vec3_t move, int iMode )
 
 	if( iMode == WALKMOVE_WORLDONLY )
 		trace = SV_Move( neworg, ent->v.mins, ent->v.maxs, end, MOVE_WORLDONLY, ent );
-	else trace = SV_Move( neworg, ent->v.mins, ent->v.maxs, end, MOVE_NORMAL|FTRACE_SIMPLEBOX, ent );
+	else trace = SV_Move( neworg, ent->v.mins, ent->v.maxs, end, MOVE_NORMAL|FMOVE_SIMPLEBOX, ent );
     
 	if( trace.fAllSolid )
 		return false;
@@ -169,7 +169,7 @@ bool SV_WalkMove( edict_t *ent, const vec3_t move, int iMode )
 
 		if( iMode == WALKMOVE_WORLDONLY )
 			trace = SV_Move( neworg, ent->v.mins, ent->v.maxs, end, MOVE_WORLDONLY, ent );
-		else trace = SV_Move( neworg, ent->v.mins, ent->v.maxs, end, MOVE_NORMAL|FTRACE_SIMPLEBOX, ent );
+		else trace = SV_Move( neworg, ent->v.mins, ent->v.maxs, end, MOVE_NORMAL|FMOVE_SIMPLEBOX, ent );
 
 		if( trace.fAllSolid || trace.fStartSolid )
 			return false;
@@ -198,7 +198,7 @@ bool SV_WalkMove( edict_t *ent, const vec3_t move, int iMode )
 	// check our pos
 	if( iMode == WALKMOVE_WORLDONLY )
 		trace = SV_Move( ent->v.origin, ent->v.mins, ent->v.maxs, ent->v.origin, MOVE_WORLDONLY, ent );
-	else trace = SV_Move( ent->v.origin, ent->v.mins, ent->v.maxs, ent->v.origin, MOVE_NORMAL|FTRACE_SIMPLEBOX, ent );
+	else trace = SV_Move( ent->v.origin, ent->v.mins, ent->v.maxs, ent->v.origin, MOVE_NORMAL|FMOVE_SIMPLEBOX, ent );
 
 	if( trace.fStartSolid )
 	{
@@ -404,7 +404,7 @@ static TraceResult PM_TraceModel( edict_t *pEnt, const vec3_t start, const vec3_
 	svgame.pmove->usehull = bound( 0, svgame.pmove->usehull, 3 );
 	mins = svgame.pmove->player_mins[svgame.pmove->usehull];
 	maxs = svgame.pmove->player_maxs[svgame.pmove->usehull];
-	result = SV_ClipMoveToEntity( pEnt, start, mins, maxs, end, umask, FTRACE_SIMPLEBOX );
+	result = SV_ClipMoveToEntity( pEnt, start, mins, maxs, end, umask, FMOVE_SIMPLEBOX );
 	Mem_Copy( &out, &result, sizeof( TraceResult ));
 
 	return out;

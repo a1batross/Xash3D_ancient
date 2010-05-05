@@ -489,8 +489,8 @@ void CL_DrawCrosshair( void )
 	if( pPlayer->v.health <= 0.0f || pPlayer->v.flags & FL_FROZEN )
 		return;
 
-	// camera on
-	if( pPlayer->serialnumber != cl.refdef.viewentity )
+	// any camera on
+	if( cl.refdef.viewentity != pPlayer->serialnumber )
 		return;
 
 	// get crosshair dimension
@@ -1669,22 +1669,26 @@ pfnWaterEntity
 */
 static edict_t *pfnWaterEntity( const float *rgflPos )
 {
-	edict_t	*player, *pWater;
+	edict_t	*pWater, *touch[MAX_EDICTS];
+	int	i, num;
 
 	if( !rgflPos ) return NULL;
-	player = CL_GetLocalPlayer ();
-	if( !player ) return NULL;
 
-	pWater = CL_Move( rgflPos, vec3_origin, vec3_origin, rgflPos, MOVE_NOMONSTERS, player ).pHit;
+	// grab contents from all the water entities
+	num = CL_AreaEdicts( rgflPos, rgflPos, touch, MAX_EDICTS, AREA_CUSTOM );
 
-	if( CL_IsValidEdict( pWater ))
+	for( i = 0; i < num; i++ )
 	{
-		int	mod_type = CM_GetModelType( pWater->v.modelindex );
-		int	cont = pWater->v.skin;
+		pWater = touch[i];
 
-		// make sure what is a really water entity
-		if(( mod_type == mod_brush || mod_type == mod_world ) && (cont <= CONTENTS_WATER && cont >= CONTENTS_LAVA ))
-			return pWater;
+		if( !CL_IsValidEdict( pWater ))
+			continue;
+
+		if( pWater->v.solid != SOLID_NOT || pWater->v.skin == CONTENTS_NONE )
+			continue; // invalid water ?
+
+		// return first valid water entity
+		return pWater;
 	}
 	return NULL;
 }

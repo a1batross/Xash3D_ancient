@@ -30,13 +30,6 @@ typedef enum
 	S_EXTCOUNT
 } s_openal_extensions;
 
-enum
-{
-	CHAN_FIRSTPLAY,
-	CHAN_LOOPED,
-	CHAN_NORMAL,
-};
-
 typedef struct sfx_s
 {
 	string		name;
@@ -76,7 +69,6 @@ typedef struct
 typedef struct
 {
 	sfx_t		*sfx;		// NULL if unused
-	int		state;		// channel state
 
 	int		entnum;		// to allow overriding a specific sound
 	int		entchannel;
